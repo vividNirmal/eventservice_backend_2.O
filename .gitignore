@@ -1,0 +1,15 @@
+.idea/
+.vscode/
+node_modules/
+build/
+tmp/
+temp/
+package-lock.json
+logs
+images
+src/assets
+uploads/
+.env
+
+# ignore zip files
+*.zip

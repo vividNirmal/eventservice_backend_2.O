@@ -1,0 +1,235 @@
+import express from "express";
+import { checkAdmin, protectedRoute} from "../../middleware/auth.middleware";
+import { validateRequest, validateRequestBody } from "../../middleware/validation.middleware";
+import { storeAdminEvent,updateAdminEvent,getAdminEventDetails  ,getAdminEventList,deleteAdminEvent,generateUniqueURL,generateRegistrationURL,getTokeneventDetails,getParticipantUserList,getAllParticipantUserList,getPeopleList,UpdateExtraEventDetails,GetExtraEventDetails, getParticipantUserDetails, getDeviceUrl, verifyDeviceAndLogin, getEventStatistics, generateCleanDeviceUrl, resolveDeviceUrl, generateCleanFormUrl, resolveFormUrl} from "../../interface/controllers/adminevent.controller";
+import { registerUser , loginUser} from "../../interface/controllers/auth.controller";
+import { getCountry,getState,getCity,importXlsxData,getHomePageCity } from "../../interface/controllers/location.controller";
+import { getSetting , updateSetting } from "../../interface/controllers/setting.controller";
+import { storeScannerMachine,updateScannerMachine,deleteScannerMachine,getScannerMachine,assignScannerMachine,removeAssignScannerMachine,getScannerMachineDetails,checkUniqueMachineId,getScannerMachinesByCompany } from "../../interface/controllers/scannerMachine.controller";
+import { storeCompanyController,getCompany,getCompanyDetails,updateCompanyController,deleteCompany,updateCompanyStatus, updateCompanyLogo } from "../../interface/controllers/company.controller";
+
+import { getEventDetailsSlug,logoutAllScanners,scannerPageLogin } from "../../interface/controllers/ScannerPage.controller";
+import { storeEventParticipantUser ,getUserDetailsUsingEmail,generateEventPdf,generateScannerEventPdf,getParticipantDetails,getParticipantDetailsScanner,scanFaceId,scanParticipantFace, OtpGenerate, OtpVerify, updateParticipantUser, toggleParticipantBlockStatus } from "../../interface/controllers/participantUser.controller";
+import { getAdminUser,storeAdminUser,getSingleAdminUser,updateAdminUser,checkEmailUser,deleteAdminUser,forgetPassword,setPassword,updateUserStatus,changePassword} from "../../interface/controllers/adminuser.controller";
+import { registerUserSchema,loginUserSchema,updateUserSchema,forgetPasswordSchema,setPasswordSchema,updateStatusUserSchema,deleteUsersSchema,changePasswordSchema,scannerPageLoginUserSchema} from "../../utils/validation-schems/user.validation";
+import { EventParticipantUsers, DynamicEventParticipantUsers, sendOtpValidation, UpdateParticipantUsers, verifyOtpValidation } from "../../utils/validation-schems/event_participant_users.validation";
+import { adminEventSchema , adminUpdateEventSchema,deleteEventSchema,extraEventDetails,getDeviceUrlSchema,updateExtraEventDetails, verifyDeviceAndLoginSchema, verifyDeviceDirectAccessSchema, generateFormUrlSchema} from "../../utils/validation-schems/adminevent.validation";
+import { uploadImagesFile } from "../../helper/helper";
+import { settingSchema } from "../../utils/validation-schems/setting.validation";
+import { updateCompanySchema , registerCompanySchema,deleteCompanySchema ,updateStatusCompanySchema, updateCompanyLogoSchema} from "../../utils/validation-schems/company.validation";
+import { getParticipantDetailsSchema, toggleParticipantBlockStatusSchema } from "../../utils/validation-schems/participantDetails.validation";
+import { addScannerMachineSchema,updateScannerMachineSchema,deleteScannerMachineSchema,assignScannerMachineSchema } from "../../utils/validation-schems/scannerMachine.validation";
+import { scannerData ,scannerGetData} from "../../utils/validation-schems/scannerData.validation";
+import { blogValidation,updateBlogValidation,homeBlogdetailsValidation,deleteEventBlog } from "../../utils/validation-schems/blogValidation.validation";
+import { getEventBlog,storeBlogController,eventBlogDetailsController, updateBlogController,locationWiseEventList,locationWiseBlogDetails,deleteEventBlogController} from "../../interface/controllers/eventBlog.conroller";
+import { storeAdminCompanyController,getAdminCompanyList,getAdminCompanyDetails,updateAdminCompanyController,deleteAdminCompanyController } from "../../interface/controllers/adminCompany.controller";
+import {  storeCompanyTeamController , updateCompanyTeamController,deleteCompanyTeamController,getCompanyTeamDetails,getCompanyTeamList } from "../../interface/controllers/companyTeam.controller";
+import { adminCompanySchema,updateAdminCompanySchema,deleteAdminCompanySchema } from "../../utils/validation-schems/adminCompanySchema.validation";
+import { companyTeamSchema,updateCompanyTeamSchema,deleteCompanyTeamSchema } from "../../utils/validation-schems/companyTeamSchema.validation";
+import { getEventDetailValidation,scanParticipantFaceSchema } from "../../utils/validation-schems/scannerPage.validation";
+import { verifyScannerToken } from "../../middleware/scanner.middleware";
+import { getAdminEventHostList, storeAdminEventHost, updateAdminEventHost, getAdminEventHostDetails, getAdminEventHostListByCompany, linkTicketToEventHost, checkTicketLinkStatus, copyAdminEventHost } from "../controllers/eventHost.controller";
+import { eventHostUpdateSchema, eventHostSchema } from "../../utils/validation-schems/eventHostSchema.validation";
+import { getFormListController, getFormDetailsController, createFormController, updateFormController, deleteFormController } from "../../interface/controllers/form.controller";
+import { createFormSchema, updateFormBodySchema, deleteFormSchema, getFormByIdSchema } from "../../utils/validation-schems/form.validation";
+import { getTicketListController, getTicketDetailsController, createTicketController, updateTicketController, deleteTicketController, getTicketsByUserTypeController, bulkDeleteTicketsController, exportTicketsController, importTicketsController } from "../../interface/controllers/ticket.controller";
+import { createTicketSchema, updateTicketBodySchema, deleteTicketSchema, getTicketByIdSchema, getTicketsQuerySchema } from "../../utils/validation-schems/ticket.validation";
+import { createDeviceConfiguration, updateDeviceConfiguration, deleteDeviceConfiguration, getDeviceConfigurationsByCompany, getDeviceConfigurationById } from "../../interface/controllers/deviceConfiguration.controller";
+import { createDeviceConfigurationSchema, updateDeviceConfigurationSchema, deleteDeviceConfigurationSchema, getDeviceConfigurationByCompanySchema } from "../../utils/validation-schems/deviceConfiguration.validation";
+
+
+
+// import { getUsersProfiles, imageCaptionUpdate, imageUpload, removeImages, removeSingleImage, setProfileImage, updateUserProfile } from "../controllers/user.controller";
+    const route = express.Router();
+
+    export const appRoute = (router: express.Router): void => {
+        try {
+
+            router.use('/v1', route)
+            
+            //auth urls
+
+            //Admin company module
+
+            route.post('/store-admin-company',protectedRoute,validateRequest(adminCompanySchema),storeAdminCompanyController);
+            route.get('/get-admin-company-list',protectedRoute,getAdminCompanyList);
+            route.get('/get-admin-company-details/:id',protectedRoute,getAdminCompanyDetails);
+            route.post('/update-admin-company',protectedRoute,validateRequest(updateAdminCompanySchema),updateAdminCompanyController);
+            route.post('/delete-admin-company',protectedRoute,validateRequest(deleteAdminCompanySchema),deleteAdminCompanyController);
+
+            route.get('/get-company-team-list',protectedRoute,getCompanyTeamList);
+            route.post('/store-company-team',protectedRoute,validateRequest(companyTeamSchema),storeCompanyTeamController);
+            route.post('/update-company-team',protectedRoute,validateRequest(updateCompanyTeamSchema),updateCompanyTeamController);
+            route.get('/get-company-team-details/:id',protectedRoute,getCompanyTeamDetails);
+            route.post('/delete-company-team',protectedRoute,validateRequest(deleteCompanyTeamSchema),deleteCompanyTeamController);
+
+            
+            route.post("/register",validateRequest(registerUserSchema),registerUser);
+            route.post("/login",validateRequest(loginUserSchema),loginUser);
+            route.post("/logout",validateRequest(loginUserSchema),loginUser);
+
+            //email validation api
+
+            route.get("/check-email", protectedRoute ,checkEmailUser);
+
+            //admin users url
+            route.get("/get-admin-user-list", protectedRoute ,getAdminUser);
+            
+            route.post("/save-admin-users",protectedRoute,validateRequest(registerUserSchema),storeAdminUser);
+            route.get("/get-single-admin-users/:id",protectedRoute,getSingleAdminUser);
+            route.post("/update-admin-users",protectedRoute,validateRequest(updateUserSchema),updateAdminUser);
+            route.post("/delete-admin-user",protectedRoute,validateRequest(deleteUsersSchema),deleteAdminUser);
+            route.post("/update-user-status", protectedRoute,validateRequest(updateStatusUserSchema), updateUserStatus)
+
+            //event module urls
+            route.post("/save-event-details",protectedRoute,validateRequest(adminEventSchema),storeAdminEvent);
+            route.post("/update-event-details",protectedRoute,validateRequest(adminUpdateEventSchema),updateAdminEvent);
+            route.get("/get-event-details/:id",protectedRoute,getAdminEventDetails);
+            // route.get("/delete-event/:id",protectedRoute,deleteAdminEvent);
+            route.get("/get-event-list",protectedRoute,getAdminEventList);
+            route.post("/delete-event", protectedRoute,validateRequest(deleteEventSchema), deleteAdminEvent)
+            route.get("/get-event-statistics/:id",protectedRoute,getEventStatistics);
+            route.get("/get-paticipant-user-list/:token",protectedRoute,getParticipantUserList);
+            route.get("/get-all-paticipant-user-list",protectedRoute,getAllParticipantUserList);
+            route.get("/get-people-list",protectedRoute,getPeopleList);
+            route.get("/get-paticipant-user-detail/:id",protectedRoute,getParticipantUserDetails);
+            route.post("/update-praticipent-user-details",validateRequest(UpdateParticipantUsers),updateParticipantUser);
+            route.post("/toggle-participant-block-status",protectedRoute,validateRequestBody(toggleParticipantBlockStatusSchema),toggleParticipantBlockStatus);            
+            route.post("/update-extra-event-details",protectedRoute,validateRequest(updateExtraEventDetails),UpdateExtraEventDetails);
+            route.post("/get-extra-event-details",protectedRoute,validateRequest(extraEventDetails),GetExtraEventDetails);
+
+            //event host module
+            route.post("/save-event-host",protectedRoute,uploadImagesFile,validateRequest(eventHostSchema),storeAdminEventHost);
+            route.post("/update-event-host",protectedRoute,uploadImagesFile,validateRequest(eventHostUpdateSchema),updateAdminEventHost);
+            route.post("/copy-event-host/:id",protectedRoute,copyAdminEventHost);
+            route.get("/get-event-host-list",protectedRoute,getAdminEventHostList);
+            route.get("/get-event-host-details/:id",protectedRoute,getAdminEventHostDetails);
+
+            // admin route to get event host list by company
+            route.get("/get-event-host-list-by-company", checkAdmin, getAdminEventHostListByCompany);
+            
+            // ticket linking routes
+            route.post("/link-ticket-to-event-host", protectedRoute, linkTicketToEventHost);
+            route.get("/check-ticket-link-status/:ticketId", protectedRoute, checkTicketLinkStatus);
+            
+            //unique url generate
+            route.get("/generate-unique-url/:slug",protectedRoute,generateUniqueURL);
+            route.get("/get-event-details-using-token/:token",getTokeneventDetails);
+            route.get("/get-registration-url/:slug",generateRegistrationURL);
+
+            route.post("/get-device-url",protectedRoute, validateRequest(getDeviceUrlSchema), getDeviceUrl);
+            route.post("/generate-clean-device-url",protectedRoute, validateRequest(getDeviceUrlSchema), generateCleanDeviceUrl);
+            route.get("/resolve-device-url/:shortId", resolveDeviceUrl);
+            route.post("/generate-clean-form-url",protectedRoute, validateRequest(generateFormUrlSchema), generateCleanFormUrl);
+            route.get("/resolve-form-url/:eventSlug", resolveFormUrl);
+            route.post("/verify-device-and-login", validateRequest(verifyDeviceAndLoginSchema), verifyDeviceAndLogin);
+
+            //store participant urls
+            route.get("/getuser",getTokeneventDetails);
+            route.get("/get-user-details/:email",getUserDetailsUsingEmail);
+            
+            // Use conditional validation based on form_type
+            route.post("/store-participant-details", (req, res, next) => {
+                const schema = req.body.form_type === 'dynamic' ? DynamicEventParticipantUsers : EventParticipantUsers;
+                return validateRequestBody(schema)(req, res, next);
+            }, storeEventParticipantUser);
+            
+            route.get("/generate-event-pdf/:encrypt_token",generateEventPdf);
+            route.post("/generate-event-pdf-scanner",validateRequest(scannerGetData),generateScannerEventPdf);            
+
+            //location module urls
+            route.get('/get-country',getCountry)
+            route.get('/get-state/:id',getState)
+            route.get('/get-city/:id',getCity)
+            route.get('/scanner-page',verifyScannerToken,getSetting)
+            route.post("/importXlsxData",importXlsxData)
+            route.post('/update-button-setting',validateRequest(settingSchema),updateSetting)
+            
+            //Form Management Module URLs
+            route.get('/forms',protectedRoute,getFormListController);
+            route.get('/forms/:id',protectedRoute,getFormDetailsController);
+            route.post('/forms',protectedRoute,validateRequest(createFormSchema),createFormController);
+            route.put('/forms/:id',protectedRoute,validateRequestBody(updateFormBodySchema),updateFormController);
+            route.delete('/forms/:id',protectedRoute,deleteFormController);
+            
+            // Public form endpoint for participants
+            route.get('/public/forms/:id', getFormDetailsController);
+
+            //Ticket Management Module URLs
+            route.get('/tickets',protectedRoute,getTicketListController);
+            route.get('/tickets/export',protectedRoute,exportTicketsController);
+            route.post('/tickets/import',protectedRoute,importTicketsController);
+            route.get('/tickets/:id',protectedRoute,getTicketDetailsController);
+            route.post('/tickets',protectedRoute,uploadImagesFile,validateRequest(createTicketSchema),createTicketController);
+            route.put('/tickets/:id',protectedRoute,uploadImagesFile,validateRequestBody(updateTicketBodySchema),updateTicketController);
+            route.delete('/tickets/:id',protectedRoute,deleteTicketController);
+            route.post('/tickets/bulk-delete',protectedRoute,bulkDeleteTicketsController);
+            route.get('/tickets/by-usertype/:userType',protectedRoute,getTicketsByUserTypeController);
+            
+            route.post('/get-praticipent-details',validateRequest(getParticipantDetailsSchema),getParticipantDetails)
+            
+            //company Module urls
+            route.post("/store-company", protectedRoute ,validateRequest(registerCompanySchema),storeCompanyController);
+            route.get('/get-company-list' ,getCompany)
+            route.get('/get-company-details/:company_id',protectedRoute ,getCompanyDetails)
+            route.post("/update-company-details/:company_id", protectedRoute, validateRequest(updateCompanySchema),updateCompanyController)
+            route.post("/delete-company", protectedRoute,validateRequest(deleteCompanySchema), deleteCompany)
+            route.post("/update-company-status", protectedRoute,validateRequest(updateStatusCompanySchema), updateCompanyStatus)
+            route.post("/get-scanner-data-details",validateRequest(scannerData), getParticipantDetailsScanner)
+            route.post("/update-company-logo",protectedRoute,validateRequest(updateCompanyLogoSchema),updateCompanyLogo);
+
+            //forget password
+            route.post("/forget-password",validateRequest(forgetPasswordSchema),forgetPassword);
+            route.post("/set-password",validateRequest(setPasswordSchema),setPassword);
+
+            //scanner machine module
+            route.post("/add-scanner-machine",protectedRoute,validateRequest(addScannerMachineSchema),storeScannerMachine);
+            route.post("/update-scanner-machine",protectedRoute,validateRequest(updateScannerMachineSchema),updateScannerMachine);
+            route.post("/get-scanner-machine-list",protectedRoute,setPassword);
+            route.post("/delete-scanner-machine",protectedRoute,validateRequest(deleteScannerMachineSchema),deleteScannerMachine);
+            route.get("/get-scanner-machine-list",protectedRoute,getScannerMachine);
+            route.post("/assign-scanner-machine",protectedRoute,validateRequest(assignScannerMachineSchema),assignScannerMachine);
+            route.post("/remove-assign-scanner-machine",protectedRoute,validateRequest(deleteScannerMachineSchema),removeAssignScannerMachine);
+            route.get('/get-scanner-machine/:scanner_machine_id',protectedRoute ,getScannerMachineDetails)
+            route.get('/get-scanner-machines-by-company/:company_id',protectedRoute ,getScannerMachinesByCompany)
+            route.get("/check-scanner-machine", protectedRoute ,checkUniqueMachineId);
+            route.post("/scan-face-id" ,scanFaceId);
+            route.post("/scan-participant-face",validateRequest(scanParticipantFaceSchema),scanParticipantFace);
+            
+            //device configuration module
+            route.post("/create-device-configuration",protectedRoute,validateRequest(createDeviceConfigurationSchema),createDeviceConfiguration);
+            route.post("/update-device-configuration",protectedRoute,validateRequest(updateDeviceConfigurationSchema),updateDeviceConfiguration);
+            route.post("/delete-device-configuration",protectedRoute,validateRequest(deleteDeviceConfigurationSchema),deleteDeviceConfiguration);
+            route.get("/get-device-configurations/:company_id/:event_id",protectedRoute,getDeviceConfigurationsByCompany);
+            route.get("/get-device-configuration/:id",protectedRoute,getDeviceConfigurationById);
+            
+            route.post('/get-event-details-slug',validateRequestBody(getEventDetailValidation),getEventDetailsSlug);
+            
+            //scannerPageLogin
+            route.post("/scanner-page-login",validateRequest(scannerPageLoginUserSchema),scannerPageLogin);
+            route.post("/logout-all-scanners",protectedRoute,logoutAllScanners);
+            //changePasswordSchema
+            route.post("/change-password",protectedRoute,validateRequest(changePasswordSchema),changePassword);
+            
+            //levenex blogs
+            route.get("/blogs-listing",protectedRoute,getEventBlog);
+            route.post("/add-blog",protectedRoute,validateRequest(blogValidation),storeBlogController);
+            route.post("/update-blog",protectedRoute,validateRequest(updateBlogValidation),updateBlogController);
+            route.get("/blog-details/:id",protectedRoute,eventBlogDetailsController);
+            route.post("/delete-event-blog", protectedRoute,validateRequest(deleteEventBlog),deleteEventBlogController)
+
+            //show frontend side
+            route.get('/get-homepage-cities-data',getHomePageCity);
+            route.get("/event-blog-listing",locationWiseEventList)
+            route.post("/home-page-blog-details",validateRequest(homeBlogdetailsValidation),locationWiseBlogDetails)
+            
+
+            route.post('/send-otp',verifyScannerToken,validateRequest(sendOtpValidation),OtpGenerate);
+            route.post('/verify-otp',verifyScannerToken,validateRequest(verifyOtpValidation),OtpVerify);
+
+
+        } catch (error) {
+            // Log any errors that occur during route definition
+            console.log(error, 'warn')
+        }
+    }

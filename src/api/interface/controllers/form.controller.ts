@@ -1,12 +1,13 @@
 import { Request, Response } from "express";
 import { loggerMsg } from "../../lib/logger";
 import { successResponse, ErrorResponse } from "../../helper/apiResponse";
-import { 
-    getAllForms, 
-    getFormById, 
-    createForm, 
-    updateForm, 
-    deleteForm 
+import {
+    getAllForms,
+    getFormById,
+    createForm,
+    updateForm,
+    deleteForm,
+    addPageToForm
 } from "../../domain/models/form.model";
 
 interface AuthenticatedRequest extends Request {
@@ -16,6 +17,9 @@ interface AuthenticatedRequest extends Request {
     };
 }
 
+/**
+ * Get Form List
+ */
 export const getFormListController = async (req: AuthenticatedRequest, res: Response) => {
     try {
         const page = parseInt(req.query.page as string) || 1;
@@ -40,6 +44,9 @@ export const getFormListController = async (req: AuthenticatedRequest, res: Resp
     }
 };
 
+/**
+ * Get Form Details
+ */
 export const getFormDetailsController = async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { id } = req.params;
@@ -60,16 +67,19 @@ export const getFormDetailsController = async (req: AuthenticatedRequest, res: R
     }
 };
 
+/**
+ * Create Form
+ */
 export const createFormController = async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const { formName, userType, formFields, companyId, eventId} = req.body;
+        const { formName, userType, pages, companyId, eventId } = req.body;
 
         const formData = {
             formName,
             userType,
-            formFields: formFields || [],
+            pages: pages || [], // 👈 replaces formFields
             companyId: companyId || req.user?.company_id || null,
-            eventId : eventId || null
+            eventId: eventId || null
         };
 
         createForm(formData, (error: any, result: any) => {
@@ -91,15 +101,13 @@ export const createFormController = async (req: AuthenticatedRequest, res: Respo
 export const updateFormController = async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { id } = req.params;
-        const { formName, userType, formFields } = req.body;
-
-        console.log('Update form request:', { id, body: req.body });
+        const { formName, userType, pages } = req.body;
 
         const updateData = {
             formId: id,
             formName,
             userType,
-            formFields
+            pages // 👈 replaces formFields
         };
 
         updateForm(updateData, (error: any, result: any) => {
@@ -118,6 +126,9 @@ export const updateFormController = async (req: AuthenticatedRequest, res: Respo
     }
 };
 
+/**
+ * Delete Form
+ */
 export const deleteFormController = async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { id } = req.params;
@@ -136,4 +147,35 @@ export const deleteFormController = async (req: AuthenticatedRequest, res: Respo
         loggerMsg("error", `Error in deleteFormController: ${error.message}`);
         return ErrorResponse(res, error.message);
     }
+};
+
+// cratea Page form model
+export const addPageController = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id } = req.params; // formId
+    const { pageName, description } = req.body;
+    
+    if (!pageName) {
+      return ErrorResponse(res, "Page name is required");
+    }
+
+    const data = {
+      formId: id,
+      pageName,
+      description
+    };
+
+    addPageToForm(data, (error: any, result: any) => {
+      if (error) {
+        loggerMsg("error", `Error in addPageController: ${error.message}`);
+        return ErrorResponse(res, error.message);
+      }
+
+      loggerMsg("info", "Page added successfully to form");
+      return successResponse(res, "Page added successfully", result);
+    });
+  } catch (error: any) {
+    loggerMsg("error", `Error in addPageController: ${error.message}`);
+    return ErrorResponse(res, error.message);
+  }
 };

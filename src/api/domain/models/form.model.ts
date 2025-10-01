@@ -160,3 +160,33 @@ export const deleteForm = async (
         return callback(error, null);
     }
 };
+
+export const addPageToForm = async (
+  data: { formId: string; pageName: string; description?: string },
+  callback: (err: any, result?: any) => void
+) => {
+  try {
+    const { formId, pageName, description } = data;
+
+    const updatedForm = await FormSchema.findByIdAndUpdate(
+      formId,
+      {
+        $push: {
+          pages: {
+            name: pageName,            
+            description: description || ""
+          }
+        }
+      },
+      { new: true } // return updated document
+    );
+
+    if (!updatedForm) {
+      return callback(new Error("Form not found"));
+    }
+
+    return callback(null, updatedForm);
+  } catch (err) {
+    return callback(err);
+  }
+};

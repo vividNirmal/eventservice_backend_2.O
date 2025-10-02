@@ -36,6 +36,8 @@ import { getTicketListController, getTicketDetailsController, createTicketContro
 import { createTicketSchema, updateTicketBodySchema, deleteTicketSchema, getTicketByIdSchema, getTicketsQuerySchema } from "../../utils/validation-schems/ticket.validation";
 import { createDeviceConfiguration, updateDeviceConfiguration, deleteDeviceConfiguration, getDeviceConfigurationsByCompany, getDeviceConfigurationById } from "../../interface/controllers/deviceConfiguration.controller";
 import { createDeviceConfigurationSchema, updateDeviceConfigurationSchema, deleteDeviceConfigurationSchema, getDeviceConfigurationByCompanySchema } from "../../utils/validation-schems/deviceConfiguration.validation";
+import { createDefaultFieldController, getAllDefaultFieldsController, getDefaultFieldByIdController, updateDefaultFieldByIdController } from "../controllers/defaultField.controller";
+import { createDefaultFieldSchema } from "../../utils/validation-schems/defualtField.validation";
 
 
 
@@ -152,7 +154,12 @@ import { createDeviceConfigurationSchema, updateDeviceConfigurationSchema, delet
             route.put('/forms/:id',protectedRoute,validateRequestBody(updateFormBodySchema),updateFormController);
             route.delete('/forms/:id',protectedRoute,deleteFormController);
             route.put('/forms/add-page/:id', protectedRoute, addPageController);
-            
+
+            // form Field management
+            route.post('/store-default-field',protectedRoute,validateRequest(createDefaultFieldSchema),createDefaultFieldController);
+            route.get('/get-default-field-list',protectedRoute,getAllDefaultFieldsController);
+            router.get('/get-default-field/:id',protectedRoute,getDefaultFieldByIdController);
+            route.post('/update-default-field/:id',protectedRoute,validateRequest(createDefaultFieldSchema),updateDefaultFieldByIdController);
             // Public form endpoint for participants
             route.get('/public/forms/:id', getFormDetailsController);
 

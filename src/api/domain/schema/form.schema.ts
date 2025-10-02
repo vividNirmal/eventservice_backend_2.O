@@ -16,8 +16,7 @@ export interface IElement {
   placeHolder?: string;
   inputType?: string;
   isPrimary?: boolean;
-  fieldType?: string;
-  randomId?: number;
+  fieldType?: string;  
 }
 
 export interface IPage {
@@ -59,7 +58,6 @@ const elementSchema = new Schema<IElement>(
     inputType: { type: String },
     isPrimary: { type: Boolean, default: false },
     fieldType: { type: String, default: "DEFAULT" },
-    randomId: { type: Number },
   },
   { _id: false }
 );

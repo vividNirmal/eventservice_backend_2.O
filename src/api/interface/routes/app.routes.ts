@@ -38,6 +38,8 @@ import { createDeviceConfiguration, updateDeviceConfiguration, deleteDeviceConfi
 import { createDeviceConfigurationSchema, updateDeviceConfigurationSchema, deleteDeviceConfigurationSchema, getDeviceConfigurationByCompanySchema } from "../../utils/validation-schems/deviceConfiguration.validation";
 import { createDefaultFieldController, getAllDefaultFieldsController, getDefaultFieldByIdController, updateDefaultFieldByIdController } from "../controllers/defaultField.controller";
 import { createDefaultFieldSchema } from "../../utils/validation-schems/defualtField.validation";
+import { getTemplateTypeListController, getTemplateTypeDetailsController, createTemplateTypeController, updateTemplateTypeController, deleteTemplateTypeController } from "../controllers/templateType.controller";
+import { getTemplateListController, getTemplateDetailsController, createTemplateController, updateTemplateController, deleteTemplateController,  } from "../controllers/template.controller";
 
 
 
@@ -230,7 +232,20 @@ import { createDefaultFieldSchema } from "../../utils/validation-schems/defualtF
             route.get('/get-homepage-cities-data',getHomePageCity);
             route.get("/event-blog-listing",locationWiseEventList)
             route.post("/home-page-blog-details",validateRequest(homeBlogdetailsValidation),locationWiseBlogDetails)
+
+            //template type
+            route.get('/template-types', protectedRoute, getTemplateTypeListController);
+            route.get('/template-types/:id', protectedRoute, getTemplateTypeDetailsController);
+            route.post('/template-types', protectedRoute, createTemplateTypeController);
+            route.put('/template-types/:id', protectedRoute, updateTemplateTypeController);
+            route.delete('/template-types/:id', protectedRoute, deleteTemplateTypeController);
             
+            //template
+            route.get('/templates', protectedRoute, getTemplateListController);
+            route.get('/templates/:id', protectedRoute, getTemplateDetailsController);
+            route.post('/templates', protectedRoute, createTemplateController);
+            route.put('/templates/:id', protectedRoute, updateTemplateController);
+            route.delete('/templates/:id', protectedRoute, deleteTemplateController);
 
             route.post('/send-otp',verifyScannerToken,validateRequest(sendOtpValidation),OtpGenerate);
             route.post('/verify-otp',verifyScannerToken,validateRequest(verifyOtpValidation),OtpVerify);

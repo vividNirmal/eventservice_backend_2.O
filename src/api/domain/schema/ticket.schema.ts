@@ -6,6 +6,27 @@ export interface ISlotAmount {
     amount: number;
 }
 
+export interface IAdvancedSettings {
+    ticketBuyLimitMin: number;
+    ticketBuyLimitMax: number;
+    hasQuantityLimit: boolean;
+    badgeCategory?: string;
+    registrationFilterDate?: Date;
+    allowCrossRegister: boolean;
+    crossRegisterCategories?: string[];
+    autoApprovedUser: boolean;
+    authenticateByOTP: boolean;
+    autoPassword: boolean;
+    addAllDiscount: boolean;
+    individualDiscount: boolean;
+}
+
+export interface INotifications {
+    emailNotification: boolean;
+    smsNotification: boolean;
+    whatsappNotification: boolean;
+}
+
 export interface ITicket extends Document {
     // Basic Info
     ticketName: string;
@@ -31,25 +52,13 @@ export interface ITicket extends Document {
     linkBannerMobile?: string;
     desktopBannerImage?: string;
     mobileBannerImage?: string;
+    ctaSettings?: string[];
 
     // Advanced Settings
-    ticketBuyLimitMin: number;
-    ticketBuyLimitMax: number;
-    hasQuantityLimit: boolean;
-    badgeCategory?: string;
-    registrationFilterDate?: Date;
-    allowCrossRegister: boolean;
-    crossRegisterCategories?: string[];
-    autoApprovedUser: boolean;
-    authenticateByOTP: boolean;
-    autoPassword: boolean;
-    addAllDiscount: boolean;
-    individualDiscount: boolean;
+    advancedSettings: IAdvancedSettings;
 
     // Notifications
-    emailNotification: boolean;
-    smsNotification: boolean;
-    whatsappNotification: boolean;
+    notifications: INotifications;
 
     // System fields
     status: 'active' | 'inactive' | 'expired';
@@ -64,6 +73,29 @@ const slotAmountSchema = new Schema<ISlotAmount>({
     endDateTime: { type: Date, required: true },
     amount: { type: Number, required: true, min: 0 }
 });
+
+// Advanced Settings Subschema
+const advancedSettingsSchema = new Schema<IAdvancedSettings>({
+    ticketBuyLimitMin: { type: Number, required: true, default: 1, min: 1 },
+    ticketBuyLimitMax: { type: Number, required: true, default: 10, min: 1 },
+    hasQuantityLimit: { type: Boolean, default: false },
+    badgeCategory: { type: String, trim: true },
+    registrationFilterDate: { type: Date },
+    allowCrossRegister: { type: Boolean, default: false },
+    crossRegisterCategories: [{ type: String }],
+    autoApprovedUser: { type: Boolean, default: false },
+    authenticateByOTP: { type: Boolean, default: false },
+    autoPassword: { type: Boolean, default: false },
+    addAllDiscount: { type: Boolean, default: false },
+    individualDiscount: { type: Boolean, default: false },
+}, { _id: false });
+
+// Notifications Subschema
+const notificationsSchema = new Schema<INotifications>({
+    emailNotification: { type: Boolean, default: false },
+    smsNotification: { type: Boolean, default: false },
+    whatsappNotification: { type: Boolean, default: false },
+}, { _id: false });
 
 const ticketSchema: Schema = new Schema<ITicket>({
     // Basic Info
@@ -111,25 +143,16 @@ const ticketSchema: Schema = new Schema<ITicket>({
     linkBannerMobile: { type: String, trim: true },
     desktopBannerImage: { type: String, trim: true },
     mobileBannerImage: { type: String, trim: true },
+    ctaSettings: [{
+        type: String,
+        enum: ['Chat', 'Schedule']
+    }],
 
     // Advanced Settings
-    ticketBuyLimitMin: { type: Number, required: true, default: 1, min: 1 },
-    ticketBuyLimitMax: { type: Number, required: true, default: 10, min: 1 },
-    hasQuantityLimit: { type: Boolean, default: false },
-    badgeCategory: { type: String, trim: true },
-    registrationFilterDate: { type: Date },
-    allowCrossRegister: { type: Boolean, default: false },
-    crossRegisterCategories: [{ type: String }],
-    autoApprovedUser: { type: Boolean, default: false },
-    authenticateByOTP: { type: Boolean, default: false },
-    autoPassword: { type: Boolean, default: false },
-    addAllDiscount: { type: Boolean, default: false },
-    individualDiscount: { type: Boolean, default: false },
+    advancedSettings: { type: advancedSettingsSchema, default: {} },
 
     // Notifications
-    emailNotification: { type: Boolean, default: false },
-    smsNotification: { type: Boolean, default: false },
-    whatsappNotification: { type: Boolean, default: false },
+    notifications: { type: notificationsSchema, default: {} },
 
     // System fields
     status: { 

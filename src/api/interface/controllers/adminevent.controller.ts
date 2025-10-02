@@ -973,12 +973,12 @@ export const resolveFormUrl = async (req: Request, res: Response) => {
             ticket = await ticketSchema.findById(event.ticketId).select("registrationFilterDate");
         }
         // If ticket has registrationFilterDate, then check if current date is within the range
-        if (ticket && ticket.registrationFilterDate) {
+        if (ticket && ticket.advancedSettings.registrationFilterDate) {
             const now = new Date();
             console.log('🎫 Checking registration filter date:', {
                 now: now.toISOString(),
-                registrationFilterDate: ticket.registrationFilterDate.toISOString(),
-                isInFuture: ticket.registrationFilterDate > now
+                registrationFilterDate: ticket.advancedSettings.registrationFilterDate.toISOString(),
+                isInFuture: ticket.advancedSettings.registrationFilterDate > now
             });
 
             // if the date is in the past and event end date is also over then registration is closed
@@ -1022,10 +1022,10 @@ export const resolveFormUrl = async (req: Request, res: Response) => {
             }
             
             // if the date is in the future
-            if (ticket.registrationFilterDate > now) {
+            if (ticket.advancedSettings.registrationFilterDate > now) {
                 console.log('⏰ Registration not started yet');
                 return errorResponseWithData(res, "Registration not started yet.", {
-                    registrationFilterDate: ticket.registrationFilterDate
+                    registrationFilterDate: ticket.advancedSettings.registrationFilterDate
                 });
             }
         }

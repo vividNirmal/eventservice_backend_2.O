@@ -6,6 +6,31 @@ const slotAmountSchema = Joi.object({
     amount: Joi.number().min(0).required()
 });
 
+const advancedSettingsSchema = Joi.object({
+    ticketBuyLimitMin: Joi.number().integer().min(1).default(1),
+    ticketBuyLimitMax: Joi.number().integer().min(Joi.ref('ticketBuyLimitMin')).default(10),
+    hasQuantityLimit: Joi.boolean().default(false),
+    badgeCategory: Joi.string().trim().max(50).optional(),
+    registrationFilterDate: Joi.date().optional().allow(null),
+    allowCrossRegister: Joi.boolean().default(false),
+    crossRegisterCategories: Joi.array().items(Joi.string()).when('allowCrossRegister', {
+        is: true,
+        then: Joi.required(),
+        otherwise: Joi.optional()
+    }),
+    autoApprovedUser: Joi.boolean().default(false),
+    authenticateByOTP: Joi.boolean().default(false),
+    autoPassword: Joi.boolean().default(false),
+    addAllDiscount: Joi.boolean().default(false),
+    individualDiscount: Joi.boolean().default(false),
+});
+
+const notificationsSchema = Joi.object({
+    emailNotification: Joi.boolean().default(false),
+    smsNotification: Joi.boolean().default(false),
+    whatsappNotification: Joi.boolean().default(false),
+});
+
 export const createTicketSchema = Joi.object({
     // Basic Info - Step 1
     ticketName: Joi.string().trim().min(1).max(100).required(),
@@ -53,29 +78,19 @@ export const createTicketSchema = Joi.object({
     linkBannerMobile: Joi.string().uri().optional().allow(null,''),
     desktopBannerImage: Joi.string().optional().allow(null,''),
     mobileBannerImage: Joi.string().optional().allow(null,''),
+    ctaSettings: Joi.array().items(Joi.string()).optional(),
 
     // Advanced Settings - Step 4
-    ticketBuyLimitMin: Joi.number().integer().min(1).default(1),
-    ticketBuyLimitMax: Joi.number().integer().min(Joi.ref('ticketBuyLimitMin')).default(10),
-    hasQuantityLimit: Joi.boolean().default(false),
-    badgeCategory: Joi.string().trim().max(50).optional(),
-    registrationFilterDate: Joi.date().optional().allow(null),
-    allowCrossRegister: Joi.boolean().default(false),
-    crossRegisterCategories: Joi.array().items(Joi.string()).when('allowCrossRegister', {
-        is: true,
-        then: Joi.required(),
-        otherwise: Joi.optional()
-    }),
-    autoApprovedUser: Joi.boolean().default(false),
-    authenticateByOTP: Joi.boolean().default(false),
-    autoPassword: Joi.boolean().default(false),
-    addAllDiscount: Joi.boolean().default(false),
-    individualDiscount: Joi.boolean().default(false),
+    advancedSettings: Joi.alternatives().try(
+        advancedSettingsSchema, // object
+        Joi.string()            // JSON string from FormData
+    ).required(),
 
     // Notifications - Step 5
-    emailNotification: Joi.boolean().default(false),
-    smsNotification: Joi.boolean().default(false),
-    whatsappNotification: Joi.boolean().default(false),
+    notifications: Joi.alternatives().try(
+        notificationsSchema, // object
+        Joi.string()         // JSON string from FormData
+    ).required(),
 
     // System fields
     status: Joi.string().valid('active', 'inactive', 'expired').default('active'),
@@ -118,25 +133,19 @@ export const updateTicketBodySchema = Joi.object({
     linkBannerMobile: Joi.string().uri().optional().allow(null,''),
     desktopBannerImage: Joi.string().optional().allow(null,''),
     mobileBannerImage: Joi.string().optional().allow(null,''),
+    ctaSettings: Joi.array().items(Joi.string()).optional(),
 
     // Advanced Settings
-    ticketBuyLimitMin: Joi.number().integer().min(1).optional(),
-    ticketBuyLimitMax: Joi.number().integer().min(1).optional(),
-    hasQuantityLimit: Joi.boolean().optional(),
-    badgeCategory: Joi.string().trim().max(50).optional(),
-    registrationFilterDate: Joi.date().optional(),
-    allowCrossRegister: Joi.boolean().optional(),
-    crossRegisterCategories: Joi.array().items(Joi.string()).optional(),
-    autoApprovedUser: Joi.boolean().optional(),
-    authenticateByOTP: Joi.boolean().optional(),
-    autoPassword: Joi.boolean().optional(),
-    addAllDiscount: Joi.boolean().optional(),
-    individualDiscount: Joi.boolean().optional(),
+    advancedSettings: Joi.alternatives().try(
+        advancedSettingsSchema, // object
+        Joi.string()            // JSON string from FormData
+    ).optional(),
 
     // Notifications
-    emailNotification: Joi.boolean().optional(),
-    smsNotification: Joi.boolean().optional(),
-    whatsappNotification: Joi.boolean().optional(),
+    notifications: Joi.alternatives().try(
+        notificationsSchema, // object
+        Joi.string()         // JSON string from FormData
+    ).optional(),
 
     // System fields
     status: Joi.string().valid('active', 'inactive', 'expired').optional(),

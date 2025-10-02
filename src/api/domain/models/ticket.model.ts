@@ -4,6 +4,35 @@ import FormSchema from "../schema/form.schema";
 import mongoose from "mongoose";
 import { env } from "../../../infrastructure/env";
 
+
+const parseJsonFields = (data: any) => {
+  if (data.advancedSettings && typeof data.advancedSettings === 'string') {
+    try {
+      data.advancedSettings = JSON.parse(data.advancedSettings);
+    } catch (err) {
+      throw new Error('Invalid JSON for advancedSettings');
+    }
+  }
+
+  if (data.notifications && typeof data.notifications === 'string') {
+    try {
+      data.notifications = JSON.parse(data.notifications);
+    } catch (err) {
+      throw new Error('Invalid JSON for notifications');
+    }
+  }
+
+//   if (data.slotAmounts && typeof data.slotAmounts === 'string') {
+//     try {
+//       data.slotAmounts = JSON.parse(data.slotAmounts);
+//     } catch (err) {
+//       throw new Error('Invalid JSON for slotAmounts');
+//     }
+//   }
+
+  return data;
+};
+
 interface TicketFilterOptions {
     userType?: string;
     ticketCategory?: string;
@@ -163,8 +192,9 @@ export const createTicket = async (
     eventId: mongoose.Types.ObjectId
 ) => {
     try {
+        const parsedData = parseJsonFields(ticketData);
         const newTicket = new TicketSchema({
-            ...ticketData,
+            ...parsedData,
             companyId,
             eventId
         });
@@ -204,9 +234,10 @@ export const updateTicket = async (
     companyId: mongoose.Types.ObjectId
 ) => {
     try {
+        const parsedData = parseJsonFields(updateData);
         const updatedTicket = await TicketSchema.findOneAndUpdate(
             { _id: ticketId },
-            updateData,
+            parsedData,
             { new: true, runValidators: true }
         ).populate('registrationFormId', 'formName userType');
 

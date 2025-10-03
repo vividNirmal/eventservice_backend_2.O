@@ -40,7 +40,7 @@ export const getAllTemplateTypes = async (
     }
 
     // Get total count
-    const totalCount = await TemplateTypeSchema.countDocuments(searchQuery);
+    const totalData = await TemplateTypeSchema.countDocuments(searchQuery);
 
     // Get template types with pagination
     const templateTypes = await TemplateTypeSchema.find(searchQuery)
@@ -48,7 +48,7 @@ export const getAllTemplateTypes = async (
       .skip((page - 1) * limit)
       .limit(limit);
 
-    const totalPages = Math.ceil(totalCount / limit);
+    const totalPages = Math.ceil(totalData / limit);
 
     return {
       success: true,
@@ -57,7 +57,7 @@ export const getAllTemplateTypes = async (
         pagination: {
           currentPage: page,
           totalPages,
-          totalCount,
+          totalData,
           limit
         }
       }

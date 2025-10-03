@@ -3,10 +3,12 @@ import {
   createDefaultFieldModule,
   getAllDefaultFields,
   getDefaultFieldById,
+  getDefaultFieldByUserType,
   updateDefaultFieldById,
 } from "../../domain/models/defaultField.model";
 import { ErrorResponse, successResponse } from "../../helper/apiResponse";
 import { loggerMsg } from "../../lib/logger";
+import { error } from "console";
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -128,3 +130,22 @@ export const updateDefaultFieldByIdController: RequestHandler = async (
     return ErrorResponse(res, error.message);
   }
 };
+
+// get element by usertype
+export const getDefaultFieldByUserTypeController : RequestHandler = async(req :any,res:Response,next :NextFunction)=>{
+  try{
+    const {userType} = req.params;     
+    getDefaultFieldByUserType(userType, (error: any, result: any) => {
+      if (error) {
+        loggerMsg("error", `Error in getDefaultFieldByIdController: ${error.message}`);
+        return ErrorResponse(res, error.message);
+      }
+
+      loggerMsg("info", "Fetched default field by ID successfully");
+      return successResponse(res, "Fetched default field by ID successfully", result);
+    });
+  }catch (error :any){
+    loggerMsg("error", `Error in getDefaultFieldByIdController: ${error.message}`);
+    return ErrorResponse(res, error.message);
+  }
+}

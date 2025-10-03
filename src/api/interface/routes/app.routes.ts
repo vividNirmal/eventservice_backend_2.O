@@ -36,7 +36,7 @@ import { getTicketListController, getTicketDetailsController, createTicketContro
 import { createTicketSchema, updateTicketBodySchema, deleteTicketSchema, getTicketByIdSchema, getTicketsQuerySchema } from "../../utils/validation-schems/ticket.validation";
 import { createDeviceConfiguration, updateDeviceConfiguration, deleteDeviceConfiguration, getDeviceConfigurationsByCompany, getDeviceConfigurationById } from "../../interface/controllers/deviceConfiguration.controller";
 import { createDeviceConfigurationSchema, updateDeviceConfigurationSchema, deleteDeviceConfigurationSchema, getDeviceConfigurationByCompanySchema } from "../../utils/validation-schems/deviceConfiguration.validation";
-import { createDefaultFieldController, getAllDefaultFieldsController, getDefaultFieldByIdController, updateDefaultFieldByIdController } from "../controllers/defaultField.controller";
+import { createDefaultFieldController, getAllDefaultFieldsController, getDefaultFieldByIdController, getDefaultFieldByUserTypeController, updateDefaultFieldByIdController } from "../controllers/defaultField.controller";
 import { createDefaultFieldSchema } from "../../utils/validation-schems/defualtField.validation";
 import { getTemplateTypeListController, getTemplateTypeDetailsController, createTemplateTypeController, updateTemplateTypeController, deleteTemplateTypeController } from "../controllers/templateType.controller";
 import { getTemplateListController, getTemplateDetailsController, createTemplateController, updateTemplateController, deleteTemplateController,  } from "../controllers/template.controller";
@@ -160,8 +160,9 @@ import { getTemplateListController, getTemplateDetailsController, createTemplate
             // form Field management
             route.post('/store-default-field',protectedRoute,validateRequest(createDefaultFieldSchema),createDefaultFieldController);
             route.get('/get-default-field-list',protectedRoute,getAllDefaultFieldsController);
-            router.get('/get-default-field/:id',protectedRoute,getDefaultFieldByIdController);
+            route.get('/get-default-field/:id',protectedRoute,getDefaultFieldByIdController);
             route.post('/update-default-field/:id',protectedRoute,validateRequest(createDefaultFieldSchema),updateDefaultFieldByIdController);
+            route.get('/get-default-userType/:userType',getDefaultFieldByUserTypeController)
             // Public form endpoint for participants
             route.get('/public/forms/:id', getFormDetailsController);
 

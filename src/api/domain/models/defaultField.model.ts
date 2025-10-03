@@ -126,6 +126,24 @@ export const updateDefaultFieldById = async (
   }
 };
 
+// get by UserType
+export const getDefaultFieldByUserType = async (
+  userType: string,
+  callback: (error: Error | null, result?: any) => void
+) => {
+  try {
+    const field = await defaultFieldSchema.find({userType : userType});
+    if (!field) {
+      return callback(new Error("Field not found"), null);
+    }
+    callback(null, { field });
+  } catch (error: any) {
+    loggerMsg("error", `Error fetching default field by userType: ${error}`);
+    callback(error, null);
+  }
+};
+
+
 
 function buildValidator(data: any) {
   let regex = "";

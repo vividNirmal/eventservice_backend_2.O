@@ -51,6 +51,7 @@ export const updateFormBodySchema = Joi.object({
         'any.only': 'User type must be one of: Event Attendee, Exhibiting Company, Sponsor, Speaker, Service Provider, Accompanying'
     }),
     formFields: Joi.array().items(formFieldSchema).optional(),
+    pages :Joi.any().optional(),
     settings: Joi.any().optional(), // Allow settings object as flexible JSON
     companyId: Joi.string().optional().allow(null) // companyId can be null or empty for certain user types
 });

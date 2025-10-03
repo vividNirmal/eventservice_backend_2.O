@@ -4,6 +4,9 @@ export const createDefaultFieldSchema = Joi.object({
   fieldName: Joi.string().required().min(1).max(100).messages({
     "string.empty": "Field name is required",   
   }),
+  fieldTitle :Joi.string().required().messages({
+    "string.empty": "Field Title is required",   
+  }),
 
   fieldType: Joi.string()
     .valid("text", "number", "date", "boolean", "dropdown", "radio", "checkbox",'textarea','email','url',"file")

@@ -11,6 +11,7 @@ const validatorSchema = new mongoose.Schema(
 
 const defaultFieldSchema = new mongoose.Schema(
   {
+    fieldTitle :{type: String, required: true },
     fieldName: { type: String, required: true },
     fieldType: { type: String, required: true },
     isRequired: { type: Boolean, default: false },

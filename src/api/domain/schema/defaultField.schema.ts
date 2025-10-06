@@ -23,6 +23,7 @@ const defaultFieldSchema = new mongoose.Schema(
     validators: { type: [validatorSchema], default: [] },
     icon: { type: String },
     userType: { type: [String] },
+    userFieldMapping : { type: [String] },
     fieldDescription: { type: String },
     fieldminLimit: { type: String },
     fieldmaxLimit: { type: String },

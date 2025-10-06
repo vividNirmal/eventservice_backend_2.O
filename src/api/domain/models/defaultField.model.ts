@@ -18,6 +18,7 @@ interface DefaultField {
   fieldminLimit: string;
   fieldmaxLimit: string;
   specialCharactor: string;
+  userFieldMapping :[],
 }
 export const createDefaultFieldModule = async (
   formData: any,

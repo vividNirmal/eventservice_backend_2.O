@@ -36,32 +36,6 @@ export interface IForm extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
-
-const validatorSchema = new Schema<IValidator>(
-  {
-    type: { type: String, required: true },
-    text: { type: String, required: true },
-    regex: { type: String },
-  },
-  { _id: false }
-);
-
-const elementSchema = new Schema<IElement>(
-  {
-    name: { type: String, required: true },
-    type: { type: String, required: true },
-    title: { type: String, required: true },
-    isRequired: { type: Boolean, default: false },
-    requiredErrorText: { type: String },
-    validators: [validatorSchema],
-    placeHolder: { type: String },
-    inputType: { type: String },
-    isPrimary: { type: Boolean, default: false },
-    fieldType: { type: String, default: "DEFAULT" },
-  },
-  { _id: false }
-);
-
 const pageSchema = new Schema<IPage>(
   {
     name: { type: String, required: true },

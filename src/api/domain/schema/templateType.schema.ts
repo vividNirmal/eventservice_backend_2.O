@@ -4,6 +4,8 @@ export interface ITemplateType extends Document {
   // Basic Info
   type: "email" | "sms" | "whatsapp";
   typeName: string;
+  module: string;
+  actionType: string;
 
   // System fields
   createdAt: Date;
@@ -19,6 +21,16 @@ const templateTypeSchema: Schema = new Schema<ITemplateType>(
       enum: ["email", "sms", "whatsapp"],
     },
     typeName: { type: String, required: true, trim: true },
+    module: { 
+      type: String,
+      required: true,
+      enum: ["ticket", "event", "user", "other"],
+    },
+    actionType:  { 
+      type: String,
+      required: true,
+      enum: ["welcome", "approve", "disapprove", "suspend", "onboard", "notify"],
+    },
   },
   {
     timestamps: true,
@@ -26,7 +38,7 @@ const templateTypeSchema: Schema = new Schema<ITemplateType>(
 );
 
 // Indexes for better performance
-templateTypeSchema.index({ type: 1 });
+templateTypeSchema.index({ type: 1, actionType: 1 }, { unique: true }); // one actionType attach to template type only once
 templateTypeSchema.index({ createdAt: -1 });
 
 export default mongoose.model<ITemplateType>(

@@ -111,16 +111,16 @@ export const createTemplateType = async (
   templateTypeData: Partial<ITemplateType>,
 ) => {
   try {
-    // Check if template type with same name and type already exists
+    // Check if template type with same actionType already exists for this type (email/sms/whatsapp)
     const existingTemplateType = await TemplateTypeSchema.findOne({
-      typeName: templateTypeData.typeName,
-      type: templateTypeData.type
+      type: templateTypeData.type,
+      actionType: templateTypeData.actionType
     });
 
     if (existingTemplateType) {
       return {
         success: false,
-        message: 'Template type with this name and type already exists'
+        message: `Action type '${templateTypeData.actionType}' already exists for ${templateTypeData.type} templates.`
       };
     }
 
@@ -138,6 +138,15 @@ export const createTemplateType = async (
       message: 'Template type created successfully'
     };
   } catch (error: any) {
+    // Handle MongoDB duplicate key error explicitly
+    if (error.code === 11000) {
+      const duplicateField = Object.keys(error.keyValue).join(', ');
+      return {
+        success: false,
+        message: `Duplicate entry: ${duplicateField} must be unique.`
+      };
+    }
+
     logger.error('Error creating template type:', error);
     return {
       success: false,
@@ -161,20 +170,31 @@ export const updateTemplateType = async (
     delete updateData.updatedAt;
     // delete updateData.__v;
 
-    // Check if template type with same name and type already exists (excluding current one)
-    if (updateData.typeName && updateData.type) {
-      const existingTemplateType = await TemplateTypeSchema.findOne({
-        typeName: updateData.typeName,
-        type: updateData.type,
-        _id: { $ne: templateTypeId }
-      });
+    // Fetch existing document to know current type/actionType if not provided
+    const currentTemplateType = await TemplateTypeSchema.findById(templateTypeId);
+    if (!currentTemplateType) {
+      return {
+        success: false,
+        message: 'Template type not found'
+      };
+    }
 
-      if (existingTemplateType) {
-        return {
-          success: false,
-          message: 'Template type with this name and type already exists'
-        };
-      }
+    // Determine final values to check uniqueness on
+    const finalType = updateData.type || currentTemplateType.type;
+    const finalActionType = updateData.actionType || currentTemplateType.actionType;
+
+    // Check for duplicate combination
+    const existingTemplateType = await TemplateTypeSchema.findOne({
+      type: finalType,
+      actionType: finalActionType,
+      _id: { $ne: templateTypeId }
+    });
+
+    if (existingTemplateType) {
+      return {
+        success: false,
+        message: `Action type '${finalActionType}' already exists for ${finalType} templates.`
+      };
     }
 
     const updatedTemplateType = await TemplateTypeSchema.findOneAndUpdate(
@@ -199,6 +219,16 @@ export const updateTemplateType = async (
     };
   } catch (error: any) {
     logger.error('Error updating template type:', error);
+
+    // Handle duplicate key error from MongoDB unique index
+    if (error.code === 11000) {
+      const duplicateField = Object.keys(error.keyValue).join(", ");
+      return {
+        success: false,
+        message: `A template type with this ${duplicateField} already exists for the same type.`,
+      };
+    }
+
     return {
       success: false,
       message: 'Failed to update template type',

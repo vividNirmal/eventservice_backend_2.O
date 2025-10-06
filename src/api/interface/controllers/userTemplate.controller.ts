@@ -110,7 +110,7 @@ export const getUserTemplateDetails = async (req: Request, res: Response) => {
         const baseUrl = env.BASE_URL;
         result.attachments = result.attachments.map((attachment: any) => ({
           ...attachment,
-          path: baseUrl + "/" + attachment.path,
+          path: attachment.path,
         }));
       }
 

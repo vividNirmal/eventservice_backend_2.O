@@ -116,12 +116,12 @@ export const createForm = async (
     let pages = formData.pages || [];
 
     // If no pages exist, create a default page with default fields
-    if (pages.length === 0 && defaultElements.length > 0) {
+    if (pages.length === 0 ) {
       pages = [
         {
           name: "Page 1",
           description: "Default page with user-specific fields",
-          elements: defaultElements,
+          elements: defaultElements || [],
         },
       ];
     } else if (pages.length > 0) {

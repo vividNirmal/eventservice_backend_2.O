@@ -58,7 +58,8 @@ export const createDefaultFieldSchema = Joi.object({
   fieldminLimit : Joi.optional(),
   fieldmaxLimit :  Joi.optional(),
   specialCharactor : Joi.optional(),
-  userFieldMapping : Joi.optional()
+  userFieldMapping : Joi.optional(),
+  fieldPermission : Joi.optional()
 });
 
 

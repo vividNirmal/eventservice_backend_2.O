@@ -19,6 +19,7 @@ interface DefaultField {
   fieldmaxLimit: string;
   specialCharactor: string;
   userFieldMapping :[],
+  fieldPermission: String;
 }
 export const createDefaultFieldModule = async (
   formData: any,

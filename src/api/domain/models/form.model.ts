@@ -48,7 +48,6 @@ export const getAllForms = async (
     if (eventId) {
       searchQuery.eventId = new mongoose.Types.ObjectId(eventId);
     }
-    console.log("Search Query:", searchQuery);
     // Get total count for pagination
     const totalCount = await FormSchema.countDocuments(searchQuery);
 
@@ -105,22 +104,12 @@ export const createForm = async (
     // Fetch default fields for the specified userType
     const defaultFields = await DefaultFieldSchema.find({
       userFieldMapping: formData.userType,
-    });
+    }).lean();
 
     // Transform default fields to form elements
-    const defaultElements = defaultFields.map((field,index) => ({
-      fieldName: field.fieldName,      
-      fieldTitle: field.fieldTitle,
-      isRequired: field.isRequired || false,
-      requiredErrorText:
-        field.requiredErrorText || `${field.fieldName} is required`,
-      validators: field.validators || [],
-      placeHolder: field.placeHolder || "",
-      inputType: field.inputType || "text",
-      isPrimary: field.isPrimary || false,
-      fieldType: field.fieldType || "text",
-      position : index,
-      _id: new mongoose.Types.ObjectId()
+    const defaultElements = defaultFields.map((field:any) => ({
+      fieldPermission:"DEFAULT_FIELD_NON_REMOVED",
+      ...field,
     }));
 
     // Prepare pages array
@@ -132,7 +121,7 @@ export const createForm = async (
         {
           name: "Page 1",
           description: "Default page with user-specific fields",
-          elements: defaultFields,
+          elements: defaultElements,
         },
       ];
     } else if (pages.length > 0) {

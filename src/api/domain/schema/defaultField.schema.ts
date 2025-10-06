@@ -28,6 +28,7 @@ const defaultFieldSchema = new mongoose.Schema(
     fieldminLimit: { type: String },
     fieldmaxLimit: { type: String },
     specialCharactor: { type: Boolean, default: false },
+    fieldPermission :{type :String}
   },
   { timestamps: true, autoIndex: true }
 );

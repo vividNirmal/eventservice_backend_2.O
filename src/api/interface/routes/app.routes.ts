@@ -30,7 +30,7 @@ import { getEventDetailValidation,scanParticipantFaceSchema } from "../../utils/
 import { verifyScannerToken } from "../../middleware/scanner.middleware";
 import { getAdminEventHostList, storeAdminEventHost, updateAdminEventHost, getAdminEventHostDetails, getAdminEventHostListByCompany, linkTicketToEventHost, checkTicketLinkStatus, copyAdminEventHost } from "../controllers/eventHost.controller";
 import { eventHostUpdateSchema, eventHostSchema } from "../../utils/validation-schems/eventHostSchema.validation";
-import { getFormListController, getFormDetailsController, createFormController, updateFormController, deleteFormController, addPageController, exportFormController } from "../../interface/controllers/form.controller";
+import { getFormListController, getFormDetailsController, createFormController, updateFormController, deleteFormController, addPageController, exportFormController, importFormController } from "../../interface/controllers/form.controller";
 import { createFormSchema, updateFormBodySchema, deleteFormSchema, getFormByIdSchema } from "../../utils/validation-schems/form.validation";
 import { getTicketListController, getTicketDetailsController, createTicketController, updateTicketController, deleteTicketController, getTicketsByUserTypeController, bulkDeleteTicketsController, exportTicketsController, importTicketsController } from "../../interface/controllers/ticket.controller";
 import { createTicketSchema, updateTicketBodySchema, deleteTicketSchema, getTicketByIdSchema, getTicketsQuerySchema } from "../../utils/validation-schems/ticket.validation";
@@ -42,7 +42,10 @@ import { getTemplateTypeListController, getTemplateTypeDetailsController, create
 import { getTemplateListController, getTemplateDetailsController, createTemplateController, updateTemplateController, deleteTemplateController,  } from "../controllers/template.controller";
 import { createUserTemplate, deleteUserTemplateController, getUserTemplateDetails, getUserTemplates, updateUserTemplateController } from "../controllers/userTemplate.controller";
 import { createUserTemplateValidation, updateUserTemplateValidation } from "../../utils/validation-schems/userTemplate.validation";
+import multer from "multer";
 
+const storage = multer.memoryStorage();
+export const upload = multer({ storage: storage });
 
 
 // import { getUsersProfiles, imageCaptionUpdate, imageUpload, removeImages, removeSingleImage, setProfileImage, updateUserProfile } from "../controllers/user.controller";
@@ -159,6 +162,7 @@ import { createUserTemplateValidation, updateUserTemplateValidation } from "../.
             route.delete('/forms/:id',protectedRoute,deleteFormController);
             route.put('/forms/add-page/:id', protectedRoute, addPageController);
             route.get('/form/export/:id',protectedRoute,exportFormController)
+            route.post('/form/import/:id',upload.single("file"),importFormController)
 
             // form Field management
             route.post('/store-default-field',protectedRoute,validateRequest(createDefaultFieldSchema),createDefaultFieldController);

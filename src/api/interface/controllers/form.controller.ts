@@ -8,7 +8,8 @@ import {
     updateForm,
     deleteForm,
     addPageToForm,
-    exportFormPagesAsJson
+    exportFormPagesAsJson,
+    importFormPagesFromJson
 } from "../../domain/models/form.model";
 
 interface AuthenticatedRequest extends Request {
@@ -199,4 +200,26 @@ export const exportFormController = async (req: any, res: Response) => {
   }
 };
 
+// import conroll 
+export const importFormController = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const { id } = req.params;        
+        const file = req.file;                
+        if (!file) {
+            return ErrorResponse(res, "JSON file is required for import");
+        }        
 
+        importFormPagesFromJson(id, file, (error: any, result: any) => {
+            if (error) {
+                loggerMsg("error", `Error in importFormController: ${error.message}`);
+                return ErrorResponse(res, error.message);
+            }
+
+            loggerMsg("info", "Pages imported successfully to form");
+            return successResponse(res, "Pages imported successfully", result);
+        });
+    } catch (error: any) {
+        loggerMsg("error", `Error in importFormController: ${error.message}`);
+        return ErrorResponse(res, error.message);
+    }
+};

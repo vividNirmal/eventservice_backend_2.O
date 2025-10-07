@@ -238,5 +238,77 @@ export const exportFormPagesAsJson = async (
     return callback(error, null);
   }
 };
-
 // import Fromfield 
+export const importFormPagesFromJson = async (
+  formId: string,
+  file: Express.Multer.File,
+  callback: (error: any, result: any) => void
+) => {
+  try {
+    if (!file) {
+      return callback(new Error("No file uploaded"), null);
+    }
+
+    // Parse JSON from uploaded file buffer
+    const jsonString = file.buffer.toString("utf-8");
+    let jsonData;
+    try {
+      jsonData = JSON.parse(jsonString);
+    } catch (parseErr) {
+      return callback(new Error("Invalid JSON file"), null);
+    }
+
+    if (!jsonData || !Array.isArray(jsonData.data.pages)) {
+      return callback(
+        new Error("Invalid JSON data: 'pages' array missing"),
+        null
+      );
+    }    
+    const existingForm = await FormSchema.findById(formId);
+    if (!existingForm) {
+      return callback(new Error("Form not found"), null);
+    }    
+    for (const importedPage of jsonData.data.pages) {
+      // Find if page with same name exists
+      const pageIndex = existingForm.pages.findIndex(
+        (page: any) => page.name === importedPage.name
+      );
+
+      if (pageIndex !== -1) {
+        // ✅ Append (push) imported elements to existing ones
+        const existingElements = existingForm.pages[pageIndex].elements || [];
+        const importedElements = importedPage.elements || [];
+
+        // Optionally avoid duplicates by _id (if needed)
+        const existingIds = new Set(
+          existingElements.map((el: any) => el._id?.toString())
+        );
+        const newElements = importedElements.filter(
+          (el: any) => !existingIds.has(el._id?.toString())
+        );
+
+        existingForm.pages[pageIndex].elements = [
+          ...existingElements,
+          ...newElements,
+        ];
+
+        // Update description if provided
+        if (importedPage.description) {
+          existingForm.pages[pageIndex].description = importedPage.description;
+        }
+      } else {
+        // Add new page if not found
+        existingForm.pages.push(importedPage);
+      }
+    }
+
+    // Save updated form
+    const updatedForm = await existingForm.save();
+
+    return callback(null, { form: updatedForm });
+  } catch (error) {
+    console.error("Error importing form pages:", error);
+    loggerMsg("error", `Error importing form pages: ${error}`);
+    return callback(error, null);
+  }
+};

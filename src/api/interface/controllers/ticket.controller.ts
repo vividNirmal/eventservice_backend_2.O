@@ -103,13 +103,13 @@ export const createTicketController = async (req: Request, res: Response) => {
         const ticketData = req.body;
         const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
-        // Handle slotAmounts parsing when coming from FormData
-        if (typeof ticketData.slotAmounts === 'string') {
+        // Handle ticketAmount parsing when coming from FormData
+        if (typeof ticketData.ticketAmount === 'string') {
             try {
-                ticketData.slotAmounts = JSON.parse(ticketData.slotAmounts);
+                ticketData.ticketAmount = JSON.parse(ticketData.ticketAmount);
             } catch (e) {
-                // If parsing fails, set to empty array for free tickets
-                ticketData.slotAmounts = ticketData.isFree ? [] : [];
+                // If parsing fails, set to default for free tickets
+                ticketData.ticketAmount = {};
             }
         }
 
@@ -166,6 +166,15 @@ export const createTicketController = async (req: Request, res: Response) => {
                 ticketData.advancedSettings = JSON.parse(ticketData.advancedSettings);
             } catch (err) {
                 ticketData.advancedSettings = {};
+            }
+        }
+
+        // Parse notification settings if coming as JSON strings
+        if (typeof ticketData.emailNotification === "string") {
+            try {
+                ticketData.emailNotification = JSON.parse(ticketData.emailNotification);
+            } catch (err) {
+                ticketData.emailNotification = { enabled: false, templates: [] };
             }
         }
 
@@ -228,13 +237,13 @@ export const updateTicketController = async (req: Request, res: Response) => {
         delete updateData.updatedAt;
         delete updateData.__v;
 
-        // Handle slotAmounts parsing when coming from FormData
-        if (typeof updateData.slotAmounts === 'string') {
+        // Handle ticketAmount parsing when coming from FormData
+        if (typeof updateData.ticketAmount === 'string') {
             try {
-                updateData.slotAmounts = JSON.parse(updateData.slotAmounts);
+                updateData.ticketAmount = JSON.parse(updateData.ticketAmount);
             } catch (e) {
-                // If parsing fails, set to empty array for free tickets
-                updateData.slotAmounts = updateData.isFree ? [] : [];
+                // If parsing fails, set to default for free tickets
+                updateData.ticketAmount = {};
             }
         }
 
@@ -290,6 +299,15 @@ export const updateTicketController = async (req: Request, res: Response) => {
                 updateData.advancedSettings = JSON.parse(updateData.advancedSettings);
             } catch (err) {
                 updateData.advancedSettings = {};
+            }
+        }
+
+        // Parse notification settings if coming as JSON strings
+        if (typeof updateData.emailNotification === "string") {
+            try {
+                updateData.emailNotification = JSON.parse(updateData.emailNotification);
+            } catch (err) {
+                updateData.emailNotification = { enabled: false, templates: [] };
             }
         }
 

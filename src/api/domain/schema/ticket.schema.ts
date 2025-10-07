@@ -1,9 +1,30 @@
 import mongoose, { Document, Schema } from "mongoose";
 
-export interface ISlotAmount {
+export interface IDateSlab {
     startDateTime: Date;
     endDateTime: Date;
     amount: number;
+}
+
+export interface IBusinessSlabCategoryAmount {
+    category: string;
+    amount: number;
+}
+
+export interface IBusinessSlab {
+    startDateTime: Date;
+    endDateTime: Date;
+    categoryAmounts: IBusinessSlabCategoryAmount[];
+}
+
+export interface ITicketAmount {
+    type: 'free' | 'dateSlab' | 'businessSlab';
+    currency?: string;
+    dateRangeAmounts?: IDateSlab[]; // For dateSlab type
+    businessSlabs?: IBusinessSlab[]; // For businessSlab type
+    feeSetting?: 'merge' | 'not-merge'; // Common optional fields
+    materialNumber?: string;
+    wbs?: string;
 }
 
 export interface IAdvancedSettings {
@@ -51,12 +72,7 @@ export interface ITicket extends Document {
     description?: string;
 
     // Ticket Amount
-    isFree: boolean;
-    currency?: string;
-    slotAmounts?: ISlotAmount[];
-    feeSetting?: 'merge' | 'not-merge';
-    materialNumber?: string;
-    wbs?: string;
+    ticketAmount: ITicketAmount;
 
     // Ticket Settings
     ticketPerUser: number;
@@ -81,11 +97,54 @@ export interface ITicket extends Document {
     eventId?: mongoose.Types.ObjectId;
 }
 
-const slotAmountSchema = new Schema<ISlotAmount>({
+const dateSlabSchema = new Schema<IDateSlab>({
     startDateTime: { type: Date, required: true },
     endDateTime: { type: Date, required: true },
     amount: { type: Number, required: true, min: 0 }
-});
+}, { _id: false });
+
+const businessSlabCategoryAmountSchema = new Schema<IBusinessSlabCategoryAmount>({
+    category: { type: String, required: true, trim: true },
+    amount: { type: Number, required: true, min: 0 }
+}, { _id: false });
+
+const businessSlabSchema = new Schema<IBusinessSlab>({
+    startDateTime: { type: Date, required: true },
+    endDateTime: { type: Date, required: true },
+    categoryAmounts: [businessSlabCategoryAmountSchema]
+}, { _id: false });
+
+const ticketAmountSchema = new Schema<ITicketAmount>({
+    type: {
+        type: String,
+        enum: ['free', 'dateSlab', 'businessSlab'],
+        required: true
+    },
+    currency: { 
+        type: String,
+        enum: ['USD', 'INR', 'EUR', 'GBP', 'AUD', 'CAD', 'SGD', 'AED'],
+        required: function () { return this.type !== 'free'; }
+    },
+    dateRangeAmounts: {
+        type: [dateSlabSchema],
+        required: function() {
+            return this.type === 'dateSlab';
+        }
+    },
+    businessSlabs: {
+        type: [businessSlabSchema],
+        required: function() {
+            return this.type === 'businessSlab';
+        }
+    },
+    feeSetting: {
+        type: String,
+        enum: ['merge', 'not-merge'],
+        default: 'merge'
+    },
+    materialNumber: { type: String, trim: true },
+    wbs: { type: String, trim: true }
+}, { _id: false });
 
 // Advanced Settings Subschema
 const advancedSettingsSchema = new Schema<IAdvancedSettings>({
@@ -160,20 +219,7 @@ const ticketSchema: Schema = new Schema<ITicket>({
     description: { type: String, trim: true },
 
     // Ticket Amount
-    isFree: { type: Boolean, required: true, default: false },
-    currency: { 
-        type: String,
-        enum: ['USD', 'INR', 'EUR', 'GBP', 'AUD', 'CAD', 'SGD', 'AED'],
-        required: function() { return !this.isFree; }
-    },
-    slotAmounts: [slotAmountSchema],
-    feeSetting: { 
-        type: String, 
-        enum: ['merge', 'not-merge'],
-        required: function() { return !this.isFree; }
-    },
-    materialNumber: { type: String, trim: true },
-    wbs: { type: String, trim: true },
+    ticketAmount: { type: ticketAmountSchema, required: true, default: () => ({ type: 'free' })},
 
     // Ticket Settings
     ticketPerUser: { type: Number, required: true, default: 1, min: 1 },

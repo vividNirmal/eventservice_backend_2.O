@@ -1,9 +1,62 @@
 import Joi from 'joi';
 
-const slotAmountSchema = Joi.object({
+// For dateSlab type
+const dateSlabSchema = Joi.object({
     startDateTime: Joi.date().required(),
-    endDateTime: Joi.date().required().greater(Joi.ref('startDateTime')),
-    amount: Joi.number().min(0).required()
+    endDateTime: Joi.date().required().greater(Joi.ref("startDateTime")),
+    amount: Joi.number().min(0).required(),
+});
+
+// For businessSlab type
+const businessSlabCategoryAmountSchema = Joi.object({
+    category: Joi.string().trim().required(),
+    amount: Joi.number().min(0).required(),
+});
+
+const businessSlabSchema = Joi.object({
+    startDateTime: Joi.date().required(),
+    endDateTime: Joi.date().required().greater(Joi.ref("startDateTime")),
+    categoryAmounts: Joi.array()
+        .items(businessSlabCategoryAmountSchema)
+        .min(1)
+        .required(),
+});
+
+const ticketAmountSchema = Joi.object({
+    type: Joi.string().valid("free", "dateSlab", "businessSlab").required(),
+
+    // Only required if not free
+    currency: Joi.when("type", {
+        is: Joi.valid("dateSlab", "businessSlab"),
+        then: Joi.string()
+        .valid("USD", "INR", "EUR", "GBP", "AUD", "CAD", "SGD", "AED")
+        .required(),
+        otherwise: Joi.forbidden(),
+    }),
+
+    // Required when type is dateSlab
+    dateRangeAmounts: Joi.when("type", {
+        is: "dateSlab",
+        then: Joi.alternatives().try(
+        Joi.array().items(dateSlabSchema).min(1).required(),
+        Joi.string() // if stringified
+        ),
+        otherwise: Joi.forbidden(),
+    }),
+
+    // Required when type is businessSlab
+    businessSlabs: Joi.when("type", {
+        is: "businessSlab",
+        then: Joi.alternatives().try(
+        Joi.array().items(businessSlabSchema).min(1).required(),
+        Joi.string()
+        ),
+        otherwise: Joi.forbidden(),
+    }),
+
+    feeSetting: Joi.string().valid("merge", "not-merge").default("merge"),
+    materialNumber: Joi.string().trim().max(50).optional().allow(null, ""),
+    wbs: Joi.string().trim().max(50).optional().allow(null, ""),
 });
 
 const advancedSettingsSchema = Joi.object({
@@ -63,27 +116,10 @@ export const createTicketSchema = Joi.object({
     description: Joi.string().trim().max(500).optional(),
 
     // Ticket Amount - Step 2
-    isFree: Joi.boolean().required(),
-    currency: Joi.when('isFree', {
-        is: false,
-        then: Joi.string().valid('USD', 'INR', 'EUR', 'GBP', 'AUD', 'CAD', 'SGD', 'AED').required(),
-        otherwise: Joi.optional()
-    }),
-    slotAmounts: Joi.when('isFree', {
-        is: false,
-        then: Joi.alternatives().try(
-            Joi.array().items(slotAmountSchema).min(1),
-            Joi.string() // Allow string for FormData
-        ),
-        otherwise: Joi.optional()
-    }),
-    feeSetting: Joi.when('isFree', {
-        is: false,
-        then: Joi.string().valid('merge', 'not-merge').required(),
-        otherwise: Joi.optional()
-    }),
-    materialNumber: Joi.string().trim().max(50).optional().allow(null,''),
-    wbs: Joi.string().trim().max(50).optional().allow(null,''),
+    ticketAmount: Joi.alternatives().try(
+        ticketAmountSchema, // object
+        Joi.string()        // if sending FormData
+    ).required(),
 
     // Ticket Settings - Step 3
     ticketPerUser: Joi.number().integer().min(1).default(1),
@@ -130,15 +166,10 @@ export const updateTicketBodySchema = Joi.object({
     description: Joi.string().trim().max(500).optional(),
 
     // Ticket Amount
-    isFree: Joi.boolean().optional(),
-    currency: Joi.string().valid('USD', 'INR', 'EUR', 'GBP', 'AUD', 'CAD', 'SGD', 'AED').optional(),
-    slotAmounts: Joi.alternatives().try(
-        Joi.array().items(slotAmountSchema),
-        Joi.string() // Allow string for FormData
+    ticketAmount: Joi.alternatives().try(
+        ticketAmountSchema, // object
+        Joi.string()            // JSON string from FormData
     ).optional(),
-    feeSetting: Joi.string().valid('merge', 'not-merge').optional(),
-    materialNumber: Joi.string().trim().max(50).optional().allow(null,''),
-    wbs: Joi.string().trim().max(50).optional().allow(null,''),
 
     // Ticket Settings
     ticketPerUser: Joi.number().integer().min(1).optional(),

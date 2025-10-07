@@ -219,3 +219,24 @@ export const addPageToForm = async (
     return callback(err);
   }
 };
+
+// export form field 
+export const exportFormPagesAsJson = async (
+  formId: string,
+  callback: (error: any, result: any) => void
+) => {
+  try {
+    const form = await FormSchema.findById(formId).lean();
+    if (!form) {
+      return callback(new Error("Form not found"), null);
+    }
+    const jsonData = { pages: form.pages };
+    return callback(null, jsonData);
+  } catch (error) {
+    console.error("Error exporting form pages:", error);
+    loggerMsg("error", `Error exporting form pages: ${error}`);
+    return callback(error, null);
+  }
+};
+
+// import Fromfield 

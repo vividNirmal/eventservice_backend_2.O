@@ -30,7 +30,7 @@ import { getEventDetailValidation,scanParticipantFaceSchema } from "../../utils/
 import { verifyScannerToken } from "../../middleware/scanner.middleware";
 import { getAdminEventHostList, storeAdminEventHost, updateAdminEventHost, getAdminEventHostDetails, getAdminEventHostListByCompany, linkTicketToEventHost, checkTicketLinkStatus, copyAdminEventHost } from "../controllers/eventHost.controller";
 import { eventHostUpdateSchema, eventHostSchema } from "../../utils/validation-schems/eventHostSchema.validation";
-import { getFormListController, getFormDetailsController, createFormController, updateFormController, deleteFormController, addPageController } from "../../interface/controllers/form.controller";
+import { getFormListController, getFormDetailsController, createFormController, updateFormController, deleteFormController, addPageController, exportFormController } from "../../interface/controllers/form.controller";
 import { createFormSchema, updateFormBodySchema, deleteFormSchema, getFormByIdSchema } from "../../utils/validation-schems/form.validation";
 import { getTicketListController, getTicketDetailsController, createTicketController, updateTicketController, deleteTicketController, getTicketsByUserTypeController, bulkDeleteTicketsController, exportTicketsController, importTicketsController } from "../../interface/controllers/ticket.controller";
 import { createTicketSchema, updateTicketBodySchema, deleteTicketSchema, getTicketByIdSchema, getTicketsQuerySchema } from "../../utils/validation-schems/ticket.validation";
@@ -158,6 +158,7 @@ import { createUserTemplateValidation, updateUserTemplateValidation } from "../.
             route.put('/forms/:id',protectedRoute,validateRequestBody(updateFormBodySchema),updateFormController);
             route.delete('/forms/:id',protectedRoute,deleteFormController);
             route.put('/forms/add-page/:id', protectedRoute, addPageController);
+            route.get('/form/export/:id',protectedRoute,exportFormController)
 
             // form Field management
             route.post('/store-default-field',protectedRoute,validateRequest(createDefaultFieldSchema),createDefaultFieldController);

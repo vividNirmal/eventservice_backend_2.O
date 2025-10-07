@@ -7,7 +7,8 @@ import {
     createForm,
     updateForm,
     deleteForm,
-    addPageToForm
+    addPageToForm,
+    exportFormPagesAsJson
 } from "../../domain/models/form.model";
 
 interface AuthenticatedRequest extends Request {
@@ -179,3 +180,23 @@ export const addPageController = async (req: AuthenticatedRequest, res: Response
     return ErrorResponse(res, error.message);
   }
 };
+
+export const exportFormController = async (req: any, res: Response) => {
+  try {
+    const { id } = req.params;
+    exportFormPagesAsJson(id, (error: any, result: any) => {
+      if (error) {
+        loggerMsg("error", `Error in Export Controller: ${error.message}`);
+        return ErrorResponse(res, error.message);
+      }
+
+      loggerMsg("info", "Page Export successfully to form");
+      return successResponse(res, "Page Export successfully", result);
+    });
+  } catch (error: any) {
+    loggerMsg("error", `Error in Export Form: ${error.message}`);
+    return ErrorResponse(res, error.message);
+  }
+};
+
+

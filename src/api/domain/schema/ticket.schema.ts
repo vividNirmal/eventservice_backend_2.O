@@ -19,6 +19,7 @@ export interface IAdvancedSettings {
     autoPassword: boolean;
     addAllDiscount: boolean;
     individualDiscount: boolean;
+    registrationSuccessMessage?: string;
 }
 
 export interface INotificationTemplate {
@@ -100,6 +101,7 @@ const advancedSettingsSchema = new Schema<IAdvancedSettings>({
     autoPassword: { type: Boolean, default: false },
     addAllDiscount: { type: Boolean, default: false },
     individualDiscount: { type: Boolean, default: false },
+    registrationSuccessMessage: { type: String }
 }, { _id: false });
 
 // Template mapping inside a notification type

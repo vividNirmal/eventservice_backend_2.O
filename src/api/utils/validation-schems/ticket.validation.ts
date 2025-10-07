@@ -23,6 +23,7 @@ const advancedSettingsSchema = Joi.object({
     autoPassword: Joi.boolean().default(false),
     addAllDiscount: Joi.boolean().default(false),
     individualDiscount: Joi.boolean().default(false),
+    registrationSuccessMessage: Joi.string().optional()
 });
 
 const notificationTemplateSchema = Joi.object({

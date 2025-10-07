@@ -19,7 +19,7 @@ const defaultFieldSchema = new mongoose.Schema(
     placeHolder: { type: String },
     inputType: { type: String },
     isPrimary: { type: Boolean, default: false },
-    fieldOptions: { type: [String] }, // For fields like dropdown, radio, etc.
+    fieldOptions: { type: [] }, // For fields like dropdown, radio, etc.
     validators: { type: [validatorSchema], default: [] },
     icon: { type: String },
     userType: { type: [String] },

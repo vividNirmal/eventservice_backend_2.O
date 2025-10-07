@@ -8,14 +8,11 @@ export const createDefaultFieldSchema = Joi.object({
     "string.empty": "Field Title is required",   
   }),
 
-  fieldType: Joi.string()
-    .valid("text", "number", "date", "boolean", "dropdown", "radio", "checkbox",'textarea','email','url',"file")
+  fieldType: Joi.string()    
     .required()
     .messages({
       "string.empty": "Field type is required",
-      "any.required": "Field type is required",
-      "any.only":
-        "Field type must be one of: text, number, date, boolean, dropdown, radio, checkbox",
+      "any.required": "Field type is required",     
     }),
 
   isRequired: Joi.boolean().default(false),
@@ -32,9 +29,7 @@ export const createDefaultFieldSchema = Joi.object({
 
   isPrimary: Joi.boolean().default(false),
 
-  fieldOptions: Joi.array().items(Joi.string().min(1).max(100)).messages({
-    "array.base": "Field options must be an array of strings",
-  }),
+  fieldOptions: Joi.array(),
 
   validators: Joi.array()
     .items(

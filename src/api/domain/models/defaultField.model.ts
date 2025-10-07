@@ -9,7 +9,7 @@ interface DefaultField {
   placeHolder: string;
   inputType: string;
   isPrimary: boolean;
-  fieldOptions: string[];
+  fieldOptions: any[];
   validators: { type: string; text: string; regex: string }[];
   userType: string;
   user_id: string;

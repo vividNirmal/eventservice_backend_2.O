@@ -52,13 +52,13 @@ const addImageUrls = (ticket: any) => {
     const baseUrl = env.BASE_URL;
     if (ticket) {
         if (ticket.bannerImage) {
-            ticket.bannerImageUrl = `${baseUrl}/${ticket.bannerImage}`;
+            ticket.bannerImageUrl = `${baseUrl}/uploads/images/${ticket.bannerImage}`;
         }
         if (ticket.desktopBannerImage) {
-            ticket.desktopBannerImageUrl = `${baseUrl}/${ticket.desktopBannerImage}`;
+            ticket.desktopBannerImageUrl = `${baseUrl}/uploads/images/${ticket.desktopBannerImage}`;
         }
         if (ticket.mobileBannerImage) {
-            ticket.mobileBannerImageUrl = `${baseUrl}/${ticket.mobileBannerImage}`;
+            ticket.mobileBannerImageUrl = `${baseUrl}/uploads/images/${ticket.mobileBannerImage}`;
         }
     }
     return ticket;

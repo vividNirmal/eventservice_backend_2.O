@@ -26,7 +26,7 @@ export const uploadImagesFile = multer({
                 return cb(new Error('Unsupported file type'), false)
             }
 
-            const uploadDir = path.resolve(__dirname,'../../assets',folder);
+            const uploadDir = path.resolve(__dirname,'../../../uploads',folder);
             if (!fs.existsSync(uploadDir)) {
                 fs.mkdirSync(uploadDir, { recursive: true });
             }
@@ -80,7 +80,7 @@ export const uploadImagesFile = multer({
 export const uploadTemplateAttachments = multer({
     storage: multer.diskStorage({
         destination: (req, file, cb) => {
-            const uploadDir = path.resolve(__dirname, '../../assets/attachments');
+            const uploadDir = path.resolve(__dirname, '../../../uploads/attachments');
             
             // Create directory if it doesn't exist
             if (!fs.existsSync(uploadDir)) {

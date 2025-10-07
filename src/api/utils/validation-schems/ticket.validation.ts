@@ -25,10 +25,23 @@ const advancedSettingsSchema = Joi.object({
     individualDiscount: Joi.boolean().default(false),
 });
 
+const notificationTemplateSchema = Joi.object({
+    typeId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required(),
+    templateId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required(),
+    actionType: Joi.string().trim().required(),
+    isCustom: Joi.boolean().default(false),
+    templateRef: Joi.string().valid('Template', 'UserTemplate').optional()
+});
+
+const notificationDetailSchema = Joi.object({
+    enabled: Joi.boolean().default(false),
+    templates: Joi.array().items(notificationTemplateSchema).default([])
+});
+
 const notificationsSchema = Joi.object({
-    emailNotification: Joi.boolean().default(false),
-    smsNotification: Joi.boolean().default(false),
-    whatsappNotification: Joi.boolean().default(false),
+    emailNotification: notificationDetailSchema.default(),
+    smsNotification: notificationDetailSchema.default(),
+    whatsappNotification: notificationDetailSchema.default()
 });
 
 export const createTicketSchema = Joi.object({

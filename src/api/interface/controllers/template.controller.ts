@@ -14,12 +14,13 @@ import { logger } from '../../lib/logger';
  */
 export const getTemplateListController = async (req: Request, res: Response) => {
   try {
-    const { page = 1, limit = 10, type, status, search } = req.query;
+    const { page = 1, limit = 10, type, status, search, typeId } = req.query;
 
     const filters = {
       ...(type && { type: type as "email" | "sms" | "whatsapp" }),
       ...(status && { status: status as "active" | "inactive" }),
       ...(search && { search: search as string }),
+      ...(typeId && { typeId: new mongoose.Types.ObjectId(typeId as string)})
     };
 
     const pagination = {

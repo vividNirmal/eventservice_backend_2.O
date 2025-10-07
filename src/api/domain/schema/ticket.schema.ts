@@ -21,10 +21,22 @@ export interface IAdvancedSettings {
     individualDiscount: boolean;
 }
 
+export interface INotificationTemplate {
+    typeId: mongoose.Types.ObjectId;     // Ref: TemplateType
+    templateId: mongoose.Types.ObjectId; // Ref: Template or UserTemplate
+    actionType: string;                  // From TemplateType.actionType
+    isCustom: boolean;   // To distinguish between admin/user template; if isCustom then its UserTemplate
+    templateRef?: string;  // Make this optional in the interface
+}
+
+export interface INotificationDetail {
+    enabled: boolean;
+    templates: INotificationTemplate[];
+}
 export interface INotifications {
-    emailNotification: boolean;
-    smsNotification: boolean;
-    whatsappNotification: boolean;
+    emailNotification: INotificationDetail;
+    smsNotification: INotificationDetail;
+    whatsappNotification: INotificationDetail;
 }
 
 export interface ITicket extends Document {
@@ -90,11 +102,41 @@ const advancedSettingsSchema = new Schema<IAdvancedSettings>({
     individualDiscount: { type: Boolean, default: false },
 }, { _id: false });
 
-// Notifications Subschema
+// Template mapping inside a notification type
+const notificationTemplateSchema = new Schema<INotificationTemplate>({
+    typeId: { type: Schema.Types.ObjectId, ref: "TemplateType", required: true },
+    templateId: { 
+        type: Schema.Types.ObjectId, 
+        required: true,
+        refPath: 'templates.templateRef'   // <-- dynamic reference
+    },
+    actionType: { type: String, required: true, trim: true },
+    isCustom: { type: Boolean, default: false },
+    templateRef: {             // <-- field to tell Mongoose which model to populate
+        type: String,
+        required: true,
+        enum: ['Template', 'UserTemplate'],
+        default: 'Template' // Simple default, we'll handle the logic in pre-save
+    }
+}, { _id: false });
+
+// Add pre-save middleware to set templateRef based on isCustom
+notificationTemplateSchema.pre('save', function(next) {
+    this.templateRef = this.isCustom ? 'UserTemplate' : 'Template';
+    next();
+});
+
+// Notification type detail (e.g. emailNotification)
+const notificationDetailSchema = new Schema<INotificationDetail>({
+    enabled: { type: Boolean, default: false },
+    templates: [notificationTemplateSchema],
+}, { _id: false });
+
+// Master notifications schema
 const notificationsSchema = new Schema<INotifications>({
-    emailNotification: { type: Boolean, default: false },
-    smsNotification: { type: Boolean, default: false },
-    whatsappNotification: { type: Boolean, default: false },
+    emailNotification: { type: notificationDetailSchema, default: () => ({}) },
+    smsNotification: { type: notificationDetailSchema, default: () => ({}) },
+    whatsappNotification: { type: notificationDetailSchema, default: () => ({}) },
 }, { _id: false });
 
 const ticketSchema: Schema = new Schema<ITicket>({

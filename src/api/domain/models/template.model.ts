@@ -21,7 +21,7 @@ export const getAllTemplates = async (
   pagination: PaginationOptions = { page: 1, limit: 10 }
 ) => {
   try {
-    const { type, status, search } = filters;
+    const { type, status, search, typeId } = filters as any;
     const { page, limit } = pagination;
 
     // Build search query
@@ -35,6 +35,11 @@ export const getAllTemplates = async (
     // Filter by status
     if (status) {
       searchQuery.status = status;
+    }
+
+    // ✅ Filter by typeId
+    if (typeId && mongoose.Types.ObjectId.isValid(typeId)) {
+      searchQuery.typeId = new mongoose.Types.ObjectId(typeId);
     }
 
     // Search across multiple fields
@@ -52,7 +57,7 @@ export const getAllTemplates = async (
 
     // Get templates with pagination and populate typeId
     const templates = await TemplateSchema.find(searchQuery)
-      .populate('typeId', 'typeName type')
+      .populate('typeId', 'typeName type module actionType')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit);

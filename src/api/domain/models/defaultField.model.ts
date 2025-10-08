@@ -130,7 +130,7 @@ export const updateDefaultFieldById = async (
 
 // get by UserType
 export const getDefaultFieldByUserType = async (
-  userType: string,
+  userType: any,
   callback: (error: Error | null, result?: any) => void
 ) => {
   try {

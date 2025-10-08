@@ -16,8 +16,7 @@ buffer: Buffer;
 export const getCountry = async (req: Request, res: Response) => {
     try {
         
-        const country = await countrySchema.find();
-        console.log(country);
+        const country = await countrySchema.find();    
         
         if (!country) {
             return ErrorResponse(res, "Countr not found");

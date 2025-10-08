@@ -8,7 +8,6 @@ import {
 } from "../../domain/models/defaultField.model";
 import { ErrorResponse, successResponse } from "../../helper/apiResponse";
 import { loggerMsg } from "../../lib/logger";
-import { error } from "console";
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -20,10 +19,16 @@ interface AuthenticatedRequest extends Request {
     inputType: string;
     isPrimary: boolean;
     fieldOptions: string[];
-    validators: { type: string; text: string; regex: string }[];    
+    validators: { type: string; text: string; regex: string }[];
     userType: string;
     user_id: string;
     company_id: string;
+    optionUrl: string;
+    optionPath: string;
+    optionValue: string;
+    optionName: string;
+    optionRequestType :String;
+    optionDepending : String;
   };
 }
 
@@ -60,22 +65,27 @@ export const getAllDefaultFieldsController: RequestHandler = async (
     const limit = parseInt(req.query.limit as string) || 10;
     const search = req.query.search as string;
     const userType = req.query.userType as string;
-    getAllDefaultFields( (error: any, result: any) => {
-      if (error) {
-        loggerMsg(
-          "error",
-          `Error in getAllDefaultFieldsController: ${error.message}`
-        );
-        return ErrorResponse(res, error.message);
-      }
+    getAllDefaultFields(
+      (error: any, result: any) => {
+        if (error) {
+          loggerMsg(
+            "error",
+            `Error in getAllDefaultFieldsController: ${error.message}`
+          );
+          return ErrorResponse(res, error.message);
+        }
 
-      loggerMsg("info", "Fetched all default fields successfully");
-      return successResponse(
-        res,
-        "Fetched all default fields successfully",
-        result
-      );
-    }, page, limit, search);
+        loggerMsg("info", "Fetched all default fields successfully");
+        return successResponse(
+          res,
+          "Fetched all default fields successfully",
+          result
+        );
+      },
+      page,
+      limit,
+      search
+    );
   } catch (error: any) {
     loggerMsg(
       "error",
@@ -89,21 +99,31 @@ export const getAllDefaultFieldsController: RequestHandler = async (
 export const getDefaultFieldByIdController: RequestHandler = async (
   req: AuthenticatedRequest,
   res: Response,
-    next: NextFunction
+  next: NextFunction
 ) => {
   try {
     const { id } = req.params;
     getDefaultFieldById(id, (error: any, result: any) => {
       if (error) {
-        loggerMsg("error", `Error in getDefaultFieldByIdController: ${error.message}`);
+        loggerMsg(
+          "error",
+          `Error in getDefaultFieldByIdController: ${error.message}`
+        );
         return ErrorResponse(res, error.message);
       }
 
       loggerMsg("info", "Fetched default field by ID successfully");
-      return successResponse(res, "Fetched default field by ID successfully", result);
+      return successResponse(
+        res,
+        "Fetched default field by ID successfully",
+        result
+      );
     });
   } catch (error: any) {
-    loggerMsg("error", `Error in getDefaultFieldByIdController: ${error.message}`);
+    loggerMsg(
+      "error",
+      `Error in getDefaultFieldByIdController: ${error.message}`
+    );
     return ErrorResponse(res, error.message);
   }
 };
@@ -112,40 +132,64 @@ export const getDefaultFieldByIdController: RequestHandler = async (
 export const updateDefaultFieldByIdController: RequestHandler = async (
   req: AuthenticatedRequest,
   res: Response,
-    next: NextFunction
+  next: NextFunction
 ) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
     updateDefaultFieldById(id, updateData, (error: any, result: any) => {
       if (error) {
-        loggerMsg("error", `Error in updateDefaultFieldByIdController: ${error.message}`);
+        loggerMsg(
+          "error",
+          `Error in updateDefaultFieldByIdController: ${error.message}`
+        );
         return ErrorResponse(res, error.message);
       }
-        loggerMsg("info", "Updated default field by ID successfully");
-        return successResponse(res, "Updated default field by ID successfully", result);
+      loggerMsg("info", "Updated default field by ID successfully");
+      return successResponse(
+        res,
+        "Updated default field by ID successfully",
+        result
+      );
     });
   } catch (error: any) {
-    loggerMsg("error", `Error in updateDefaultFieldByIdController: ${error.message}`);
+    loggerMsg(
+      "error",
+      `Error in updateDefaultFieldByIdController: ${error.message}`
+    );
     return ErrorResponse(res, error.message);
   }
 };
 
 // get element by usertype
-export const getDefaultFieldByUserTypeController : RequestHandler = async(req :any,res:Response,next :NextFunction)=>{
-  try{
-    const {userType} = req.params;     
+export const getDefaultFieldByUserTypeController: RequestHandler = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { userType } = req.params;
     getDefaultFieldByUserType(userType, (error: any, result: any) => {
       if (error) {
-        loggerMsg("error", `Error in getDefaultFieldByIdController: ${error.message}`);
+        loggerMsg(
+          "error",
+          `Error in getDefaultFieldByIdController: ${error.message}`
+        );
         return ErrorResponse(res, error.message);
       }
 
       loggerMsg("info", "Fetched default field by ID successfully");
-      return successResponse(res, "Fetched default field by ID successfully", result);
+      return successResponse(
+        res,
+        "Fetched default field by ID successfully",
+        result
+      );
     });
-  }catch (error :any){
-    loggerMsg("error", `Error in getDefaultFieldByIdController: ${error.message}`);
+  } catch (error: any) {
+    loggerMsg(
+      "error",
+      `Error in getDefaultFieldByIdController: ${error.message}`
+    );
     return ErrorResponse(res, error.message);
   }
-}
+};

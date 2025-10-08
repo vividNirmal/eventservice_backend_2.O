@@ -44,7 +44,7 @@ export const getAllUserTypesController: RequestHandler = async (
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const search = req.query.search as string;
-    const companyId = req.query.companyId as string;
+    // const companyId = req.query.companyId as string;
 
     getAllUserTypes(
       (error, result) => {
@@ -66,7 +66,7 @@ export const getAllUserTypesController: RequestHandler = async (
       page,
       limit,
       search,
-      companyId
+      // companyId
     );
   } catch (error: any) {
     loggerMsg("error", `Error in getAllUserTypesController: ${error.message}`);

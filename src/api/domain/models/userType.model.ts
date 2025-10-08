@@ -37,7 +37,7 @@ export const getAllUserTypes = async (
   page: number = 1,
   limit: number = 10,
   search?: string,
-  companyId?: string,
+  // companyId?: string,
 ) => {
   try {
     const skip = (page - 1) * limit;
@@ -47,7 +47,7 @@ export const getAllUserTypes = async (
       searchQuery.typeName = { $regex: search, $options: "i" };
     }
 
-    if (companyId) searchQuery.companyId = companyId;
+    // if (companyId) searchQuery.companyId = companyId;
 
     const userTypes = await userTypeSchema
       .find(searchQuery)

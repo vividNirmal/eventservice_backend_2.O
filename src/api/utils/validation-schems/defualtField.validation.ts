@@ -2,18 +2,16 @@ import Joi from "joi";
 
 export const createDefaultFieldSchema = Joi.object({
   fieldName: Joi.string().required().min(1).max(100).messages({
-    "string.empty": "Field name is required",   
+    "string.empty": "Field name is required",
   }),
-  fieldTitle :Joi.string().required().messages({
-    "string.empty": "Field Title is required",   
+  fieldTitle: Joi.string().required().messages({
+    "string.empty": "Field Title is required",
   }),
 
-  fieldType: Joi.string()    
-    .required()
-    .messages({
-      "string.empty": "Field type is required",
-      "any.required": "Field type is required",     
-    }),
+  fieldType: Joi.string().required().messages({
+    "string.empty": "Field type is required",
+    "any.required": "Field type is required",
+  }),
 
   isRequired: Joi.boolean().default(false),
 
@@ -48,13 +46,17 @@ export const createDefaultFieldSchema = Joi.object({
   userType: Joi.array().optional().messages({
     "any.required": "User type is required",
   }),
-  id :Joi.optional(),
+  id: Joi.optional(),
   fieldDescription: Joi.optional(),
-  fieldminLimit : Joi.optional(),
-  fieldmaxLimit :  Joi.optional(),
-  specialCharactor : Joi.optional(),
-  userFieldMapping : Joi.optional(),
-  fieldPermission : Joi.optional()
+  fieldminLimit: Joi.optional(),
+  fieldmaxLimit: Joi.optional(),
+  specialCharactor: Joi.optional(),
+  userFieldMapping: Joi.optional(),
+  fieldPermission: Joi.optional(),  
+  optionUrl: Joi.string().optional().allow("", null),
+  optionPath: Joi.string().optional().allow("", null),
+  optionValue: Joi.string().optional().allow("", null),
+  optionName: Joi.string().optional().allow("", null),
+  optionRequestType: Joi.string().optional().allow("", null),
+  optionDepending :  Joi.string().optional().allow("", null),
 });
-
-

@@ -6,14 +6,13 @@ export const createUserTypeModule = async (
   callback: (error: Error | null, result?: any) => void
 ) => {
   try {
-    // Check if user type already exists in the same company
+    // Check if user type already exists
     const existingType = await userTypeSchema.findOne({
-      companyId: data.companyId,
       typeName: data.typeName,
     });
 
     if (existingType) {
-      return callback(new Error("User type with this name already exists in this company"));
+      return callback(new Error("User type with this name already exists"));
     }
 
     const newType = new userTypeSchema(data);
@@ -25,7 +24,7 @@ export const createUserTypeModule = async (
     
     // Handle MongoDB duplicate key error (in case the unique index is triggered)
     if (error.code === 11000) {
-      return callback(new Error("User type with this name already exists in this company"));
+      return callback(new Error("User type with this name already exists"));
     }
     
     callback(error, null);
@@ -98,12 +97,11 @@ export const updateUserTypeById = async (
     if (updateData.typeName || updateData.companyId) {
       const existingType = await userTypeSchema.findOne({
         _id: { $ne: id }, // Exclude current document
-        companyId: updateData.companyId || (await userTypeSchema.findById(id))?.companyId,
         typeName: updateData.typeName,
       });
 
       if (existingType) {
-        return callback(new Error("User type with this name already exists in this company"));
+        return callback(new Error("User type with this name already exists"));
       }
     }
 
@@ -121,7 +119,7 @@ export const updateUserTypeById = async (
     
     // Handle MongoDB duplicate key error
     if (error.code === 11000) {
-      return callback(new Error("User type with this name already exists in this company"));
+      return callback(new Error("User type with this name already exists"));
     }
     
     callback(error, null);

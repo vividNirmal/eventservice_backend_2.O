@@ -11,7 +11,11 @@ const validatorSchema = new mongoose.Schema(
 const fileValidation  =  new mongoose.Schema({
   fileType : {type : []},
   fileSize  : {type : String}
-})
+});
+const fieldConfigration = new mongoose.Schema({
+  type : {type :String},
+  content : {type :String},
+})  
 const defaultFieldSchema = new mongoose.Schema(
   {
     fieldTitle :{type: String, required: true },
@@ -38,7 +42,8 @@ const defaultFieldSchema = new mongoose.Schema(
     optionName : {type : String},
     optionRequestType : {type :String},
     optionDepending : {type : String},
-    filevalidation : {type:[fileValidation],default :[]}
+    filevalidation : {type:[fileValidation],default :[]},
+    fieldConfigration : {type:[fieldConfigration],default :[]}
   },
   { timestamps: true, autoIndex: true }
 );

@@ -3,6 +3,8 @@ import TicketSchema, { ITicket } from "../schema/ticket.schema";
 import FormSchema from "../schema/form.schema";
 import mongoose from "mongoose";
 import { env } from "../../../infrastructure/env";
+import userTypeMapSchema from "../schema/userTypeMap.schema";
+import { createSlug } from "../../lib/slugify";
 
 
 const parseJsonFields = (data: any) => {
@@ -501,6 +503,57 @@ export const importTicketsToEvent = async (
         return {
             success: false,
             message: 'Failed to import tickets',
+            error: error.message
+        };
+    }
+};
+
+export const generateTicketRegistrationUrlModel = async (id: mongoose.Types.ObjectId) => {
+    try{
+        // Fetch ticket with related info
+        const ticket = await TicketSchema.findById(id)
+          .populate("eventId")
+          .populate("userType");
+      
+        if (!ticket) {
+            return {
+                success: false,
+                message: 'Ticket not found'
+            };
+        }
+      
+        const event: any = ticket.eventId;
+        const userType: any = ticket.userType;
+      
+        if (!event?.event_slug) {
+          throw new Error("Event slug not found");
+        }
+      
+        // Check mapping for this user type
+        const userTypeMap = await userTypeMapSchema.findOne({
+          userType: userType._id,
+          companyId: ticket.companyId,
+          eventId: ticket.eventId,
+        });
+      
+        // Use mapped short name if available, otherwise original user type name
+        const userTypeName = userTypeMap ? userTypeMap.shortName : userType.typeName;
+      
+        // Create slug
+        const userTypeSlug = createSlug(userTypeName);
+      
+        // Final URL
+        const registrationUrl = `/${event.event_slug}/registration-${userTypeSlug}`;
+      
+        return {
+            success: true,
+            data: registrationUrl
+        };
+    } catch (error: any) {
+        logger.error('Error in generateRegistrationUrlModel:', error);
+        return {
+            success: false,
+            message: 'Failed to generate registration URL',
             error: error.message
         };
     }

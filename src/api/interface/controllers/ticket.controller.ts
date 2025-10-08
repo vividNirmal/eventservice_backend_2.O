@@ -1,7 +1,8 @@
 import { Request, Response } from 'express';
 import { 
     getAllTickets, getTicketById, createTicket, updateTicket, 
-    deleteTicket, getTicketsByUserType, exportTicketsForEvent, importTicketsToEvent
+    deleteTicket, getTicketsByUserType, exportTicketsForEvent, importTicketsToEvent,
+    generateTicketRegistrationUrlModel
 } from '../../domain/models/ticket.model';
 import mongoose from 'mongoose';
 import { logger } from '../../lib/logger';
@@ -113,53 +114,6 @@ export const createTicketController = async (req: Request, res: Response) => {
             }
         }
 
-        // Convert string numbers to numbers when coming from FormData
-        // if (typeof ticketData.startCount === 'string') {
-        //     ticketData.startCount = parseInt(ticketData.startCount) || 0;
-        // }
-        // if (typeof ticketData.ticketPerUser === 'string') {
-        //     ticketData.ticketPerUser = parseInt(ticketData.ticketPerUser) || 1;
-        // }
-        // if (typeof ticketData.ticketBuyLimitMin === 'string') {
-        //     ticketData.ticketBuyLimitMin = parseInt(ticketData.ticketBuyLimitMin) || 1;
-        // }
-        // if (typeof ticketData.ticketBuyLimitMax === 'string') {
-        //     ticketData.ticketBuyLimitMax = parseInt(ticketData.ticketBuyLimitMax) || 10;
-        // }
-        // if (typeof ticketData.isFree === 'string') {
-        //     ticketData.isFree = ticketData.isFree === 'true';
-        // }
-        // if (typeof ticketData.hasQuantityLimit === 'string') {
-        //     ticketData.hasQuantityLimit = ticketData.hasQuantityLimit === 'true';
-        // }
-        // if (typeof ticketData.allowCrossRegister === 'string') {
-        //     ticketData.allowCrossRegister = ticketData.allowCrossRegister === 'true';
-        // }
-        // if (typeof ticketData.autoApprovedUser === 'string') {
-        //     ticketData.autoApprovedUser = ticketData.autoApprovedUser === 'true';
-        // }
-        // if (typeof ticketData.authenticateByOTP === 'string') {
-        //     ticketData.authenticateByOTP = ticketData.authenticateByOTP === 'true';
-        // }
-        // if (typeof ticketData.autoPassword === 'string') {
-        //     ticketData.autoPassword = ticketData.autoPassword === 'true';
-        // }
-        // if (typeof ticketData.addAllDiscount === 'string') {
-        //     ticketData.addAllDiscount = ticketData.addAllDiscount === 'true';
-        // }
-        // if (typeof ticketData.individualDiscount === 'string') {
-        //     ticketData.individualDiscount = ticketData.individualDiscount === 'true';
-        // }
-        // if (typeof ticketData.emailNotification === 'string') {
-        //     ticketData.emailNotification = ticketData.emailNotification === 'true';
-        // }
-        // if (typeof ticketData.smsNotification === 'string') {
-        //     ticketData.smsNotification = ticketData.smsNotification === 'true';
-        // }
-        // if (typeof ticketData.whatsappNotification === 'string') {
-        //     ticketData.whatsappNotification = ticketData.whatsappNotification === 'true';
-        // }
-
         // Parse advancedSettings if coming as a JSON string
         if (typeof ticketData.advancedSettings === "string") {
             try {
@@ -246,53 +200,6 @@ export const updateTicketController = async (req: Request, res: Response) => {
                 updateData.ticketAmount = {};
             }
         }
-
-        // Convert string numbers to numbers when coming from FormData
-        // if (typeof updateData.startCount === 'string') {
-        //     updateData.startCount = parseInt(updateData.startCount) || 0;
-        // }
-        // if (typeof updateData.ticketPerUser === 'string') {
-        //     updateData.ticketPerUser = parseInt(updateData.ticketPerUser) || 1;
-        // }
-        // if (typeof updateData.ticketBuyLimitMin === 'string') {
-        //     updateData.ticketBuyLimitMin = parseInt(updateData.ticketBuyLimitMin) || 1;
-        // }
-        // if (typeof updateData.ticketBuyLimitMax === 'string') {
-        //     updateData.ticketBuyLimitMax = parseInt(updateData.ticketBuyLimitMax) || 10;
-        // }
-        // if (typeof updateData.isFree === 'string') {
-        //     updateData.isFree = updateData.isFree === 'true';
-        // }
-        // if (typeof updateData.hasQuantityLimit === 'string') {
-        //     updateData.hasQuantityLimit = updateData.hasQuantityLimit === 'true';
-        // }
-        // if (typeof updateData.allowCrossRegister === 'string') {
-        //     updateData.allowCrossRegister = updateData.allowCrossRegister === 'true';
-        // }
-        // if (typeof updateData.autoApprovedUser === 'string') {
-        //     updateData.autoApprovedUser = updateData.autoApprovedUser === 'true';
-        // }
-        // if (typeof updateData.authenticateByOTP === 'string') {
-        //     updateData.authenticateByOTP = updateData.authenticateByOTP === 'true';
-        // }
-        // if (typeof updateData.autoPassword === 'string') {
-        //     updateData.autoPassword = updateData.autoPassword === 'true';
-        // }
-        // if (typeof updateData.addAllDiscount === 'string') {
-        //     updateData.addAllDiscount = updateData.addAllDiscount === 'true';
-        // }
-        // if (typeof updateData.individualDiscount === 'string') {
-        //     updateData.individualDiscount = updateData.individualDiscount === 'true';
-        // }
-        // if (typeof updateData.emailNotification === 'string') {
-        //     updateData.emailNotification = updateData.emailNotification === 'true';
-        // }
-        // if (typeof updateData.smsNotification === 'string') {
-        //     updateData.smsNotification = updateData.smsNotification === 'true';
-        // }
-        // if (typeof updateData.whatsappNotification === 'string') {
-        //     updateData.whatsappNotification = updateData.whatsappNotification === 'true';
-        // }
 
         if (typeof updateData.advancedSettings === "string") {
             try {
@@ -592,4 +499,37 @@ export const importTicketsController = async (req: Request, res: Response) => {
             message: 'Internal server error'
         });
     }
+};
+
+export const generateTicketRegistrationUrl = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({
+            status: 0,
+            message: 'Invalid ticket ID'
+        });
+    }
+
+    const result = await generateTicketRegistrationUrlModel(new mongoose.Types.ObjectId(id));
+        if (result.success) {
+            return res.status(200).json({
+                status: 1,
+                message: 'Ticket URL generated successfully',
+                data: result.data
+            });
+        } else {
+            return res.status(404).json({
+                status: 0,
+                message: result.message || 'Ticket URL not generated'
+            });
+        }
+  } catch (error: any) {
+        logger.error('Error in generateRegistrationUrlModel:', error);
+        return res.status(500).json({
+            status: 0,
+            message: 'Internal server error'
+        });
+  }
 };

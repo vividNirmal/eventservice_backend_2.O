@@ -64,7 +64,7 @@ export interface INotifications {
 export interface ITicket extends Document {
     // Basic Info
     ticketName: string;
-    userType: string;
+    userType: mongoose.Types.ObjectId;
     registrationFormId?: mongoose.Types.ObjectId;
     ticketCategory: string;
     serialNoPrefix: string;
@@ -203,11 +203,7 @@ const notificationsSchema = new Schema<INotifications>({
 const ticketSchema: Schema = new Schema<ITicket>({
     // Basic Info
     ticketName: { type: String, required: true, trim: true },
-    userType: { 
-        type: String, 
-        required: true,
-        enum: ['Event Attendee', 'Exhibiting Company', 'Sponsor', 'Speaker', 'Service Provider', 'Accompanying']
-    },
+    userType: { type: mongoose.Schema.Types.ObjectId, ref: "UserType", required: true },
     registrationFormId: { type: Schema.Types.ObjectId, ref: "Form" },
     ticketCategory: { 
         type: String, 
@@ -260,6 +256,7 @@ const ticketSchema: Schema = new Schema<ITicket>({
 ticketSchema.index({ companyId: 1, status: 1 });
 ticketSchema.index({ userType: 1 });
 ticketSchema.index({ ticketCategory: 1 });
+ticketSchema.index({ eventId: 1, userType: 1 }, { unique: true });
 ticketSchema.index({ createdAt: -1 });
 
 export default mongoose.model<ITicket>("Ticket", ticketSchema);

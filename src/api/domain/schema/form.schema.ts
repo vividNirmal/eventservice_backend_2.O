@@ -28,7 +28,7 @@ export interface IPage {
 export interface IForm extends Document {
   formName: string;
   description?: string;
-  userType: string;
+  userType: mongoose.Types.ObjectId;
   pages: IPage[];
   settings?: any;
   companyId?: mongoose.Types.ObjectId;
@@ -48,18 +48,7 @@ const pageSchema = new Schema<IPage>(
 const formSchema = new Schema<IForm>(
   {
     formName: { type: String, required: true },
-    userType: {
-      type: String,
-      required: true,
-      enum: [
-        "Event Attendee",
-        "Exhibiting Company",
-        "Sponsor",
-        "Speaker",
-        "Service Provider",
-        "Accompanying",
-      ],
-    },
+    userType: { type: mongoose.Schema.Types.ObjectId, ref: "UserType", required: true },
     pages: [pageSchema],
     settings: { type: Schema.Types.Mixed },
     companyId: { type: Schema.Types.ObjectId, ref: "Company" },

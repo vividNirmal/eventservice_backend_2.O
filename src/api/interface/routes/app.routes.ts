@@ -43,6 +43,10 @@ import { getTemplateListController, getTemplateDetailsController, createTemplate
 import { createUserTemplate, deleteUserTemplateController, getUserTemplateDetails, getUserTemplates, updateUserTemplateController } from "../controllers/userTemplate.controller";
 import { createUserTemplateValidation, updateUserTemplateValidation } from "../../utils/validation-schems/userTemplate.validation";
 import multer from "multer";
+import { createUserTypeSchema, updateUserTypeSchema } from "../../utils/validation-schems/userType.validation";
+import { createUserTypeController, deleteUserTypeByIdController, getAllUserTypesController, getUserTypeByIdController, updateUserTypeByIdController } from "../controllers/userType.controller";
+import { createUserTypeMapController, deleteUserTypeMapByIdController, getAllUserTypeMapsController, getUserTypeMapByIdController, updateUserTypeMapByIdController } from "../controllers/userTypeMap.controller";
+import { createUserTypeMapSchema, updateUserTypeMapSchema } from "../../utils/validation-schems/userTypeMap.validation";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -261,6 +265,20 @@ export const upload = multer({ storage: storage });
             route.post("/user-templates", protectedRoute, uploadTemplateAttachments.array('attachments', 10), validateRequest(createUserTemplateValidation), createUserTemplate);
             route.put("/user-templates/:id", protectedRoute, uploadTemplateAttachments.array('attachments', 10), validateRequest(updateUserTemplateValidation), updateUserTemplateController);
             route.delete("/user-templates/:id", protectedRoute, deleteUserTemplateController);
+
+            // user types
+            route.get('/user-types', protectedRoute, getAllUserTypesController);
+            route.get('/user-types/:id', protectedRoute, getUserTypeByIdController);
+            route.post('/user-types', protectedRoute, validateRequest(createUserTypeSchema), createUserTypeController);
+            route.put('/user-types/:id', protectedRoute, validateRequest(updateUserTypeSchema), updateUserTypeByIdController);
+            route.delete('/user-types/:id', protectedRoute, deleteUserTypeByIdController);
+
+            // user type maps
+            route.get('/user-type-maps', protectedRoute, getAllUserTypeMapsController);
+            route.get('/user-type-maps/:id', protectedRoute, getUserTypeMapByIdController);
+            route.post('/user-type-maps', protectedRoute, validateRequest(createUserTypeMapSchema), createUserTypeMapController);
+            route.put('/user-type-maps/:id', protectedRoute, validateRequest(updateUserTypeMapSchema), updateUserTypeMapByIdController);
+            route.delete('/user-type-maps/:id', protectedRoute, deleteUserTypeMapByIdController);
 
             route.post('/send-otp',verifyScannerToken,validateRequest(sendOtpValidation),OtpGenerate);
             route.post('/verify-otp',verifyScannerToken,validateRequest(verifyOtpValidation),OtpVerify);

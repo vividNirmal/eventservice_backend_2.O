@@ -11,10 +11,8 @@ export const createFormSchema = Joi.object({
         'string.max': 'Form name must not exceed 100 characters',
         'any.required': 'Form name is required'
     }),
-    userType: Joi.string().valid('Event Attendee', 'Exhibiting Company', 'Sponsor', 'Speaker', 'Service Provider', 'Accompanying').required().messages({
-        'string.empty': 'User type is required',
-        'any.required': 'User type is required',
-        'any.only': 'User type must be one of: Event Attendee, Exhibiting Company, Sponsor, Speaker, Service Provider, Accompanying'
+    userType: Joi.string().required().messages({
+        'any.required': 'User type is required'
     }),
     formFields: Joi.array().items(formFieldSchema).optional().default([]),
     settings: Joi.any().optional(), // Allow settings object as flexible JSON
@@ -31,8 +29,8 @@ export const updateFormSchema = Joi.object({
         'string.min': 'Form name must be at least 3 characters long',
         'string.max': 'Form name must not exceed 100 characters'
     }),
-    userType: Joi.string().valid('Event Attendee', 'Exhibiting Company', 'Sponsor', 'Speaker', 'Service Provider', 'Accompanying').optional().messages({
-        'any.only': 'User type must be one of: Event Attendee, Exhibiting Company, Sponsor, Speaker, Service Provider, Accompanying'
+    userType: Joi.string().required().messages({
+        'any.required': 'User type is required'
     }),
     formFields: Joi.array().items(formFieldSchema).optional(),
     settings: Joi.any().optional() // Allow settings object as flexible JSON
@@ -45,10 +43,8 @@ export const updateFormBodySchema = Joi.object({
         'string.max': 'Form name must not exceed 100 characters',
         'any.required': 'Form name is required'
     }),
-    userType: Joi.string().valid('Event Attendee', 'Exhibiting Company', 'Sponsor', 'Speaker', 'Service Provider', 'Accompanying').required().messages({
-        'string.empty': 'User type is required',
-        'any.required': 'User type is required',
-        'any.only': 'User type must be one of: Event Attendee, Exhibiting Company, Sponsor, Speaker, Service Provider, Accompanying'
+    userType: Joi.string().required().messages({
+        'any.required': 'User type is required'
     }),
     formFields: Joi.array().items(formFieldSchema).optional(),
     pages :Joi.any().optional(),

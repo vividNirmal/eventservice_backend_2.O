@@ -56,7 +56,8 @@ export const getAllForms = async (
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .select("formName userType formFields createdAt updatedAt");
+      .select("formName userType formFields createdAt updatedAt")
+      .populate("userType", "typeName"); // Populate userType to get typeName field
 
     const totalPages = Math.ceil(totalCount / limit);
 

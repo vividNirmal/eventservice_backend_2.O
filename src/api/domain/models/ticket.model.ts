@@ -115,6 +115,7 @@ export const getAllTickets = async (
         // Get tickets with pagination
         const tickets = await TicketSchema.find(searchQuery)
             .populate('registrationFormId', 'formName userType')
+            .populate('userType', 'typeName')
             .sort({ createdAt: -1 })
             .skip((page - 1) * limit)
             .limit(limit);
@@ -193,6 +194,17 @@ export const createTicket = async (
 ) => {
     try {
         const parsedData = parseJsonFields(ticketData);
+        // ---- Add uniqueness check ----
+        const existingTicket = await TicketSchema.findOne({
+            eventId,
+            userType: parsedData.userType
+        });
+        if (existingTicket) {
+            return {
+                success: false,
+                message: 'A ticket for this user type already exists for this event.'
+            };
+        }
         const newTicket = new TicketSchema({
             ...parsedData,
             companyId,
@@ -235,6 +247,21 @@ export const updateTicket = async (
 ) => {
     try {
         const parsedData = parseJsonFields(updateData);
+        if (parsedData.userType || parsedData.eventId) {
+            const existingTicket = await TicketSchema.findOne({
+                _id: { $ne: ticketId }, // exclude the ticket being updated
+                eventId: parsedData.eventId,
+                userType: parsedData.userType
+            });
+
+            if (existingTicket) {
+                return {
+                    success: false,
+                    message: 'A ticket for this user type already exists for this event.'
+                };
+            }
+        }
+
         const updatedTicket = await TicketSchema.findOneAndUpdate(
             { _id: ticketId },
             parsedData,

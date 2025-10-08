@@ -101,14 +101,7 @@ const notificationsSchema = Joi.object({
 export const createTicketSchema = Joi.object({
     // Basic Info - Step 1
     ticketName: Joi.string().trim().min(1).max(100).required(),
-    userType: Joi.string().valid(
-        'Event Attendee', 
-        'Exhibiting Company', 
-        'Sponsor', 
-        'Speaker', 
-        'Service Provider', 
-        'Accompanying'
-    ).required(),
+    userType: Joi.string().required(),
     registrationFormId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
     ticketCategory: Joi.string().valid('Default', 'VIP', 'VVIP', 'Premium', 'Standard').required(),
     serialNoPrefix: Joi.string().trim().min(1).max(20).required(),
@@ -151,14 +144,7 @@ export const createTicketSchema = Joi.object({
 export const updateTicketBodySchema = Joi.object({
     // Basic Info
     ticketName: Joi.string().trim().min(1).max(100).optional(),
-    userType: Joi.string().valid(
-        'Event Attendee', 
-        'Exhibiting Company', 
-        'Sponsor', 
-        'Speaker', 
-        'Service Provider', 
-        'Accompanying'
-    ).optional(),
+    userType: Joi.string().optional(),
     registrationFormId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
     ticketCategory: Joi.string().valid('Default', 'VIP', 'VVIP', 'Premium', 'Standard').optional(),
     serialNoPrefix: Joi.string().trim().min(1).max(20).optional(),
@@ -220,14 +206,7 @@ export const getTicketByIdSchema = Joi.object({
 export const getTicketsQuerySchema = Joi.object({
     page: Joi.number().integer().min(1).default(1),
     limit: Joi.number().integer().min(1).max(100).default(10),
-    userType: Joi.string().valid(
-        'Event Attendee', 
-        'Exhibiting Company', 
-        'Sponsor', 
-        'Speaker', 
-        'Service Provider', 
-        'Accompanying'
-    ).optional(),
+    userType: Joi.string().optional(),
     ticketCategory: Joi.string().valid('Default', 'VIP', 'VVIP', 'Premium', 'Standard').optional(),
     status: Joi.string().valid('active', 'inactive', 'expired').optional(),
     search: Joi.string().trim().max(100).optional()

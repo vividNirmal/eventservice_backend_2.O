@@ -8,7 +8,10 @@ const validatorSchema = new mongoose.Schema(
   },
   { _id: false } // prevent creating _id for each validator
 );
-
+const fileValidation  =  new mongoose.Schema({
+  fileType : {type : []},
+  fileSize  : {type : String}
+})
 const defaultFieldSchema = new mongoose.Schema(
   {
     fieldTitle :{type: String, required: true },
@@ -35,7 +38,7 @@ const defaultFieldSchema = new mongoose.Schema(
     optionName : {type : String},
     optionRequestType : {type :String},
     optionDepending : {type : String},
-
+    filevalidation : {type:[fileValidation],default :[]}
   },
   { timestamps: true, autoIndex: true }
 );

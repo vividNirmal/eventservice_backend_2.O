@@ -29,6 +29,7 @@ interface AuthenticatedRequest extends Request {
     optionName: string;
     optionRequestType :String;
     optionDepending : String;
+    filevalidation:{fileType :[],fileSize:String}
   };
 }
 

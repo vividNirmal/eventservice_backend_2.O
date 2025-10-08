@@ -59,4 +59,5 @@ export const createDefaultFieldSchema = Joi.object({
   optionName: Joi.string().optional().allow("", null),
   optionRequestType: Joi.string().optional().allow("", null),
   optionDepending :  Joi.string().optional().allow("", null),
+  filevalidation : Joi.optional()
 });

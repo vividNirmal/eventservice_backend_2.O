@@ -47,8 +47,8 @@ import { createUserTypeSchema, updateUserTypeSchema } from "../../utils/validati
 import { createUserTypeController, deleteUserTypeByIdController, getAllUserTypesController, getUserTypeByIdController, updateUserTypeByIdController } from "../controllers/userType.controller";
 import { createUserTypeMapController, deleteUserTypeMapByIdController, getAllUserTypeMapsController, getUserTypeMapByIdController, updateUserTypeMapByIdController } from "../controllers/userTypeMap.controller";
 import { createUserTypeMapSchema, updateUserTypeMapSchema } from "../../utils/validation-schems/userTypeMap.validation";
-import { resolveEmailController, resolveFormUrlController } from "../controllers/formRegistration.controller";
-import { resolveEmailValidation, resolveFormUrlValidation } from "../../utils/validation-schems/formRegistration.validation";
+import { resolveEmailController, resolveFormUrlController, submitRegistrationController } from "../controllers/formRegistration.controller";
+import { resolveEmailValidation, resolveFormUrlValidation, submitRegistrationValidation } from "../../utils/validation-schems/formRegistration.validation";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -287,6 +287,7 @@ export const upload = multer({ storage: storage });
             // form registration
             route.post("/resolve-ticket-url", validateRequest(resolveFormUrlValidation), resolveFormUrlController);
             route.post("/resolve-email", validateRequest(resolveEmailValidation), resolveEmailController);
+            route.post("/store-register-form", uploadImagesFile, validateRequest(submitRegistrationValidation), submitRegistrationController);
 
             route.post('/send-otp',verifyScannerToken,validateRequest(sendOtpValidation),OtpGenerate);
             route.post('/verify-otp',verifyScannerToken,validateRequest(verifyOtpValidation),OtpVerify);

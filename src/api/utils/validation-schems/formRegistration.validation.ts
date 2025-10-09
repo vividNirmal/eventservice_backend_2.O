@@ -17,3 +17,21 @@ export const resolveEmailValidation = Joi.object({
     "string.empty": "Ticket ID is required.",
   }),
 });
+
+export const submitRegistrationValidation = Joi.object({
+  ticketId: Joi.string().required().messages({
+    "string.empty": "Ticket ID is required.",
+    "any.required": "Ticket ID is required.",
+  }),
+
+  regEmail: Joi.string().email().required().messages({
+    "string.email": "A valid email address is required.",
+    "string.empty": "Email is required.",
+    "any.required": "Email is required.",
+  }),
+
+  eventId: Joi.string().optional().allow(null, "").messages({
+    "string.base": "Event ID must be a valid string.",
+  }),
+  // Since form fields are dynamic, we allow extra keys
+}).unknown(true);

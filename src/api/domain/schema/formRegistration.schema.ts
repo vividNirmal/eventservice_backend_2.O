@@ -6,6 +6,7 @@ export interface IFormRegistration extends Document {
   eventId?: mongoose.Types.ObjectId;
   badgeNo?: string;
   formData?: any; // Store any additional dynamic form fields
+  approved: boolean;
 }
 
 const formRegistrationSchema: Schema = new Schema<IFormRegistration>(
@@ -15,6 +16,7 @@ const formRegistrationSchema: Schema = new Schema<IFormRegistration>(
     eventId: { type: mongoose.Types.ObjectId, ref: "EventHost" },
     badgeNo: { type: String },
     formData: { type: Schema.Types.Mixed, required: false },
+    approved: { type: Boolean, default: false },
   },
   {
     timestamps: true,

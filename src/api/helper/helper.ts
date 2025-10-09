@@ -81,16 +81,17 @@ export const uploadImagesFile = multer({
         fileSize: 10 * 1024 * 1024, // 10MB max per file
         files: 10 // max 10 files
     }
-}).fields([
-    { name: "event_image", maxCount: 1 },
-    { name: "event_logo", maxCount: 1 },
-    { name: "show_location_image", maxCount: 1 },
-    { name: "event_sponsor", maxCount: 1 },
-    { name: "desktopBannerImage", maxCount: 1 },
-    { name: "mobileBannerImage", maxCount: 1 },
-    { name: "files", maxCount: 10 },
-    { name: "attachments", maxCount: 10 } // unified for attachment usage
-]);
+}).any();
+// .fields([
+//     { name: "event_image", maxCount: 1 },
+//     { name: "event_logo", maxCount: 1 },
+//     { name: "show_location_image", maxCount: 1 },
+//     { name: "event_sponsor", maxCount: 1 },
+//     { name: "desktopBannerImage", maxCount: 1 },
+//     { name: "mobileBannerImage", maxCount: 1 },
+//     { name: "files", maxCount: 10 },
+//     { name: "attachments", maxCount: 10 } // unified for attachment usage
+// ]);
 
 
 export const uploadTemplateAttachments = multer({

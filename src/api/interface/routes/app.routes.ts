@@ -162,7 +162,7 @@ export const upload = multer({ storage: storage });
             
             //Form Management Module URLs
             route.get('/forms',protectedRoute,getFormListController);
-            route.get('/forms/:id',protectedRoute,getFormDetailsController);
+            route.get('/forms/:id',getFormDetailsController);
             route.post('/forms',protectedRoute,validateRequest(createFormSchema),createFormController);
             route.put('/forms/:id',protectedRoute,validateRequestBody(updateFormBodySchema),updateFormController);
             route.delete('/forms/:id',protectedRoute,deleteFormController);

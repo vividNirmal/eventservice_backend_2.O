@@ -135,13 +135,19 @@ export const createTicketController = async (req: Request, res: Response) => {
         // Handle file uploads
         if (files) {
             if (files.bannerImage && files.bannerImage[0]) {
-                ticketData.bannerImage = files.bannerImage[0].filename;
+                // ticketData.bannerImage = files.bannerImage[0].filename;
+                const file = files.desktopBannerImage[0];
+                ticketData.desktopBannerImage = `${(file as any).uploadFolder}/${file.filename}`;
             }
             if (files.desktopBannerImage && files.desktopBannerImage[0]) {
-                ticketData.desktopBannerImage = files.desktopBannerImage[0].filename;
+                // ticketData.desktopBannerImage = files.desktopBannerImage[0].filename;
+                const file = files.desktopBannerImage[0];
+                ticketData.desktopBannerImage = `${(file as any).uploadFolder}/${file.filename}`;
             }
             if (files.mobileBannerImage && files.mobileBannerImage[0]) {
-                ticketData.mobileBannerImage = files.mobileBannerImage[0].filename;
+                // ticketData.mobileBannerImage = files.mobileBannerImage[0].filename;
+                const file = files.mobileBannerImage[0];
+                ticketData.mobileBannerImage = `${(file as any).uploadFolder}/${file.filename}`;
             }
         }
 
@@ -221,13 +227,19 @@ export const updateTicketController = async (req: Request, res: Response) => {
         // Handle file uploads
         if (files) {
             if (files.bannerImage && files.bannerImage[0]) {
-                updateData.bannerImage = files.bannerImage[0].filename;
+                // updateData.bannerImage = files.bannerImage[0].filename;
+                const file = files.bannerImage[0];
+                updateData.bannerImage = `${(file as any).uploadFolder}/${file.filename}`;
             }
             if (files.desktopBannerImage && files.desktopBannerImage[0]) {
-                updateData.desktopBannerImage = files.desktopBannerImage[0].filename;
+                // updateData.desktopBannerImage = files.desktopBannerImage[0].filename;
+                const file = files.desktopBannerImage[0];
+                updateData.desktopBannerImage = `${(file as any).uploadFolder}/${file.filename}`;
             }
             if (files.mobileBannerImage && files.mobileBannerImage[0]) {
-                updateData.mobileBannerImage = files.mobileBannerImage[0].filename;
+                // updateData.mobileBannerImage = files.mobileBannerImage[0].filename;
+                const file = files.mobileBannerImage[0];
+                updateData.mobileBannerImage = `${(file as any).uploadFolder}/${file.filename}`;
             }
         }
 

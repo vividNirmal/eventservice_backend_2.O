@@ -13,69 +13,85 @@ export const uploadImagesFile = multer({
             let folder = "";
             const mimeType = file.mimetype;
 
-            if(mimeType.startsWith('image/')){
-                folder = "images"
-            }else if(mimeType.startsWith('video/')){
-                folder = "videos"
-            }else if(mimeType.startsWith('audio/')){
-                folder = "audio"
-            }else if(mimeType === "application/pdf" || mimeType.startsWith('application/msword') || mimeType.startsWith('application/vnd')){
-                folder = "documents";
-            }else{
+            // Determine target folder
+            if (mimeType.startsWith("image/")) {
+                folder = "images";
+            } else if (mimeType.startsWith("video/")) {
+                folder = "videos";
+            } else if (mimeType.startsWith("audio/")) {
+                folder = "audio";
+            } else if (
+                mimeType === "application/pdf" ||
+                mimeType.startsWith("application/msword") ||
+                mimeType.startsWith("application/vnd") ||
+                mimeType === "text/plain" ||
+                mimeType === "text/csv" ||
+                mimeType === "application/zip" ||
+                mimeType === "application/x-rar-compressed" ||
+                mimeType === "application/json" ||
+                mimeType === "text/xml"
+            ) {
+                folder = "attachments"; // all doc/text/zip/json files go here
+            } else {
                 //@ts-ignore
-                return cb(new Error('Unsupported file type'), false)
+                return cb(new Error("Unsupported file type"), false);
             }
 
-            const uploadDir = path.resolve(__dirname,'../../../uploads',folder);
+            (file as any).uploadFolder = folder;
+            
+            const uploadDir = path.resolve(__dirname, "../../../uploads", folder);
             if (!fs.existsSync(uploadDir)) {
                 fs.mkdirSync(uploadDir, { recursive: true });
             }
             cb(null, uploadDir);
         },
         filename: (req, file, cb) => {
-            const mimeType = file.mimetype;
-            let folder = "";
-
-            // Assign folder based on mime type
-            if (mimeType.startsWith('image/')) {
-                folder = "images";
-            } else if (mimeType.startsWith('video/')) {
-                folder = "videos";
-            } else if (mimeType.startsWith('audio/')) {
-                folder = "audio";
-            } else if (mimeType === "application/pdf" || mimeType.startsWith('application/msword') || mimeType.startsWith('application/vnd')) {
-                folder = "documents";
-            }
-            // Modify filename to include the folder name for easy reference
-            // const modifiedFileName = `${folder}-${Date.now()}-${file.originalname}`;
-            const modifiedFileName = `${folder}-${file.originalname}`;
-            cb(null, modifiedFileName);
+            const cleanFileName = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+            const timestamp = Date.now();
+            const fileName = `${timestamp}-${cleanFileName}`;
+            cb(null, fileName);
         }
     }),
+
     fileFilter: (req, file, cb) => {
-        const allowedImagesExits = ['.png', '.jpg', '.jpeg'];
-        const allowedVideosExits = ['.mp4', '.mkv', '.avi'];
-        const allowedAudioExits = ['.mp3', '.wav', '.aac'];
-        const allowedDocsExits = ['.pdf','.doc', '.docx'];
+        const allowedExtensions = [
+            // Images
+            ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp",
+            // Video
+            ".mp4", ".mkv", ".avi",
+            // Audio
+            ".mp3", ".wav", ".aac",
+            // Documents / Attachments
+            ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx",
+            ".txt", ".csv", ".zip", ".rar", ".json", ".xml"
+        ];
 
         const ext = path.extname(file.originalname).toLowerCase();
-        if(allowedImagesExits.includes(ext) || allowedVideosExits.includes(ext) || allowedAudioExits.includes(ext) || allowedDocsExits.includes(ext)){
-             cb(null, true)
-        }else{
-            console.log("Unsuported file extension:",ext)
+
+        if (allowedExtensions.includes(ext)) {
+            cb(null, true);
+        } else {
+            console.log("Unsupported file extension:", ext);
             //@ts-ignore
-            cb(new Error(`Unsupported file extension: ${ext}`), false)
+            cb(new Error(`Unsupported file extension: ${ext}`), false);
         }
     },
+
+    limits: {
+        fileSize: 10 * 1024 * 1024, // 10MB max per file
+        files: 10 // max 10 files
+    }
 }).fields([
-    { name: 'event_image', maxCount: 1 },
-    { name: 'event_logo', maxCount: 1 },
-    { name: 'show_location_image', maxCount: 1 },
-    { name: 'event_sponsor', maxCount: 1 },
-    { name: 'desktopBannerImage', maxCount: 1 },
-    { name: 'mobileBannerImage', maxCount: 1 },
-    { name: 'files', maxCount: 10 } // Keep files for backward compatibility
-])
+    { name: "event_image", maxCount: 1 },
+    { name: "event_logo", maxCount: 1 },
+    { name: "show_location_image", maxCount: 1 },
+    { name: "event_sponsor", maxCount: 1 },
+    { name: "desktopBannerImage", maxCount: 1 },
+    { name: "mobileBannerImage", maxCount: 1 },
+    { name: "files", maxCount: 10 },
+    { name: "attachments", maxCount: 10 } // unified for attachment usage
+]);
+
 
 export const uploadTemplateAttachments = multer({
     storage: multer.diskStorage({

@@ -1,14 +1,11 @@
 import mongoose from "mongoose";
-import UserTemplateSchema from "../schema/userTemplate.schema";
-
-
-
 import EventHost from "../schema/eventHost.schema";
 import Ticket from "../schema/ticket.schema";
 import Form from "../schema/form.schema";
 import UserType from "../schema/userType.schema";
 import UserTypeMap from "../schema/userTypeMap.schema";
 import { createSlug } from "../../lib/slugify";
+import FormRegistration from "../schema/formRegistration.schema";
 
 export const resolveFormUrlModel = async (
   eventSlug: string,
@@ -16,11 +13,15 @@ export const resolveFormUrlModel = async (
   callback: (error: any, result: any) => void
 ) => {
   try {
-    // 1️⃣ Find Event
+    // Find Event
     const event = await EventHost.findOne({ event_slug: eventSlug });
-    if (!event) throw new Error("Event not found");
+    if (!event)
+      return callback(
+        { message: "Event not found", errorType: "EVENT_NOT_FOUND" },
+        null
+      );
 
-    // 2️⃣ Resolve userType via mapping or fallback
+    // Resolve userType via mapping or fallback
     let matchedUserType = null;
 
     const userTypeMaps = await UserTypeMap.find({
@@ -48,9 +49,13 @@ export const resolveFormUrlModel = async (
       }
     }
 
-    if (!matchedUserType) throw new Error("User type not found");
+    if (!matchedUserType)
+      return callback(
+        { message: "User type not found", errorType: "NOT_FOUND" },
+        null
+      );
 
-    // 3️⃣ Find Ticket
+    // Find Ticket
     const ticket = await Ticket.findOne({
       eventId: event._id,
       userType: matchedUserType._id,
@@ -59,9 +64,16 @@ export const resolveFormUrlModel = async (
       .populate("registrationFormId")
       .populate("userType");
 
-    if (!ticket) throw new Error("Ticket not found for this user type");
+    if (!ticket)
+      return callback(
+        {
+          message: "Ticket not found for this user type",
+          errorType: "NOT_FOUND",
+        },
+        null
+      );
 
-    // 4️⃣ Get Form (either from ticket or event fallback)
+    // Get Form (either from ticket or event fallback)
     let form = null;
     if (ticket.registrationFormId) {
       form = ticket.registrationFormId;
@@ -69,7 +81,7 @@ export const resolveFormUrlModel = async (
       form = await Form.findById(event.selected_form_id);
     }
 
-    // 5️⃣ Final Response
+    // Final Response
     const result = {
       event,
       ticket,
@@ -77,6 +89,85 @@ export const resolveFormUrlModel = async (
     };
 
     return callback(null, result);
+  } catch (error) {
+    return callback(error, null);
+  }
+};
+
+export const resolveEmailModel = async (
+  email: string,
+  ticketId: mongoose.Types.ObjectId,
+  callback: (error: any, result: any) => void
+) => {
+  try {
+    // Fetch ticket with event populated
+    const ticket = await Ticket.findById(ticketId).populate("eventId");
+    if (!ticket)
+      return callback(
+        { message: "Ticket not found.", errorType: "NOT_FOUND" },
+        null
+      );
+
+    const event = ticket.eventId as any;
+    if (!event)
+      return callback(
+        { message: "Event not found for this ticket.", errorType: "NOT_FOUND" },
+        null
+      );
+
+    // Check event capacity limit
+    const totalRegistrations = await FormRegistration.countDocuments({
+      ticketId,
+    });
+    const capacity = event.participant_capacity || 0;
+
+    if (capacity > 0 && totalRegistrations >= capacity) {
+      return callback(
+        {
+          message: "Ticket limit reached for this event.",
+          errorType: "LIMIT_REACHED",
+        },
+        null
+      );
+    }
+
+    // Check user's existing registrations for this event & ticket
+    const emailLower = email.toLowerCase();
+    const userRegistrations = await FormRegistration.countDocuments({
+      email: emailLower,
+      ticketId,
+    });
+
+    // Get max buy limit per user from advanced settings
+    const maxBuyLimit = ticket.advancedSettings?.ticketBuyLimitMax ?? 1; // fallback if not defined
+
+    if (userRegistrations >= maxBuyLimit) {
+      return callback(
+        {
+          message: `You have reached the maximum allowed registrations (${maxBuyLimit}) for this ticket.`,
+          errorType: "LIMIT_REACHED",
+        },
+        null
+      );
+    }
+
+    // If already registered once (for reference)
+    if (userRegistrations > 0) {
+      const existing = await FormRegistration.findOne({
+        email: emailLower,
+        ticketId,
+      });
+
+      return callback(null, {
+        alreadyRegistered: true,
+        formRegistration: existing,
+      });
+    }
+
+    // Not registered yet, and not exceeding limits
+    return callback(null, {
+      alreadyRegistered: false,
+    });
   } catch (error) {
     return callback(error, null);
   }

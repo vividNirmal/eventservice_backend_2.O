@@ -20,20 +20,22 @@ export const successResponse = (res:any,msg:string,data:any): void =>{
 }
 
 // Error Response with data
-export const errorResponseWithData = (res:any,msg:string,data:any): void =>{
+export const errorResponseWithData = (res:any,msg:string,data:any, extra: any = {}): void =>{
 	const dataRes = {
 		status: 0,
 		message: msg,
-		data: data
+		data: data,
+		...extra
 	};
 	return res.status(Constants.ERROR_CODES.FAIL_CODE).json(dataRes);
 }
 
 /** error code */
-export const ErrorResponse = (res:any,msg:any): void =>{
+export const ErrorResponse = (res:any,msg:any, extra: any = {}): void =>{
     const dataRes = {
         status: 0,
 		message: msg,
+		...extra
 	};
 	return res.status(Constants.ERROR_CODES.FAIL_CODE).json(dataRes);
 }

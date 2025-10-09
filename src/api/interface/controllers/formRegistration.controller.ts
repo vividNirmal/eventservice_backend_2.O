@@ -22,33 +22,56 @@ import scannerTokenSchema from "../../domain/schema/scannerToken.schema";
 import eventHostSchema from "../../domain/schema/eventHost.schema";
 import crypto from "crypto";
 import ticketSchema from "../../domain/schema/ticket.schema";
-import { resolveFormUrlModel } from "../../domain/models/formRegistration.model";
+import { resolveEmailModel, resolveFormUrlModel } from "../../domain/models/formRegistration.model";
+import mongoose from "mongoose";
 
-
+// Resolve Ticket URL Controller
 export const resolveFormUrlController = async (req: Request, res: Response) => {
   try {
     const { eventSlug, userTypeSlug } = req.body;
 
-    console.log("Received eventSlug:", eventSlug);
-    console.log("Received userTypeSlug:", userTypeSlug);
-    console.log("Request Body:", req.body);
-
     if (!eventSlug || !userTypeSlug) {
-      return ErrorResponse(res, "Please provide valid eventSlug and userTypeSlug.");
+      return ErrorResponse(res, "Please provide valid parameters.", {
+        errorType: "REQUIRE_PARAMETER",
+      });
     }
 
     resolveFormUrlModel(eventSlug, userTypeSlug, (error: any, result: any) => {
       if (error) {
-        return res.status(500).json({
-          code: "INTERNAL_SERVER_ERROR",
-          message:
-            error instanceof Error ? error.message : "An unexpected error occurred.",
-        });
+        return errorResponseWithData(res, error.message, {}, { errorType: error.errorType });
+      }
+
+      return successResponse(res, "Form retrieved successfully", result);
+
+    });
+  } catch (error) {
+    return ErrorResponse(res, "An error occurred while fetching form.", {
+        errorType: "INTERNAL_SERVER_ERROR",
+    });
+  }
+};
+
+// Resolve Email Controller
+export const resolveEmailController = async (req: Request, res: Response) => {
+  try {
+    const { email, ticketId } = req.body;
+
+    if (!email || !ticketId) {
+      return ErrorResponse(res, "Please provide valid email and ticketId.", {
+        errorType: "REQUIRE_PARAMETER",
+      });
+    }
+
+    resolveEmailModel(email, new mongoose.Types.ObjectId(ticketId), (error: any, result: any) => {
+      if (error) {
+        return errorResponseWithData(res, error.message, {}, { errorType: error.errorType });
       }
 
       return successResponse(res, "Form retrieved successfully", result);
     });
   } catch (error) {
-    return ErrorResponse(res, "An error occurred while fetching form.");
+    return ErrorResponse(res, "An error occurred while fetching form.", {
+      errorType: "INTERNAL_SERVER_ERROR",
+    });
   }
 };

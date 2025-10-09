@@ -8,3 +8,13 @@ export const resolveFormUrlValidation = Joi.object({
     "string.empty": "User type slug is required.",
   }),
 });
+
+
+export const resolveEmailValidation = Joi.object({
+  email: Joi.string().required().messages({
+    "string.empty": "Email is required.",
+  }),
+  ticketId: Joi.string().required().messages({
+    "string.empty": "Ticket ID is required.",
+  }),
+});

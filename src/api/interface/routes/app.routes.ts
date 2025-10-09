@@ -36,8 +36,8 @@ import { getTicketListController, getTicketDetailsController, createTicketContro
 import { createTicketSchema, updateTicketBodySchema, deleteTicketSchema, getTicketByIdSchema, getTicketsQuerySchema } from "../../utils/validation-schems/ticket.validation";
 import { createDeviceConfiguration, updateDeviceConfiguration, deleteDeviceConfiguration, getDeviceConfigurationsByCompany, getDeviceConfigurationById } from "../../interface/controllers/deviceConfiguration.controller";
 import { createDeviceConfigurationSchema, updateDeviceConfigurationSchema, deleteDeviceConfigurationSchema, getDeviceConfigurationByCompanySchema } from "../../utils/validation-schems/deviceConfiguration.validation";
-import { createDefaultFieldController, getAllDefaultFieldsController, getDefaultFieldByIdController, getDefaultFieldByUserTypeController, updateDefaultFieldByIdController } from "../controllers/defaultField.controller";
-import { createDefaultFieldSchema } from "../../utils/validation-schems/defualtField.validation";
+import { createDefaultFieldController, deleteManyDefaultFieldsController, getAllDefaultFieldsController, getDefaultFieldByIdController, getDefaultFieldByUserTypeController, updateDefaultFieldByIdController } from "../controllers/defaultField.controller";
+import { createDefaultFieldSchema, deleteDefaultFieldSchema } from "../../utils/validation-schems/defualtField.validation";
 import { getTemplateTypeListController, getTemplateTypeDetailsController, createTemplateTypeController, updateTemplateTypeController, deleteTemplateTypeController } from "../controllers/templateType.controller";
 import { getTemplateListController, getTemplateDetailsController, createTemplateController, updateTemplateController, deleteTemplateController,  } from "../controllers/template.controller";
 import { createUserTemplate, deleteUserTemplateController, getUserTemplateDetails, getUserTemplates, updateUserTemplateController } from "../controllers/userTemplate.controller";
@@ -93,7 +93,7 @@ export const upload = multer({ storage: storage });
             route.post("/save-admin-users",protectedRoute,validateRequest(registerUserSchema),storeAdminUser);
             route.get("/get-single-admin-users/:id",protectedRoute,getSingleAdminUser);
             route.post("/update-admin-users",protectedRoute,validateRequest(updateUserSchema),updateAdminUser);
-            route.post("/delete-admin-user",protectedRoute,validateRequest(deleteUsersSchema),deleteAdminUser);
+            route.post("/delete-admin-user",protectedRoute,validateRequest(deleteUsersSchema),deleteAdminUser);            
             route.post("/update-user-status", protectedRoute,validateRequest(updateStatusUserSchema), updateUserStatus)
 
             //event module urls
@@ -179,6 +179,7 @@ export const upload = multer({ storage: storage });
             route.get('/get-default-field-list',protectedRoute,getAllDefaultFieldsController);
             route.get('/get-default-field/:id',protectedRoute,getDefaultFieldByIdController);
             route.post('/update-default-field/:id',protectedRoute,validateRequest(createDefaultFieldSchema),updateDefaultFieldByIdController);
+            route.post("/default-fields/delete",protectedRoute,validateRequest(deleteDefaultFieldSchema), deleteManyDefaultFieldsController);
             route.get('/get-default-userType/:userType',getDefaultFieldByUserTypeController)
             // Public form endpoint for participants
             route.get('/public/forms/:id', getFormDetailsController);

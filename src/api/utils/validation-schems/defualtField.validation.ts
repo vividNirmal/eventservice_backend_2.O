@@ -62,3 +62,9 @@ export const createDefaultFieldSchema = Joi.object({
   filevalidation : Joi.optional(),
   fieldConfigration : Joi.optional()
 });
+
+export const deleteDefaultFieldSchema = Joi.object({
+    filed_ids: Joi.array().required().messages({
+        "any.required": "users_ids is required."
+    }),
+});

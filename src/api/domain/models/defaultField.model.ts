@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { loggerMsg } from "../../lib/logger";
 import defaultFieldSchema from "../schema/defaultField.schema";
 
@@ -145,6 +146,37 @@ export const getDefaultFieldByUserType = async (
   }
 };
 
+// Delete Many by IDs
+export const deleteManyDefaultFields = async (
+  ids: string[],
+  callback: (error: Error | null, result?: any) => void
+) => {
+  try {
+    if (!ids || ids.length === 0) {
+      return callback(new Error("No IDs provided"), null);
+    }
+
+    // Ensure all IDs are valid ObjectIds
+    const validIds = ids
+      .map((id) => (mongoose.Types.ObjectId.isValid(id) ? new mongoose.Types.ObjectId(id) : null))
+      .filter(Boolean);
+
+    // if (validIds.length === 0) {
+    //   return callback(new Error("No valid ObjectIds provided"), null);
+    // }
+
+    const result = await defaultFieldSchema.deleteMany({ _id: { $in: validIds } });
+
+    if (result.deletedCount === 0) {
+      return callback(new Error("No records deleted"), null);
+    }
+
+    callback(null, { message: "Records deleted successfully", deletedCount: result.deletedCount });
+  } catch (error: any) {
+    loggerMsg("error", `Error deleting default fields: ${error}`);
+    callback(error, null);
+  }
+};
 
 
 function buildValidator(data: any) {

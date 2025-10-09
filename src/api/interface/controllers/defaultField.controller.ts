@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction, RequestHandler } from "express";
 import {
   createDefaultFieldModule,
+  deleteManyDefaultFields,
   getAllDefaultFields,
   getDefaultFieldById,
   getDefaultFieldByUserType,
@@ -191,6 +192,44 @@ export const getDefaultFieldByUserTypeController: RequestHandler = async (
       "error",
       `Error in getDefaultFieldByIdController: ${error.message}`
     );
+    return ErrorResponse(res, error.message);
+  }
+};
+
+export const deleteManyDefaultFieldsController: RequestHandler = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    let { filed_ids } = req.body;
+
+    // Ensure we have something
+    if (!filed_ids) {
+      return ErrorResponse(res, "No field IDs provided");
+    }
+
+    // Handle both string and array input safely
+    if (typeof filed_ids === "string") {
+      filed_ids = filed_ids.split(",").map((id: string) => id.trim());
+    } else if (!Array.isArray(filed_ids)) {
+      return ErrorResponse(res, "Invalid filed_ids format — must be array or comma-separated string");
+    }
+
+    // Filter out any empty strings
+    filed_ids = filed_ids.filter((id: string) => id);
+
+    deleteManyDefaultFields(filed_ids, (error: any, result: any) => {
+      if (error) {
+        loggerMsg("error", `Error in deleteManyDefaultFieldsController: ${error.message}`);
+        return ErrorResponse(res, error.message);
+      }
+
+      loggerMsg("info", "Deleted default fields successfully");
+      return successResponse(res, "Deleted default fields successfully", result);
+    });
+  } catch (error: any) {
+    loggerMsg("error", `Error in deleteManyDefaultFieldsController: ${error.message}`);
     return ErrorResponse(res, error.message);
   }
 };

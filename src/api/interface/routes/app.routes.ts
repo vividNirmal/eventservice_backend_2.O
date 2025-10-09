@@ -47,6 +47,8 @@ import { createUserTypeSchema, updateUserTypeSchema } from "../../utils/validati
 import { createUserTypeController, deleteUserTypeByIdController, getAllUserTypesController, getUserTypeByIdController, updateUserTypeByIdController } from "../controllers/userType.controller";
 import { createUserTypeMapController, deleteUserTypeMapByIdController, getAllUserTypeMapsController, getUserTypeMapByIdController, updateUserTypeMapByIdController } from "../controllers/userTypeMap.controller";
 import { createUserTypeMapSchema, updateUserTypeMapSchema } from "../../utils/validation-schems/userTypeMap.validation";
+import { resolveFormUrlController } from "../controllers/formRegistration.controller";
+import { resolveFormUrlValidation } from "../../utils/validation-schems/formRegistration.validation";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -136,6 +138,10 @@ export const upload = multer({ storage: storage });
             route.post("/generate-clean-form-url",protectedRoute, validateRequest(generateFormUrlSchema), generateCleanFormUrl);
             route.get("/resolve-form-url/:eventSlug", resolveFormUrl);
             route.post("/verify-device-and-login", validateRequest(verifyDeviceAndLoginSchema), verifyDeviceAndLogin);
+
+            // form registration
+            route.post("/resolve-ticket-url", validateRequest(resolveFormUrlValidation), resolveFormUrlController);
+            
 
             //store participant urls
             route.get("/getuser",getTokeneventDetails);

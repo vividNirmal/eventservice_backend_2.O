@@ -61,7 +61,7 @@ export const resolveFormUrlModel = async (
       userType: matchedUserType._id,
       status: "active",
     })
-      .populate("registrationFormId")
+    //   .populate("registrationFormId")
       .populate("userType");
 
     if (!ticket)

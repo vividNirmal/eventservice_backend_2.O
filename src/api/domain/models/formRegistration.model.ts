@@ -95,7 +95,7 @@ export const resolveFormUrlModel = async (
 };
 
 export const resolveEmailModel = async (
-  email: string,
+  regEmail: string,
   ticketId: mongoose.Types.ObjectId,
   callback: (error: any, result: any) => void
 ) => {
@@ -132,9 +132,9 @@ export const resolveEmailModel = async (
     }
 
     // Check user's existing registrations for this event & ticket
-    const emailLower = email.toLowerCase();
+    const emailLower = regEmail.toLowerCase();
     const userRegistrations = await FormRegistration.countDocuments({
-      email: emailLower,
+      regEmail: emailLower,
       ticketId,
     });
 
@@ -154,7 +154,7 @@ export const resolveEmailModel = async (
     // If already registered once (for reference)
     if (userRegistrations > 0) {
       const existing = await FormRegistration.findOne({
-        email: emailLower,
+        regEmail: emailLower,
         ticketId,
       });
 

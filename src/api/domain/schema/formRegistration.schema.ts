@@ -1,7 +1,7 @@
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IFormRegistration extends Document {
-  email?: string; // Root-level email field for indexing and uniqueness
+  regEmail?: string; // Root-level email field for indexing and uniqueness
   ticketId?: mongoose.Types.ObjectId;
   eventId?: mongoose.Types.ObjectId;
   badgeNo?: string;
@@ -10,7 +10,7 @@ export interface IFormRegistration extends Document {
 
 const formRegistrationSchema: Schema = new Schema<IFormRegistration>(
   {
-    email: { type: String },
+    regEmail: { type: String },
     ticketId: { type: mongoose.Types.ObjectId, ref: "Ticket" },
     eventId: { type: mongoose.Types.ObjectId, ref: "EventHost" },
     badgeNo: { type: String },

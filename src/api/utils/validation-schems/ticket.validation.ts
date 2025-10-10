@@ -122,7 +122,7 @@ export const createTicketSchema = Joi.object({
     linkLoginBanner :Joi.string().uri().optional().allow(null,''),
     desktopBannerImage: Joi.string().optional().allow(null,''),
     mobileBannerImage: Joi.string().optional().allow(null,''),
-    loginBannerImage :Joi.string().uri().optional().allow(null,''),
+    loginBannerImage :Joi.string().optional().allow(null,''),
     ctaSettings: Joi.array().items(Joi.string()).optional(),
 
     // Advanced Settings - Step 4
@@ -167,7 +167,7 @@ export const updateTicketBodySchema = Joi.object({
     linkLoginBanner :Joi.string().uri().optional().allow(null,''),
     desktopBannerImage: Joi.string().optional().allow(null,''),
     mobileBannerImage: Joi.string().optional().allow(null,''),
-    loginBannerImage :Joi.string().uri().optional().allow(null,''),
+    loginBannerImage :Joi.string().optional().allow(null,''),
     ctaSettings: Joi.array().items(Joi.string()).optional(),
 
     // Advanced Settings

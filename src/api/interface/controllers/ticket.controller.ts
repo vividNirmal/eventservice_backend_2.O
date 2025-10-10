@@ -222,24 +222,7 @@ export const updateTicketController = async (req: Request, res: Response) => {
             }
         }
 
-        // // Handle file uploads
-        // if (files) {
-        //     if (files.bannerImage && files.bannerImage[0]) {
-        //         // updateData.bannerImage = files.bannerImage[0].filename;
-        //         const file = files.bannerImage[0];
-        //         updateData.bannerImage = `${(file as any).uploadFolder}/${file.filename}`;
-        //     }
-        //     if (files.desktopBannerImage && files.desktopBannerImage[0]) {
-        //         // updateData.desktopBannerImage = files.desktopBannerImage[0].filename;
-        //         const file = files.desktopBannerImage[0];
-        //         updateData.desktopBannerImage = `${(file as any).uploadFolder}/${file.filename}`;
-        //     }
-        //     if (files.mobileBannerImage && files.mobileBannerImage[0]) {
-        //         // updateData.mobileBannerImage = files.mobileBannerImage[0].filename;
-        //         const file = files.mobileBannerImage[0];
-        //         updateData.mobileBannerImage = `${(file as any).uploadFolder}/${file.filename}`;
-        //     }
-        // }
+        
 
         if (files && Array.isArray(files)) {
             files.forEach((file) => {

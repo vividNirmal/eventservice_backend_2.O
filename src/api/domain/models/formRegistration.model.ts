@@ -290,17 +290,16 @@ async function sendWelcomeEmailAfterRegistration(
   registration: any
 ) {
   try {
-    // Get event details for template data
-    const event = await EventHost.findById(registration.eventId);
-    const ticket = await Ticket.findById(ticketId);
+    // // Get event details for template data
+    // const event = await EventHost.findById(registration.eventId);
+    // const ticket = await Ticket.findById(ticketId);
 
     const templateData = {
       badgeNo: registration.badgeNo,
       email: registration.email,
-      registrationId: registration._id.toString(),
-      ticketName: ticket?.ticketName || "",
-      eventName: event?.eventName || "",
       formData: registration.formData || {},
+      // ticketName: ticket?.ticketName || "",
+      // eventName: event?.eventName || "",
     };
 
     await sendNotification(

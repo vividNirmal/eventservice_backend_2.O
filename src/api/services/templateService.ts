@@ -71,11 +71,7 @@ export function compileTemplate(templateContent: string, data: any): string {
   let compiledContent = templateContent;
 
   const placeholders = {
-    '{{badgeNo}}': data.badgeNo || '',
     '{{email}}': data.email || '',
-    '{{registrationId}}': data.registrationId || '',
-    '{{ticketName}}': data.ticketName || '',
-    '{{eventName}}': data.eventName || '',
   };
 
   Object.entries(placeholders).forEach(([placeholder, value]) => {
@@ -84,7 +80,7 @@ export function compileTemplate(templateContent: string, data: any): string {
 
   if (data.formData) {
     Object.entries(data.formData).forEach(([key, value]) => {
-      const placeholder = `{{formData.${key}}}`;
+      const placeholder = `{{${key}}}`;
       const stringValue = Array.isArray(value) ? value.join(', ') : String(value || '');
       compiledContent = compiledContent.replace(new RegExp(placeholder, 'g'), stringValue);
     });

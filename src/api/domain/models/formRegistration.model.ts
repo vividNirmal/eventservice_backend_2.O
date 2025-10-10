@@ -6,6 +6,7 @@ import UserType from "../schema/userType.schema";
 import UserTypeMap from "../schema/userTypeMap.schema";
 import { createSlug } from "../../lib/slugify";
 import FormRegistration from "../schema/formRegistration.schema";
+import { env } from "../../../infrastructure/env";
 
 export const resolveFormUrlModel = async (
   eventSlug: string,
@@ -13,6 +14,7 @@ export const resolveFormUrlModel = async (
   callback: (error: any, result: any) => void
 ) => {
   try {
+    const baseUrl = env.BASE_URL;
     // Find Event
     const event = await EventHost.findOne({ event_slug: eventSlug });
     if (!event)
@@ -20,6 +22,8 @@ export const resolveFormUrlModel = async (
         { message: "Event not found", errorType: "EVENT_NOT_FOUND" },
         null
       );
+      event.event_logo = `${baseUrl}/uploads/${event.event_logo}`;
+      event.event_image =  `${baseUrl}/uploads/${event.event_image}`;
 
     // Resolve userType via mapping or fallback
     let matchedUserType = null;

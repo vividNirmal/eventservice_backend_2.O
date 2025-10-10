@@ -29,40 +29,83 @@ export const getAllForms = async (
   eventId?: string
 ) => {
   try {
-    const skip = (page - 1) * limit;
-
-    // Build search query
+    const skip = (page - 1) * limit;    
     const searchQuery: any = {};
+    
     if (search) {
       searchQuery.$or = [
         { formName: { $regex: search, $options: "i" } },
-        { userType: { $regex: search, $options: "i" } },
       ];
-    }
-
-    // Add userType filter if provided
+    }    
+    
+    // If userType is provided, first find the UserType ObjectId
     if (userType) {
-      searchQuery.userType = userType;
+      // Check if it's already an ObjectId or a name
+      if (mongoose.Types.ObjectId.isValid(userType) && userType.length === 24) {
+        // It's already an ObjectId
+        searchQuery.userType = new mongoose.Types.ObjectId(userType);
+      } else {
+        // It's a name, so look up the UserType first
+        const userTypeDoc = await mongoose.model('UserType').findOne({ 
+          typeName: { $regex: new RegExp(`^${userType}$`, 'i') } 
+        });
+        
+        if (userTypeDoc) {
+          searchQuery.userType = userTypeDoc._id;
+        } else {
+          // If userType not found, return empty results
+          return callback(null, {
+            forms: [],
+            pagination: {
+              currentPage: page,
+              totalPages: 0,
+              totalCount: 0,
+              hasNext: false,
+              hasPrev: false,
+            },
+          });
+        }
+      }
     }
-    // Add eventId filter if provided
+    
     if (eventId) {
       searchQuery.eventId = new mongoose.Types.ObjectId(eventId);
     }
-    // Get total count for pagination
+
     const totalCount = await FormSchema.countDocuments(searchQuery);
 
-    // Get forms with pagination
     const forms = await FormSchema.find(searchQuery)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .select("formName userType formFields createdAt updatedAt")
-      .populate("userType", "typeName"); // Populate userType to get typeName field
+      .select("formName userType pages createdAt updatedAt")
+      .populate("userType", "typeName");
+
+    // Transform forms to include element count
+    const formsData = forms.map(form => {
+      const formObj = form.toObject();
+      let totalElements = 0;
+      
+      if (formObj.pages && Array.isArray(formObj.pages)) {
+        totalElements = formObj.pages.reduce((total, page) => {
+          return total + (page?.elements?.length || 0);
+        }, 0);
+      }
+      
+      return {
+        _id: formObj._id,
+        formName: formObj.formName,
+        userType: formObj.userType,
+        totalElements,
+        createdAt: formObj.createdAt,
+        updatedAt: formObj.updatedAt
+      };
+    });
 
     const totalPages = Math.ceil(totalCount / limit);
 
     return callback(null, {
-      forms,
+      forms: formsData,
       pagination: {
         currentPage: page,
         totalPages,
@@ -77,7 +120,6 @@ export const getAllForms = async (
     return callback(error, null);
   }
 };
-
 export const getFormById = async (
   formId: string,
   callback: (error: any, result: any) => void

@@ -79,8 +79,10 @@ export interface ITicket extends Document {
     ticketAccess: string;
     linkBannerDesktop?: string;
     linkBannerMobile?: string;
+    linkLoginBanner?:string;
     desktopBannerImage?: string;
     mobileBannerImage?: string;
+    loginBannerImage?: string;
     ctaSettings?: string[];
 
     // Advanced Settings
@@ -227,8 +229,10 @@ const ticketSchema: Schema = new Schema<ITicket>({
     },
     linkBannerDesktop: { type: String, trim: true },
     linkBannerMobile: { type: String, trim: true },
+    linkLoginBanner: {type: String, trim: true},
     desktopBannerImage: { type: String, trim: true },
     mobileBannerImage: { type: String, trim: true },
+    loginBannerImage : { type: String, trim: true },
     ctaSettings: [{
         type: String,
         enum: ['Chat', 'Schedule']

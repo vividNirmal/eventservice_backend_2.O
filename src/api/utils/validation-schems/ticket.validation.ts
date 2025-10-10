@@ -119,8 +119,10 @@ export const createTicketSchema = Joi.object({
     ticketAccess: Joi.string().valid('Open For All', 'Invitation Only', 'Pre-Approved').default('Open For All'),
     linkBannerDesktop: Joi.string().uri().optional().allow(null,''),
     linkBannerMobile: Joi.string().uri().optional().allow(null,''),
+    linkLoginBanner :Joi.string().uri().optional().allow(null,''),
     desktopBannerImage: Joi.string().optional().allow(null,''),
     mobileBannerImage: Joi.string().optional().allow(null,''),
+    loginBannerImage :Joi.string().uri().optional().allow(null,''),
     ctaSettings: Joi.array().items(Joi.string()).optional(),
 
     // Advanced Settings - Step 4
@@ -162,8 +164,10 @@ export const updateTicketBodySchema = Joi.object({
     ticketAccess: Joi.string().valid('Open For All', 'Invitation Only', 'Pre-Approved').optional(),
     linkBannerDesktop: Joi.string().uri().optional().allow(null,''),
     linkBannerMobile: Joi.string().uri().optional().allow(null,''),
+    linkLoginBanner :Joi.string().uri().optional().allow(null,''),
     desktopBannerImage: Joi.string().optional().allow(null,''),
     mobileBannerImage: Joi.string().optional().allow(null,''),
+    loginBannerImage :Joi.string().uri().optional().allow(null,''),
     ctaSettings: Joi.array().items(Joi.string()).optional(),
 
     // Advanced Settings

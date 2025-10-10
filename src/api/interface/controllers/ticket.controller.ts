@@ -130,8 +130,7 @@ export const createTicketController = async (req: Request, res: Response) => {
             } catch (err) {
                 ticketData.emailNotification = { enabled: false, templates: [] };
             }
-        }
-
+        }                
         // Handle file uploads
         if (files && Array.isArray(files)) {
             files.forEach((file) => {
@@ -141,6 +140,9 @@ export const createTicketController = async (req: Request, res: Response) => {
                 if (file.fieldname === 'desktopBannerImage') {
                     ticketData.desktopBannerImage = `${file.uploadFolder}/${file.filename}`;
                 }
+                if (file.fieldname === 'loginBannerImage') {
+                    ticketData.loginBannerImage = `${file.uploadFolder}/${file.filename}`;
+                } 
                 if (file.fieldname === 'mobileBannerImage') {
                     ticketData.mobileBannerImage = `${file.uploadFolder}/${file.filename}`;
                 }
@@ -246,6 +248,9 @@ export const updateTicketController = async (req: Request, res: Response) => {
                 }
                 if (file.fieldname === 'desktopBannerImage') {
                     updateData.desktopBannerImage = `${file.uploadFolder}/${file.filename}`;
+                }
+                 if (file.fieldname === 'loginBannerImage') {
+                    updateData.loginBannerImage = `${file.uploadFolder}/${file.filename}`;
                 }
                 if (file.fieldname === 'mobileBannerImage') {
                     updateData.mobileBannerImage = `${file.uploadFolder}/${file.filename}`;

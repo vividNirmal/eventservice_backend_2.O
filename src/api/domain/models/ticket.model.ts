@@ -62,6 +62,9 @@ const addImageUrls = (ticket: any) => {
         if (ticket.mobileBannerImage) {
             ticket.mobileBannerImageUrl = `${baseUrl}/uploads/${ticket.mobileBannerImage}`;
         }
+        if (ticket.loginBannerImage) {
+            ticket.loginBannerImageUrl = `${baseUrl}/uploads/${ticket.loginBannerImage}`;
+        }
     }
     return ticket;
 };

@@ -7,6 +7,8 @@ import UserTypeMap from "../schema/userTypeMap.schema";
 import { createSlug } from "../../lib/slugify";
 import FormRegistration from "../schema/formRegistration.schema";
 import { env } from "../../../infrastructure/env";
+import { loggerMsg } from "../../lib/logger";
+import { sendNotification } from "../../services/templateService";
 
 export const resolveFormUrlModel = async (
   eventSlug: string,
@@ -22,8 +24,8 @@ export const resolveFormUrlModel = async (
         { message: "Event not found", errorType: "EVENT_NOT_FOUND" },
         null
       );
-      event.event_logo = `${baseUrl}/uploads/${event.event_logo}`;
-      event.event_image =  `${baseUrl}/uploads/${event.event_image}`;
+    event.event_logo = `${baseUrl}/uploads/${event.event_logo}`;
+    event.event_image = `${baseUrl}/uploads/${event.event_image}`;
 
     // Resolve userType via mapping or fallback
     let matchedUserType = null;
@@ -65,7 +67,7 @@ export const resolveFormUrlModel = async (
       userType: matchedUserType._id,
       status: "active",
     })
-    //   .populate("registrationFormId")
+        // .populate("registrationFormId")
       .populate("userType");
 
     if (!ticket)
@@ -174,5 +176,184 @@ export const resolveEmailModel = async (
     });
   } catch (error) {
     return callback(error, null);
+  }
+};
+
+export const storeFormRegistrationModel = async (
+  formData: any,
+  files: Express.Multer.File[],
+  callback: (error: any, result: any) => void
+) => {
+  try {
+    const { ticketId, eventId, regEmail, ...dynamicFormData } = formData;
+
+    // Validate required fields
+    if (!ticketId || !regEmail) {
+      return callback(
+        {
+          message: "Ticket ID and email are required.",
+          errorType: "REQUIRE_PARAMETER",
+        },
+        null
+      );
+    }
+
+    // Check ticket validity
+    const ticket = await Ticket.findById(ticketId);
+    if (!ticket || ticket.status !== "active") {
+      return callback(
+        { message: "Invalid or inactive ticket.", errorType: "INVALID_TICKET" },
+        null
+      );
+    }
+
+    // Check registration limits via existing resolver
+    const emailCheck = await new Promise((resolve, reject) => {
+      resolveEmailModel(
+        regEmail,
+        new mongoose.Types.ObjectId(ticketId),
+        (error: any, result: any) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+    });
+
+    if ((emailCheck as any)?.errorType === "LIMIT_REACHED") {
+      return callback(
+        {
+          message: (emailCheck as any).message,
+          errorType: "LIMIT_REACHED",
+        },
+        null
+      );
+    }
+
+    // Group uploaded files by field name
+    const processedFormData = { ...dynamicFormData };
+    const filesByField: { [key: string]: Express.Multer.File[] } = {};
+
+    files.forEach((file) => {
+      if (!filesByField[file.fieldname]) filesByField[file.fieldname] = [];
+      filesByField[file.fieldname].push(file);
+    });
+
+    Object.keys(filesByField).forEach((fieldName) => {
+      const fileArray = filesByField[fieldName];
+      if (fileArray.length === 1) {
+        processedFormData[fieldName] = `${(fileArray[0] as any).uploadFolder}/${
+          fileArray[0].filename
+        }`;
+      } else {
+        processedFormData[fieldName] = fileArray.map(
+          (f) => `${(f as any).uploadFolder}/${f.filename}`
+        );
+      }
+    });
+
+    // Determine auto-approval
+    const isAutoApproved = ticket.advancedSettings?.autoApprovedUser || false;
+
+    // Generate badge number
+    const finalBadgeNo = await generateBadgeNumber(ticket);
+
+    // Create and save record
+    const registration = new FormRegistration({
+      regEmail: regEmail.toLowerCase(),
+      ticketId: new mongoose.Types.ObjectId(ticketId),
+      eventId: eventId ? new mongoose.Types.ObjectId(eventId) : ticket.eventId,
+      badgeNo: finalBadgeNo,
+      formData: processedFormData,
+      approved: isAutoApproved,
+    });
+
+    await registration.save();
+
+    // Send welcome email if template exists (non-blocking)
+    sendWelcomeEmailAfterRegistration(ticketId, registration).catch((error) => {
+      console.error("Failed to send welcome email:", error);
+    });
+
+    callback(null, {
+      registrationId: registration._id,
+      badgeNo: finalBadgeNo,
+      email: regEmail,
+    });
+  } catch (error: any) {
+    loggerMsg("Error in storeFormRegistrationModel", error);
+    callback(error, null);
+  }
+};
+
+async function sendWelcomeEmailAfterRegistration(
+  ticketId: mongoose.Types.ObjectId,
+  registration: any
+) {
+  try {
+    // Get event details for template data
+    const event = await EventHost.findById(registration.eventId);
+    const ticket = await Ticket.findById(ticketId);
+
+    const templateData = {
+      badgeNo: registration.badgeNo,
+      email: registration.regEmail,
+      registrationId: registration._id.toString(),
+      ticketName: ticket?.ticketName || "",
+      eventName: event?.eventName || "",
+      formData: registration.formData || {},
+    };
+
+    await sendNotification(
+      ticketId,
+      "welcome",
+      registration.regEmail,
+      templateData,
+      "email"
+    );
+
+    console.log(`✅ Welcome email sent to ${registration.regEmail}`);
+  } catch (error) {
+    console.error("Error in sendWelcomeEmailAfterRegistration:", error);
+    // Don't throw error to avoid affecting registration flow
+  }
+}
+
+const generateBadgeNumber = async (ticket: any) => {
+  const registrationCount = await FormRegistration.countDocuments({
+    ticketId: ticket._id,
+  });
+  const nextNumber = ticket.startCount + registrationCount;
+  const padded = nextNumber.toString().padStart(5, "0");
+  return `${ticket.serialNoPrefix}-${padded}`;
+};
+
+export const getFormRegistrationModel = async (
+  registrationId: string,
+  callback: (error: any, result: any) => void
+) => {
+  try {
+    if (!registrationId)
+      return callback(
+        {
+          message: "Registration ID is required.",
+          errorType: "REQUIRE_PARAMETER",
+        },
+        null
+      );
+
+    const registration = await FormRegistration.findById(registrationId)
+      .populate("ticketId")
+      .populate("eventId");
+
+    if (!registration)
+      return callback(
+        { message: "Registration not found.", errorType: "NOT_FOUND" },
+        null
+      );
+
+    callback(null, registration);
+  } catch (error: any) {
+    loggerMsg("Error in getFormRegistrationModel", error);
+    callback(error, null);
   }
 };

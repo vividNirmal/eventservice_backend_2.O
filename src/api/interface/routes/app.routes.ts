@@ -266,8 +266,8 @@ export const upload = multer({ storage: storage });
             //user template
             route.get("/user-templates", protectedRoute, getUserTemplates);
             route.get("/user-templates/:id", protectedRoute, getUserTemplateDetails);
-            route.post("/user-templates", protectedRoute, uploadTemplateAttachments.array('attachments', 10), validateRequest(createUserTemplateValidation), createUserTemplate);
-            route.put("/user-templates/:id", protectedRoute, uploadTemplateAttachments.array('attachments', 10), validateRequest(updateUserTemplateValidation), updateUserTemplateController);
+            route.post("/user-templates", protectedRoute, uploadImagesFile, validateRequest(createUserTemplateValidation), createUserTemplate);
+            route.put("/user-templates/:id", protectedRoute, uploadImagesFile, validateRequest(updateUserTemplateValidation), updateUserTemplateController);
             route.delete("/user-templates/:id", protectedRoute, deleteUserTemplateController);
 
             // user types

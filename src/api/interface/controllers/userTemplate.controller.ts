@@ -17,7 +17,7 @@ interface FileWithBuffer extends Express.Multer.File {
 
 export const getUserTemplates = async (req: Request, res: Response) => {
   try {
-    const { page = 1, pageSize = 10, search = "", type = "", eventId = "" } = req.query;
+    const { page = 1, pageSize = 10, search = "", type = "", eventId = "", typeId="" } = req.query;
 
     userTemplateList(
       req.body,
@@ -26,6 +26,7 @@ export const getUserTemplates = async (req: Request, res: Response) => {
       search as string,
       type as string,
       eventId as string,
+      typeId as string,
       (error: any, result: any) => {
         if (error) {
           return res.status(500).json({
@@ -62,7 +63,7 @@ export const createUserTemplate = async (req: Request, res: Response) => {
         mimetype: file.mimetype,
         size: file.size,
         // store folder/filename relative to assets
-        path: path.join("attachments", file.filename).replace(/\\/g, "/"),
+        path: path.join(`${(file as any).uploadFolder}`, file.filename).replace(/\\/g, "/"),
         uploadedAt: new Date(),
       }));
 
@@ -175,7 +176,7 @@ export const updateUserTemplateController = async (req: Request, res: Response) 
         originalName: file.originalname,
         mimetype: file.mimetype,
         size: file.size,
-        path: path.join('attachments', file.filename).replace(/\\/g, '/'),
+        path: path.join(`${(file as any).uploadFolder}`, file.filename).replace(/\\/g, '/'),
         uploadedAt: new Date(),
       }));
 

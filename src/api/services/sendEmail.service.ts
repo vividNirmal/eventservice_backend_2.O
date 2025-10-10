@@ -47,3 +47,40 @@ export const EmailService = {
     }
   },
 };
+
+export interface EmailOptions {
+  to: string;
+  subject: string;
+  htmlContent: string;
+  username?: string;
+  cc?: string[];
+  bcc?: string[];
+  attachments?: any[];
+}
+
+export const EmailServiceNew = {
+  async sendEmail(options: EmailOptions) {
+    const { to, subject, htmlContent, username, cc, bcc, attachments } = options;
+    
+    const mailOptions = {    
+      from: `"${process.env.EMAIL_FROM}" <${process.env.EMAIL_USER}>`,
+      to: to.trim(),
+      subject,
+      html: htmlContent,
+      cc: cc && cc.length > 0 ? cc : undefined,
+      bcc: bcc && bcc.length > 0 ? bcc : undefined,
+      attachments: attachments && attachments.length > 0 ? attachments : undefined
+    };
+
+    try {
+      const info = await transporter.sendMail(mailOptions);
+      loggerMsg("✅ Email sent successfully.");
+      console.log(`✅ Email sent successfully to ${to}. Message ID: ${info.messageId}`);
+      return info;
+    } catch (error) {
+      loggerMsg("❌ Failed to send email.");
+      console.error(`❌ Failed to send email to ${to}:`, error);
+      throw error;
+    }
+  },
+};

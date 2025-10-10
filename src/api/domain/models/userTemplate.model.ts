@@ -134,6 +134,7 @@ export const userTemplateList = async (
   searchQuery: string, 
   type: string,
   eventId: string,
+  typeId: string,
   callback: (error: any, result: any) => void
 ) => {
   try {
@@ -159,6 +160,10 @@ export const userTemplateList = async (
 
     if (eventId) {
       searchFilter.eventId = eventId;
+    }
+
+    if (typeId) {
+      searchFilter.typeId = typeId;
     }
 
     // Add user/company/event context filters

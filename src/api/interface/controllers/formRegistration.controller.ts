@@ -57,16 +57,16 @@ export const resolveFormUrlController = async (req: Request, res: Response) => {
 // Resolve Email Controller
 export const resolveEmailController = async (req: Request, res: Response) => {
   try {
-    const { regEmail, ticketId } = req.body;
+    const { email, ticketId } = req.body;
 
-    if (!regEmail || !ticketId) {
+    if (!email || !ticketId) {
       return ErrorResponse(res, "Please provide valid email and ticketId.", {
         errorType: "REQUIRE_PARAMETER",
       });
     }
 
     resolveEmailModel(
-      regEmail,
+      email,
       new mongoose.Types.ObjectId(ticketId),
       (error: any, result: any) => {
         if (error) {

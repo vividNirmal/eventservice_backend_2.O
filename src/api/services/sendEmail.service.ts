@@ -60,16 +60,20 @@ export interface EmailOptions {
 
 export const EmailServiceNew = {
   async sendEmail(options: EmailOptions) {
-    const { to, subject, htmlContent, username, cc, bcc, attachments } = options;
+    const { to, subject, htmlContent, username, cc, bcc, attachments = [] } = options;
+    
+    // Extract base64 images and convert to attachments
+    const { processedHtml, imageAttachments } = this.processBase64Images(htmlContent);
     
     const mailOptions = {    
       from: `"${process.env.EMAIL_FROM}" <${process.env.EMAIL_USER}>`,
       to: to.trim(),
       subject,
-      html: htmlContent,
+      html: processedHtml,
       cc: cc && cc.length > 0 ? cc : undefined,
       bcc: bcc && bcc.length > 0 ? bcc : undefined,
-      attachments: attachments && attachments.length > 0 ? attachments : undefined
+      attachments: [...attachments, ...imageAttachments]
+      // attachments: attachments && attachments.length > 0 ? attachments : undefined
     };
 
     try {
@@ -83,4 +87,28 @@ export const EmailServiceNew = {
       throw error;
     }
   },
+
+  processBase64Images(htmlContent: string): { processedHtml: string; imageAttachments: any[] } {
+    const imageAttachments: any[] = [];
+    let processedHtml = htmlContent;
+    let imageIndex = 0;
+
+    // Regex to find base64 images
+    const base64Regex = /<img[^>]*src="data:image\/([^;]+);base64,([^">]*)"[^>]*>/g;
+    
+    processedHtml = processedHtml.replace(base64Regex, (match, imageType, base64Data) => {
+      const cid = `image_${imageIndex++}`;
+      
+      imageAttachments.push({
+        filename: `${cid}.${imageType}`,
+        content: base64Data,
+        encoding: 'base64',
+        cid: cid // same cid value used in the img src
+      });
+
+      return match.replace(`data:image/${imageType};base64,${base64Data}`, `cid:${cid}`);
+    });
+
+    return { processedHtml, imageAttachments };
+  }
 };

@@ -10,7 +10,7 @@ export const resolveFormUrlValidation = Joi.object({
 });
 
 export const resolveEmailValidation = Joi.object({
-  regEmail: Joi.string().required().messages({
+  email: Joi.string().required().messages({
     "string.empty": "Email is required.",
   }),
   ticketId: Joi.string().required().messages({
@@ -24,7 +24,7 @@ export const submitRegistrationValidation = Joi.object({
     "any.required": "Ticket ID is required.",
   }),
 
-  regEmail: Joi.string().email().required().messages({
+  email: Joi.string().email().required().messages({
     "string.email": "A valid email address is required.",
     "string.empty": "Email is required.",
     "any.required": "Email is required.",

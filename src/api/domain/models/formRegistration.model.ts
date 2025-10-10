@@ -101,7 +101,7 @@ export const resolveFormUrlModel = async (
 };
 
 export const resolveEmailModel = async (
-  regEmail: string,
+  email: string,
   ticketId: mongoose.Types.ObjectId,
   callback: (error: any, result: any) => void
 ) => {
@@ -138,9 +138,9 @@ export const resolveEmailModel = async (
     }
 
     // Check user's existing registrations for this event & ticket
-    const emailLower = regEmail.toLowerCase();
+    const emailLower = email.toLowerCase();
     const userRegistrations = await FormRegistration.countDocuments({
-      regEmail: emailLower,
+      email: emailLower,
       ticketId,
     });
 
@@ -160,7 +160,7 @@ export const resolveEmailModel = async (
     // If already registered once (for reference)
     if (userRegistrations > 0) {
       const existing = await FormRegistration.findOne({
-        regEmail: emailLower,
+        email: emailLower,
         ticketId,
       });
 
@@ -185,10 +185,10 @@ export const storeFormRegistrationModel = async (
   callback: (error: any, result: any) => void
 ) => {
   try {
-    const { ticketId, eventId, regEmail, ...dynamicFormData } = formData;
+    const { ticketId, eventId, email, ...dynamicFormData } = formData;
 
     // Validate required fields
-    if (!ticketId || !regEmail) {
+    if (!ticketId || !email) {
       return callback(
         {
           message: "Ticket ID and email are required.",
@@ -210,7 +210,7 @@ export const storeFormRegistrationModel = async (
     // Check registration limits via existing resolver
     const emailCheck = await new Promise((resolve, reject) => {
       resolveEmailModel(
-        regEmail,
+        email,
         new mongoose.Types.ObjectId(ticketId),
         (error: any, result: any) => {
           if (error) reject(error);
@@ -259,7 +259,7 @@ export const storeFormRegistrationModel = async (
 
     // Create and save record
     const registration = new FormRegistration({
-      regEmail: regEmail.toLowerCase(),
+      email: email.toLowerCase(),
       ticketId: new mongoose.Types.ObjectId(ticketId),
       eventId: eventId ? new mongoose.Types.ObjectId(eventId) : ticket.eventId,
       badgeNo: finalBadgeNo,
@@ -277,7 +277,7 @@ export const storeFormRegistrationModel = async (
     callback(null, {
       registrationId: registration._id,
       badgeNo: finalBadgeNo,
-      email: regEmail,
+      email: email,
     });
   } catch (error: any) {
     loggerMsg("Error in storeFormRegistrationModel", error);
@@ -296,7 +296,7 @@ async function sendWelcomeEmailAfterRegistration(
 
     const templateData = {
       badgeNo: registration.badgeNo,
-      email: registration.regEmail,
+      email: registration.email,
       registrationId: registration._id.toString(),
       ticketName: ticket?.ticketName || "",
       eventName: event?.eventName || "",
@@ -306,12 +306,12 @@ async function sendWelcomeEmailAfterRegistration(
     await sendNotification(
       ticketId,
       "welcome",
-      registration.regEmail,
+      registration.email,
       templateData,
       "email"
     );
 
-    console.log(`✅ Welcome email sent to ${registration.regEmail}`);
+    console.log(`✅ Welcome email sent to ${registration.email}`);
   } catch (error) {
     console.error("Error in sendWelcomeEmailAfterRegistration:", error);
     // Don't throw error to avoid affecting registration flow

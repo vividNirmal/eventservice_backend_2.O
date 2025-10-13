@@ -83,7 +83,7 @@ export const updateCompany = async (
     callback: (error: any, result: any) => void
 ) => {
     try {
-        console.log("companyData.company_name",companyData.company_name);
+        // console.log("companyData.company_name",companyData.company_name);
         // Find the company by ID and update
         const updatedCompany = await companySchema.findByIdAndUpdate(
             companyId,
@@ -119,7 +119,7 @@ export const updateCompanyLogoModel = async (
     callback: (error: any, result: any) => void
 ) => {
     try {
-        console.log("companyData.logo",companyData.logo);
+        // console.log("companyData.logo",companyData.logo);
         // Find the company by ID and update
         const updatedCompany = await companySchema.findByIdAndUpdate(
             companyId,
@@ -163,7 +163,7 @@ export const companyList = async (companyData: companyData, page: number, pageSi
             : {}; 
 
         const companies = await companySchema.find(searchFilter).skip(skip).limit(size);
-        console.log(companies);
+        // console.log(companies);
        
         const totalCompany = await companySchema.countDocuments(searchFilter); 
         const result = {

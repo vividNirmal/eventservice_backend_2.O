@@ -34,7 +34,7 @@ interface loginUserData{
 
 export const storeAdminCompany = async (loginUser:loginUserData,storeAdminCompanyData: storeAdminCompanyData, callback: (error: any, result: any) => void) => {
     try {
-        console.log(loginUser);
+        // console.log(loginUser);
         const newCompany = new AdminCompanySchema({
             like_to_visit:storeAdminCompanyData.like_to_visit,
             company_id:loginUser.company_id,
@@ -69,7 +69,7 @@ export const storeAdminCompany = async (loginUser:loginUserData,storeAdminCompan
 
 export const adminCompanyList = async (loginUserData:loginUserData,userData: storeAdminCompanyData, page: number, pageSize: number, searchQuery: string, callback: (error: any, result: any) => void) => {
     try {
-        console.log(loginUserData.company_id);
+        // console.log(loginUserData.company_id);
         const currentPage = page || 1;
         const size = pageSize || 10;
 
@@ -111,7 +111,7 @@ export const adminCompanyList = async (loginUserData:loginUserData,userData: sto
 
 export const updateAdminCompany = async (loginUser: loginUserData, storeAdminCompanyData: storeAdminCompanyData, callback: (error: any, result: any) => void) => {
     try {
-        console.log(loginUser);
+        // console.log(loginUser);
 
         const updatedCompany = await AdminCompanySchema.findByIdAndUpdate(
             storeAdminCompanyData.admin_company_id,  

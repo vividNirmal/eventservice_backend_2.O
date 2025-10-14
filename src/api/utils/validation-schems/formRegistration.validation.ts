@@ -35,3 +35,9 @@ export const submitRegistrationValidation = Joi.object({
   }),
   // Since form fields are dynamic, we allow extra keys
 }).unknown(true);
+
+export const generatePdfValidation = Joi.object({
+  formRegistrationId: Joi.string().required().messages({
+    "string.empty": "ID is required.",
+  }),
+});

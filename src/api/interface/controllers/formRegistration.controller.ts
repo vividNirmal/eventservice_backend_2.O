@@ -23,6 +23,8 @@ import mongoose from "mongoose";
 import FormRegistration from "../../domain/schema/formRegistration.schema";
 import Ticket from "../../domain/schema/ticket.schema";
 import EventHost from "../../domain/schema/eventHost.schema";
+import QRCode from "qrcode";
+import puppeteer from "puppeteer";
 
 // Resolve Ticket URL Controller
 export const resolveFormUrlController = async (req: Request, res: Response) => {
@@ -150,5 +152,138 @@ export const getRegistrationController = async (
       "An error occurred while fetching registration.",
       { errorType: "INTERNAL_SERVER_ERROR" }
     );
+  }
+};
+
+export const generateFormRegistrationPdf = async (req: Request, res: Response) => {
+  try {
+    const { formRegistrationId } = req.body;
+    const baseUrl = env.BASE_URL;
+
+    if (!formRegistrationId) {
+      return ErrorResponse(res, "formRegistrationId is required");
+    }
+
+    const registration = await FormRegistration.findById(formRegistrationId)
+      .populate("ticketId")
+      .populate("eventId");
+
+    if (!registration) {
+      return ErrorResponse(res, "Form registration not found");
+    }
+
+    const ticket = registration.ticketId as any;
+    const event = registration.eventId as any;
+
+    if (event?.event_logo) event.event_logo = baseUrl + "/" + event.event_logo;
+    if (event?.event_image) event.event_image = baseUrl + "/" + event.event_image;
+    if (event?.show_location_image)
+      event.show_location_image = baseUrl + "/" + event.show_location_image;
+
+    // Create QR code (or use existing)
+    let qrCodeBase64 = registration.qrImage
+      ? baseUrl + "/uploads/" + registration.qrImage
+      : await QRCode.toDataURL(
+          JSON.stringify({
+            event_id: event?._id,
+            event_slug: event?.event_slug,
+            formRegistration_id: registration._id,
+          })
+        );
+
+    const formatDateTime = (date?: Date | string): string => {
+      if (!date) return "N/A";
+      const d = new Date(date);
+      const day = d.getDate();
+      const month = d.toLocaleString("default", { month: "long" });
+      const year = d.getFullYear();
+      const time = d.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+      return `${day} ${month} ${year} - ${time}`;
+    };
+
+    const formattedDateRange = `${formatDateTime(event?.startDate)} to ${formatDateTime(event?.endDate)}`;
+
+    // Optional — Extract name/designation from dynamic form fields
+    const formData = registration.formData || {};
+    const name = event?.eventName || ""
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8" />
+        <title>Registration PDF</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+          .card { border: 2px dashed #000; border-radius: 16px; padding: 16px; margin: 8px; }
+          .title { text-align: center; font-weight: bold; font-size: 18px; }
+          .center { text-align: center; }
+          img { max-width: 100%; height: auto; }
+          .details { background: #eee; border-radius: 8px; padding: 10px; margin: 10px 0; text-align: center; }
+        </style>
+      </head>
+      <body>
+        <table style="width:100%; border-collapse:collapse;">
+          <tr>
+            <td width="50%" class="card">
+              <div class="details">${formattedDateRange}<br>${event?.address || ""}</div>
+              <h3 class="center">${name}</h3>
+              <img src="${qrCodeBase64}" alt="QR Code" width="200" height="200" style="display:block;margin:10px auto;" />
+              <p class="center">Badge No: ${registration.badgeNo || "-"}</p>
+              ${
+                registration.businessData?.category
+                  ? `<p class="center">Category: ${registration.businessData.category}</p>`
+                  : ""
+              }
+            </td>
+            <td width="50%" class="card">
+              ${
+                event?.show_location_image
+                  ? `<img src="${event.show_location_image}" alt="Location Map" />`
+                  : `<p class="center">Event Details</p>`
+              }
+            </td>
+          </tr>
+        </table>
+      </body>
+      </html>
+    `;
+
+    // 🧾 Generate PDF
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
+    const page = await browser.newPage();
+    await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+
+    const pdfFileName = `${name.replace(/\s+/g, "_")}_badge.pdf`;
+    const tempFilePath = path.join(__dirname, pdfFileName);
+    await page.pdf({ path: tempFilePath, format: "A4", printBackground: true });
+    await browser.close();
+
+    // 📤 Send PDF file
+    if (fs.existsSync(tempFilePath)) {
+      res.set({
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${pdfFileName}"`,
+      });
+      const stream = fs.createReadStream(tempFilePath);
+      stream.pipe(res);
+      res.on("finish", () => fs.unlinkSync(tempFilePath));
+    } else {
+      ErrorResponse(res, "Failed to generate PDF file");
+    }
+  } catch (error: any) {
+    console.error("❌ Error generating form registration PDF:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Error generating PDF",
+      error: error.message,
+    });
   }
 };

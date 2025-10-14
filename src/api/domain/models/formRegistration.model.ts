@@ -798,6 +798,11 @@ export const updateFormRegistrationStatusModel = async (
 
     await registration.save();
 
+    // Send approval/disapproval email notification (non-blocking)
+    sendStatusEmailAfterUpdate(registration, approved).catch((error) => {
+      console.error("Failed to send status email:", error);
+    });
+
     return callback(null, {
       registrationId: registration._id,
       approved: registration.approved,
@@ -807,3 +812,35 @@ export const updateFormRegistrationStatusModel = async (
     return callback(error, null);
   }
 };
+
+/**
+ * Send approval/disapproval email notification
+ */
+async function sendStatusEmailAfterUpdate(
+  registration: any,
+  approved: boolean
+) {
+  try {
+    const actionType = approved ? "approve" : "disapprove";
+    
+    const templateData = {
+      badgeNo: registration.badgeNo,
+      email: registration.email,
+      formData: registration.formData || {},
+      status: approved ? "approved" : "disapproved",
+    };
+
+    await sendNotification(
+      registration.ticketId,
+      actionType,
+      registration.email,
+      templateData,
+      "email"
+    );
+
+    console.log(`✅ ${actionType} email sent to ${registration.email}`);
+  } catch (error) {
+    console.error("Error in sendStatusEmailAfterUpdate:", error);
+    // Don't throw error to avoid affecting status update flow
+  }
+}

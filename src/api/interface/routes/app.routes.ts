@@ -47,8 +47,8 @@ import { createUserTypeSchema, updateUserTypeSchema } from "../../utils/validati
 import { createUserTypeController, deleteUserTypeByIdController, getAllUserTypesController, getUserTypeByIdController, updateUserTypeByIdController } from "../controllers/userType.controller";
 import { createUserTypeMapController, deleteUserTypeMapByIdController, getAllUserTypeMapsController, getUserTypeMapByIdController, updateUserTypeMapByIdController } from "../controllers/userTypeMap.controller";
 import { createUserTypeMapSchema, updateUserTypeMapSchema } from "../../utils/validation-schems/userTypeMap.validation";
-import { generateFormRegistrationPdf, resolveEmailController, resolveFormUrlController, submitRegistrationController } from "../controllers/formRegistration.controller";
-import { generatePdfValidation, resolveEmailValidation, resolveFormUrlValidation, submitRegistrationValidation } from "../../utils/validation-schems/formRegistration.validation";
+import { generateFormRegistrationPdf, getFormRegistrationListController, resolveEmailController, resolveFormUrlController, submitRegistrationController, updateFormRegistrationStatusController } from "../controllers/formRegistration.controller";
+import { formRegistrationStatusValidation, generatePdfValidation, resolveEmailValidation, resolveFormUrlValidation, submitRegistrationValidation } from "../../utils/validation-schems/formRegistration.validation";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -289,6 +289,9 @@ export const upload = multer({ storage: storage });
             route.post("/resolve-email", validateRequest(resolveEmailValidation), resolveEmailController);
             route.post("/store-register-form", uploadImagesFile, validateRequest(submitRegistrationValidation), submitRegistrationController);
             route.post("/generate-pdf-scanner", validateRequest(generatePdfValidation), generateFormRegistrationPdf);
+            route.get("/form-registration-list", protectedRoute, getFormRegistrationListController);
+            route.put("/form-registration-status-change/:id", protectedRoute, validateRequest(formRegistrationStatusValidation), updateFormRegistrationStatusController);
+
 
             route.post('/send-otp',verifyScannerToken,validateRequest(sendOtpValidation),OtpGenerate);
             route.post('/verify-otp',verifyScannerToken,validateRequest(verifyOtpValidation),OtpVerify);

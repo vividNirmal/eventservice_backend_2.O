@@ -41,3 +41,8 @@ export const generatePdfValidation = Joi.object({
     "string.empty": "ID is required.",
   }),
 });
+
+export const formRegistrationStatusValidation = Joi.object({
+  approved: Joi.boolean().required(),
+  id: Joi.string().optional(),
+});

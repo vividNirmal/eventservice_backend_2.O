@@ -700,3 +700,110 @@ export const getFormRegistrationModel = async (
     callback(error, null);
   }
 };
+
+
+export const getFormRegistrationListModel = async (
+  page: number,
+  pageSize: number,
+  search: string,
+  eventId: string,
+  approved: string,
+  userTypeId: string,
+  callback: (error: any, result: any) => void
+) => {
+  try {
+    const currentPage = page || 1;
+    const size = pageSize || 10;
+    const skip = (currentPage - 1) * size;
+
+    const filter: any = {};
+
+    // 🔍 Search filters
+    if (search) {
+      filter.$or = [
+        { email: { $regex: search, $options: "i" } },
+        { badgeNo: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    if (eventId) filter.eventId = eventId;
+    if (approved !== "") filter.approved = approved === "true";
+
+    // 🧩 Step 1: If userTypeId filter applied → find all tickets with that userType
+    let ticketIds: string[] = [];
+    if (userTypeId) {
+      const tickets = await Ticket.find({ userType: userTypeId }, { _id: 1 }).lean();
+      ticketIds = tickets.map((t) => t._id.toString());
+      if (ticketIds.length > 0) {
+        filter.ticketId = { $in: ticketIds };
+      } else {
+        // If no tickets found for this userType → return empty result
+        return callback(null, {
+          registrations: [],
+          pagination: {
+            currentPage,
+            totalPages: 0,
+            totalData: 0,
+            pageSize: size,
+          },
+        });
+      }
+    }
+
+    // 🧩 Step 2: Fetch form registrations with populated data
+    const registrations = await FormRegistration.find(filter)
+      .populate({
+        path: "ticketId",
+        select: "ticketName userType",
+        populate: { path: "userType", select: "typeName" },
+      })
+      .populate("eventId", "event_title event_slug")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(size)
+      .lean();
+
+    const totalCount = await FormRegistration.countDocuments(filter);
+
+    const result = {
+      registrations,
+      pagination: {
+        currentPage,
+        totalPages: Math.ceil(totalCount / size),
+        totalData: totalCount,
+        pageSize: size,
+      },
+    };
+
+    return callback(null, result);
+  } catch (error) {
+    return callback(error, null);
+  }
+};
+
+
+export const updateFormRegistrationStatusModel = async (
+  registrationId: string,
+  approved: boolean,
+  callback: (error: any, result: any) => void
+) => {
+  try {
+    const registration = await FormRegistration.findById(registrationId);
+
+    if (!registration) {
+      return callback({ message: "Registration not found." }, null);
+    }
+
+    registration.approved = approved;
+
+    await registration.save();
+
+    return callback(null, {
+      registrationId: registration._id,
+      approved: registration.approved,
+      message: approved ? "Registration approved." : "Registration disapproved.",
+    });
+  } catch (error) {
+    return callback(error, null);
+  }
+};

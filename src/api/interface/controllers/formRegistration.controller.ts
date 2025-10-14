@@ -14,10 +14,12 @@ import { env } from "process";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import {
+  getFormRegistrationListModel,
   getFormRegistrationModel,
   resolveEmailModel,
   resolveFormUrlModel,
   storeFormRegistrationModel,
+  updateFormRegistrationStatusModel,
 } from "../../domain/models/formRegistration.model";
 import mongoose from "mongoose";
 import FormRegistration from "../../domain/schema/formRegistration.schema";
@@ -285,5 +287,53 @@ export const generateFormRegistrationPdf = async (req: Request, res: Response) =
       message: "Error generating PDF",
       error: error.message,
     });
+  }
+};
+
+export const getFormRegistrationListController = async (req: Request, res: Response) => {
+  try {
+    const { 
+      page = 1, 
+      pageSize = 10, 
+      search = "", 
+      eventId = "", 
+      approved = "", 
+      userTypeId = "" 
+    } = req.query;
+
+    getFormRegistrationListModel(
+      parseInt(page as string),
+      parseInt(pageSize as string),
+      search as string,
+      eventId as string,
+      approved as string,
+      userTypeId as string,
+      (error, result) => {
+        if (error) {
+          return ErrorResponse(res, error.message);
+        }
+        return successResponse(res, "Form registrations retrieved successfully", result);
+      }
+    );
+  } catch (error) {
+    return ErrorResponse(res, "An error occurred while fetching form registrations.");
+  }
+};
+
+export const updateFormRegistrationStatusController = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { approved } = req.body;
+
+    if (typeof approved !== "boolean") {
+      return ErrorResponse(res, "Approved status must be boolean (true/false).");
+    }
+
+    updateFormRegistrationStatusModel(id, approved, (error, result) => {
+      if (error) return ErrorResponse(res, error.message);
+      return successResponse(res, "Registration status updated successfully", result);
+    });
+  } catch (error) {
+    return ErrorResponse(res, "Error updating registration status.");
   }
 };

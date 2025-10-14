@@ -198,6 +198,12 @@ export const resolveEmailModel = async (
         ticketId,
       }).populate('eventId').populate("ticketId");
 
+      // ✅ Append base URL if qrImage exists
+      if (existing?.qrImage) {
+        existing.qrImage = `${env.BASE_URL}/uploads/${existing.qrImage}`;
+      }
+
+
       return callback(null, {
         alreadyRegistered: true,
         formRegistration: existing,
@@ -457,7 +463,7 @@ export const storeFormRegistrationModel = async (
       
       // Save QR code as file
       qrFileName = saveQrImage(qrCodeBase64, userToken);
-      registration.qrImage =`${baseUrl}/uploads/${qrFileName}`;
+      registration.qrImage =`${qrFileName}`;
       await registration.save();
     }
 

@@ -9,6 +9,37 @@ import FormRegistration from "../schema/formRegistration.schema";
 import { env } from "../../../infrastructure/env";
 import { loggerMsg } from "../../lib/logger";
 import { sendNotification } from "../../services/templateService";
+import QRCode from "qrcode";
+import path from "path";
+import fs from "fs";
+import { v4 as uuidv4 } from "uuid";
+import sharp from "sharp";
+import {
+  RekognitionClient,
+  IndexFacesCommand,
+  CreateCollectionCommand,
+} from "@aws-sdk/client-rekognition";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+
+
+const addImageUrls = (ticket: any) => {
+    const baseUrl = env.BASE_URL;
+    if (ticket) {
+        if (ticket.bannerImage) {
+            ticket.bannerImageUrl = `${baseUrl}/uploads/${ticket.bannerImage}`;
+        }
+        if (ticket.desktopBannerImage) {
+            ticket.desktopBannerImageUrl = `${baseUrl}/uploads/${ticket.desktopBannerImage}`;
+        }
+        if (ticket.mobileBannerImage) {
+            ticket.mobileBannerImageUrl = `${baseUrl}/uploads/${ticket.mobileBannerImage}`;
+        }
+        if (ticket.loginBannerImage) {
+            ticket.loginBannerImageUrl = `${baseUrl}/uploads/${ticket.loginBannerImage}`;
+        }
+    }
+    return ticket;
+};
 
 export const resolveFormUrlModel = async (
   eventSlug: string,
@@ -79,6 +110,7 @@ export const resolveFormUrlModel = async (
         null
       );
 
+    const ticketWithUrls = addImageUrls(ticket.toObject());
     // Get Form (either from ticket or event fallback)
     let form = null;
     if (ticket.registrationFormId) {
@@ -90,7 +122,7 @@ export const resolveFormUrlModel = async (
     // Final Response
     const result = {
       event,
-      ticket,
+      ticket : ticketWithUrls,
       userType: matchedUserType,
     };
 
@@ -122,20 +154,22 @@ export const resolveEmailModel = async (
       );
 
     // Check event capacity limit
-    const totalRegistrations = await FormRegistration.countDocuments({
-      ticketId,
-    });
-    const capacity = event.participant_capacity || 0;
+    // const totalRegistrations = await FormRegistration.countDocuments({
+    //   ticketId,
+    // });
+    // const capacity = event.participant_capacity || 0;
 
-    if (capacity > 0 && totalRegistrations >= capacity) {
-      return callback(
-        {
-          message: "Ticket limit reached for this event.",
-          errorType: "LIMIT_REACHED",
-        },
-        null
-      );
-    }
+    // if (capacity > 0 && totalRegistrations >= capacity) {
+    //   return callback(
+    //     {
+    //       message: "Ticket limit reached for this event.",
+    //       errorType: "LIMIT_REACHED",
+    //     },
+    //     null
+    //   );
+    // }
+    
+
 
     // Check user's existing registrations for this event & ticket
     const emailLower = email.toLowerCase();
@@ -147,22 +181,22 @@ export const resolveEmailModel = async (
     // Get max buy limit per user from advanced settings
     const maxBuyLimit = ticket.advancedSettings?.ticketBuyLimitMax ?? 1; // fallback if not defined
 
-    if (userRegistrations >= maxBuyLimit) {
-      return callback(
-        {
-          message: `You have reached the maximum allowed registrations (${maxBuyLimit}) for this ticket.`,
-          errorType: "LIMIT_REACHED",
-        },
-        null
-      );
-    }
+    // if (userRegistrations >= maxBuyLimit) {
+    //   return callback(
+    //     {
+    //       message: `You have reached the maximum allowed registrations (${maxBuyLimit}) for this ticket.`,
+    //       errorType: "LIMIT_REACHED",
+    //     },
+    //     null
+    //   );
+    // }
 
     // If already registered once (for reference)
     if (userRegistrations > 0) {
       const existing = await FormRegistration.findOne({
         email: emailLower,
         ticketId,
-      });
+      }).populate('eventId').populate("ticketId");
 
       return callback(null, {
         alreadyRegistered: true,
@@ -179,13 +213,73 @@ export const resolveEmailModel = async (
   }
 };
 
+// AWS configuration
+const rekognition = new RekognitionClient({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+});
+
+const s3 = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+  endpoint: `https://s3.${process.env.AWS_REGION}.amazonaws.com`,
+  forcePathStyle: true,
+});
+
+const FACE_COLLECTION_ID = process.env.AWS_REKOGNITION_COLLECTION;
+const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME;
+
+// QR code directory setup (reuse from old code)
+const qrDirectory = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "..",
+  "..", // for local comment this
+  "uploads"
+);
+
+if (!fs.existsSync(qrDirectory)) {
+  fs.mkdirSync(qrDirectory, { recursive: true });
+}
+
 export const storeFormRegistrationModel = async (
   formData: any,
   files: Express.Multer.File[],
   callback: (error: any, result: any) => void
 ) => {
   try {
-    const { ticketId, eventId, email, ...dynamicFormData } = formData;
+    const { ticketId, eventId, email, businessData, ...dynamicFormData } = formData;        
+    let parsedBusinessData = null;
+    
+    if (businessData) {
+      // If it's a JSON string, parse it
+      if (typeof businessData === 'string') {
+        try {
+          parsedBusinessData = JSON.parse(businessData);
+        } catch (e) {
+          console.error('Failed to parse businessData:', e);
+        }
+      } else if (typeof businessData === 'object') {
+        parsedBusinessData = businessData;
+      }
+    
+      if (parsedBusinessData && parsedBusinessData.amount !== undefined && parsedBusinessData.amount !== null) {
+        parsedBusinessData.amount = Number(parsedBusinessData.amount);
+      }
+
+      if (parsedBusinessData && (!parsedBusinessData.category && !parsedBusinessData.amount)) {
+        parsedBusinessData = null;
+      }
+      
+    }
 
     // Validate required fields
     if (!ticketId || !email) {
@@ -229,13 +323,61 @@ export const storeFormRegistrationModel = async (
       );
     }
 
-    // Group uploaded files by field name
+    // Process face scan if provided
+    let faceId = "";
+    let faceImageUrl = "";
+    let uploadedImageBuffer: Buffer | null = null;
+
+    // Check for face scan in files or base64
+    const faceScanFile = files?.find(file => file.fieldname === 'faceScan');
+    if (faceScanFile) {
+      console.log('🔧 Processing face scan from file upload');
+      try {
+        const processedFaceData = await processFaceImage(faceScanFile);
+        faceId = processedFaceData.faceId;
+        faceImageUrl = processedFaceData.imageKey;
+        uploadedImageBuffer = processedFaceData.imageBuffer;
+      } catch (faceError) {
+        console.error('❌ Face processing failed:', faceError);
+        return callback(
+          { 
+            message: `Face processing failed: ${faceError instanceof Error ? faceError.message : 'Unknown error'}`,
+            errorType: "FACE_PROCESSING_ERROR"
+          },
+          null
+        );
+      }
+    } else if (formData.faceScan && typeof formData.faceScan === 'string' && formData.faceScan.startsWith('data:image/')) {
+      console.log('🔧 Processing face scan from base64');
+      try {
+        const processedFaceData = await processFaceImageBase64(formData.faceScan);
+        faceId = processedFaceData.faceId;
+        faceImageUrl = processedFaceData.imageKey;
+        uploadedImageBuffer = processedFaceData.imageBuffer;
+        // Remove base64 from form data to avoid storing large strings
+        delete formData.faceScan;
+        delete dynamicFormData.faceScan;
+      } catch (faceError) {
+        console.error('❌ Face processing failed:', faceError);
+        return callback(
+          { 
+            message: `Face processing failed: ${faceError instanceof Error ? faceError.message : 'Unknown error'}`,
+            errorType: "FACE_PROCESSING_ERROR"
+          },
+          null
+        );
+      }
+    }
+
+    // Group uploaded files by field name (excluding faceScan)
     const processedFormData = { ...dynamicFormData };
     const filesByField: { [key: string]: Express.Multer.File[] } = {};
 
-    files.forEach((file) => {
-      if (!filesByField[file.fieldname]) filesByField[file.fieldname] = [];
-      filesByField[file.fieldname].push(file);
+    files?.forEach((file) => {
+      if (file.fieldname !== 'faceScan') {
+        if (!filesByField[file.fieldname]) filesByField[file.fieldname] = [];
+        filesByField[file.fieldname].push(file);
+      }
     });
 
     Object.keys(filesByField).forEach((fieldName) => {
@@ -257,33 +399,229 @@ export const storeFormRegistrationModel = async (
     // Generate badge number
     const finalBadgeNo = await generateBadgeNumber(ticket);
 
-    // Create and save record
-    const registration = new FormRegistration({
+    // Generate user token for QR code
+    const userToken = uuidv4();
+
+    // ✅ Prepare registration data object
+    const registrationData: any = {
       email: email.toLowerCase(),
       ticketId: new mongoose.Types.ObjectId(ticketId),
       eventId: eventId ? new mongoose.Types.ObjectId(eventId) : ticket.eventId,
       badgeNo: finalBadgeNo,
       formData: processedFormData,
       approved: isAutoApproved,
-    });
+      // token: userToken,
+    };
+
+    if (faceId) {
+      registrationData.faceId = faceId;
+    }
+    
+    if (faceImageUrl) {
+      registrationData.faceImageUrl = faceImageUrl;
+    }
+    
+    if (parsedBusinessData) {
+      registrationData.businessData = parsedBusinessData;
+    }    
+
+    // Create and save record
+    const registration = new FormRegistration(registrationData);
 
     await registration.save();
+
+    console.log('✅ Registration saved successfully:', registration._id);
+
+    // Generate QR code and update registration
+    console.log('🔧 Generating QR code for registration...');
+    const baseUrl = process.env.BASE_URL;
+    
+    // Get event details for QR code
+    const EventHost = mongoose.model('EventHost');
+    let eventDetails = await EventHost.findById(eventId || ticket.eventId);
+    
+    let qrCodeBase64 = null;
+    let qrFileName = null;
+
+    if (eventDetails) {
+      // Generate QR code data
+      const qrData = JSON.stringify({
+        event_id: eventDetails._id,
+        event_slug: eventDetails.event_slug,
+        formRegistration_id: registration._id,
+      });
+      
+      // Generate base64 QR code
+      qrCodeBase64 = await QRCode.toDataURL(qrData);
+      console.log('🔧 QR code generated successfully');
+      
+      // Save QR code as file
+      qrFileName = saveQrImage(qrCodeBase64, userToken);
+      registration.qrImage =`${baseUrl}/uploads/${qrFileName}`;
+      await registration.save();
+    }
 
     // Send welcome email if template exists (non-blocking)
     sendWelcomeEmailAfterRegistration(ticketId, registration).catch((error) => {
       console.error("Failed to send welcome email:", error);
     });
 
-    callback(null, {
+    // Prepare response data
+    const responseData: any = {
       registrationId: registration._id,
       badgeNo: finalBadgeNo,
       email: email,
-    });
+      // token: userToken,
+    };
+    
+    if (faceId) {
+      responseData.faceId = faceId;
+    }
+
+    if (faceImageUrl) {
+      responseData.faceImageUrl = `https://${AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${faceImageUrl}`;
+    }
+
+    if (parsedBusinessData) {
+      responseData.businessData = parsedBusinessData;
+    }
+
+    // Add QR code to response if generated
+    if (qrCodeBase64) {
+      responseData.qrCode = qrCodeBase64;
+      responseData.qrImageUrl = baseUrl + "/uploads/" + qrFileName;
+    }
+
+    // Add event details to response if available
+    if (eventDetails) {
+      responseData.event = {
+        id: eventDetails._id,
+        event_title: eventDetails.event_title,
+        event_slug: eventDetails.event_slug,
+        address: eventDetails.address,
+      };
+    }
+
+    callback(null, responseData);
+
   } catch (error: any) {
     loggerMsg("Error in storeFormRegistrationModel", error);
     callback(error, null);
   }
 };
+
+// Face processing functions (updated to handle disk storage)
+async function processFaceImage(file: Express.Multer.File): Promise<{ faceId: string; imageKey: string; imageBuffer: Buffer }> {
+  const allowedMimeTypes = ["image/png", "image/jpeg", "image/jpg"];
+  if (!allowedMimeTypes.includes(file.mimetype)) {
+    throw new Error("Only PNG and JPG files are allowed");
+  }
+
+  const maxSize = 5 * 1024 * 1024;
+  if (file.size > maxSize) {
+    throw new Error("File size must be less than 5MB");
+  }
+
+  let imageBuffer: Buffer;
+  
+  // Check if buffer exists (memory storage) or read from disk (disk storage)
+  if (file.buffer) {
+    // File is in memory
+    imageBuffer = file.buffer;
+  } else if (file.path) {
+    // File is on disk - read it
+    try {
+      imageBuffer = await fs.promises.readFile(file.path);
+    } catch (readError) {
+      throw new Error(`Failed to read file from disk: ${readError}`);
+    }
+  } else {
+    throw new Error("No file buffer or path available");
+  }
+
+  // Process the image with sharp
+  const processedBuffer = await sharp(imageBuffer)
+    .resize(100)
+    .jpeg({ quality: 100 })
+    .toBuffer();
+
+  return await uploadFaceToAWS(processedBuffer, file.mimetype);
+}
+
+async function processFaceImageBase64(base64Image: string): Promise<{ faceId: string; imageKey: string; imageBuffer: Buffer }> {
+  const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
+  const imageBuffer = Buffer.from(base64Data, "base64");
+  const mimeType = base64Image.split(';')[0].split(':')[1];
+
+  const allowedMimeTypes = ["image/png", "image/jpeg"];
+  if (!allowedMimeTypes.includes(mimeType)) {
+    throw new Error("Only PNG and JPG base64 images are allowed");
+  }
+
+  const maxSize = 5 * 1024 * 1024;
+  if (imageBuffer.length > maxSize) {
+    throw new Error("Base64 image size must be less than 5MB");
+  }
+
+  const processedBuffer = await sharp(imageBuffer)
+    .resize(100)
+    .jpeg({ quality: 100 })
+    .toBuffer();
+  
+  // // Return mock AWS upload response
+  // return {
+  //   faceId: "mock-face-id-" + uuidv4(),
+  //   imageKey: "mock-folder/" + uuidv4() + ".jpg",
+  //   imageBuffer: processedBuffer,
+  // };
+
+  return await uploadFaceToAWS(processedBuffer, mimeType);
+}
+
+async function uploadFaceToAWS(imageBuffer: Buffer, mimeType: string): Promise<{ faceId: string; imageKey: string; imageBuffer: Buffer }> {
+  // Ensure Rekognition collection exists
+  await rekognition.send(new CreateCollectionCommand({
+    CollectionId: FACE_COLLECTION_ID,
+  })).catch(err => console.log("Collection already exists or error:", err));
+
+  const fileKey = `${uuidv4()}.jpg`;
+
+  // Upload image to S3
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: AWS_BUCKET_NAME,
+      Key: fileKey,
+      Body: imageBuffer,
+      ContentType: mimeType,
+    })
+  );
+
+  // Index face in Rekognition
+  const indexCommand = new IndexFacesCommand({
+    CollectionId: FACE_COLLECTION_ID,
+    Image: { Bytes: imageBuffer },
+    ExternalImageId: fileKey,
+    DetectionAttributes: ["DEFAULT"],
+  });
+
+  const indexResult = await rekognition.send(indexCommand);
+
+  if (!indexResult.FaceRecords || indexResult.FaceRecords.length === 0) {
+    throw new Error("No valid face detected in the image");
+  }
+
+  const faceId = indexResult.FaceRecords[0].Face?.FaceId || "";
+
+  return { faceId, imageKey: fileKey, imageBuffer };
+}
+
+// QR code saving function (reused from old code)
+function saveQrImage(base64String: string, fileName: string): string {
+  const base64Data = base64String.replace(/^data:image\/png;base64,/, "");
+  const filePath = path.join(qrDirectory, `${fileName}.png`);
+  fs.writeFileSync(filePath, base64Data, "base64");
+  return `${fileName}.png`;
+}
 
 async function sendWelcomeEmailAfterRegistration(
   ticketId: mongoose.Types.ObjectId,

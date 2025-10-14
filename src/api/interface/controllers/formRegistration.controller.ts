@@ -93,6 +93,10 @@ export const submitRegistrationController = async (
   res: Response
 ) => {
   try {
+    console.log('🚀 Submit Registration - Request Body:', req.body);
+    console.log('🚀 Submit Registration - Files:', req.files);
+    console.log('🚀 Submit Registration - Content Type:', req.headers['content-type']);
+
     storeFormRegistrationModel(
       req.body,
       req.files as Express.Multer.File[],

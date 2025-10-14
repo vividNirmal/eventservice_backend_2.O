@@ -7,7 +7,23 @@ export interface IFormRegistration extends Document {
   badgeNo?: string;
   formData?: any; // Store any additional dynamic form fields
   approved: boolean;
+  faceId?: string; // Added for face recognition
+  faceImageUrl?: string; // Added for S3 face image storage
+  qrImage?: string; // Added for QR code storage
+  // token?: string; // Added for user token
+  businessData?: {
+    category?: string;
+    amount?: number;
+  };
 }
+
+const businessData = new mongoose.Schema(
+  {
+    category: { type: String },
+    amount: { type: Number },
+  },
+  { _id: false }
+);
 
 const formRegistrationSchema: Schema = new Schema<IFormRegistration>(
   {
@@ -17,6 +33,11 @@ const formRegistrationSchema: Schema = new Schema<IFormRegistration>(
     badgeNo: { type: String },
     formData: { type: Schema.Types.Mixed, required: false },
     approved: { type: Boolean, default: false },
+    faceId: { type: String }, // Store face recognition ID
+    faceImageUrl: { type: String }, // Store S3 image key
+    qrImage: { type: String }, // Store QR code filename
+    // token: { type: String }, // Store user token for QR generation
+    businessData: { type : businessData  },
   },
   {
     timestamps: true,

@@ -39,7 +39,8 @@ export const uploadImagesFile = multer({
 
             (file as any).uploadFolder = folder;
             
-            const uploadDir = path.resolve(__dirname, "../../../../uploads", folder);
+            const uploadDir = path.resolve(__dirname, "../../../../uploads", folder); // #ForLive
+            // const uploadDir = path.resolve(__dirname, "../../../uploads", folder); // #ForLocal
             if (!fs.existsSync(uploadDir)) {
                 fs.mkdirSync(uploadDir, { recursive: true });
             }

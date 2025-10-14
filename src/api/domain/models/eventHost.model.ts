@@ -1,5 +1,6 @@
 import { convertToSlug } from "../../helper/helper";
 import eventHostSchema from "../schema/eventHost.schema";
+import { env } from "../../../infrastructure/env";
 
 interface DateRange {
     startDate: string;
@@ -146,10 +147,7 @@ export const updateEventHost = async (
     callback: (error: any, result: any) => void
 ) => {
     try {
-        const eventId = eventData.event_id;
-        console.log("=== DEBUG: updateEventHost called ===");
-        console.log("Event ID:", eventId);
-        console.log("Event Data received:", eventData);
+        const eventId = eventData.event_id;        
 
         // Build update object with only provided fields
         const updateFields: any = {};
@@ -206,26 +204,20 @@ export const updateEventHost = async (
         if (eventData.organizer_phone) updateFields.organizer_phone = eventData.organizer_phone;
         if (eventData.with_face_scanner !== undefined) updateFields.with_face_scanner = eventData.with_face_scanner;
         if (eventData.selected_form_id) updateFields.selected_form_id = eventData.selected_form_id;
-
+        const baseUrl = env.BASE_URL;
         // Only update image fields if new images are provided
         if (eventData.event_logo) {
-            updateFields.event_logo = eventData.event_logo;
-            console.log("Updating event_logo:", eventData.event_logo);
+            updateFields.event_logo = `${baseUrl}/uploads/${eventData.event_logo}`;            
         }
         if (eventData.event_image) {
-            updateFields.event_image = eventData.event_image;
-            console.log("Updating event_image:", eventData.event_image);
+            updateFields.event_image = `${baseUrl}/uploads/${eventData.event_image}`;
         }
         if (eventData.show_location_image) {
-            updateFields.show_location_image = eventData.show_location_image;
-            console.log("Updating show_location_image:", eventData.show_location_image);
+            updateFields.show_location_image = `${baseUrl}/uploads/${eventData.show_location_image}`;            
         }
         if (eventData.event_sponsor) {
-            updateFields.event_sponsor = eventData.event_sponsor;
-            console.log("Updating event_sponsor:", eventData.event_sponsor);
-        }
-
-        console.log("Update fields:", updateFields);
+            updateFields.event_sponsor = `${baseUrl}/uploads/${eventData.event_sponsor}`;            
+        }        
 
         const updatedEvent = await eventHostSchema.findByIdAndUpdate(
             eventId,

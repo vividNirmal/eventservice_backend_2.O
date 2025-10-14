@@ -178,50 +178,44 @@ export const storeAdminEventHost = async (req: Request, res: Response) => {
 };
 
 export const updateAdminEventHost = async (req: Request, res: Response) => {
-  try {
-    console.log("=== DEBUG: updateAdminEventHost controller called ===");
-    console.log("Request body:", req.body);
-    console.log("Request files:", req.files);
+  try { 
+    // Create a data object to hold all the update data
+    const updateData: any = { ...req.body };    
+    
 
-    // Process uploaded files and add them to the request body (only if new files are uploaded)
-    if (req.files && typeof req.files === 'object' && !Array.isArray(req.files)) {
-      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-      
-      if (files.event_image && files.event_image[0]) {
-        req.body.event_image = files.event_image[0].filename;
-        console.log("New event image processed:", req.body.event_image);
-      }
-      
-      if (files.event_logo && files.event_logo[0]) {
-        req.body.event_logo = files.event_logo[0].filename;
-        console.log("New event logo processed:", req.body.event_logo);
-      }
-      
-      if (files.show_location_image && files.show_location_image[0]) {
-        req.body.show_location_image = files.show_location_image[0].filename;
-        console.log("New show location image processed:", req.body.show_location_image);
-      }
-      
-      if (files.event_sponsor && files.event_sponsor[0]) {
-        req.body.event_sponsor = files.event_sponsor[0].filename;
-        console.log("New event sponsor processed:", req.body.event_sponsor);
-      }
+    // Process uploaded files - .any() returns an ARRAY
+    if (req.files && Array.isArray(req.files)) {
+      const files = req.files as Express.Multer.File[];            
+      files.forEach((file) => {        
+        
+        const folder = (file as any).uploadFolder || 'images';
+        const filePath = `${folder}/${file.filename}`;
+        
+        // Map file to correct field based on fieldname
+        if (file.fieldname === 'event_image') {
+          updateData.event_image = filePath;
+        } else if (file.fieldname === 'event_logo') {
+          updateData.event_logo = filePath;
+        } else if (file.fieldname === 'show_location_image') {
+          updateData.show_location_image = filePath;
+        } else if (file.fieldname === 'event_sponsor') {
+          updateData.event_sponsor = filePath;
+        }
+      });
+    } else {
+      console.log('No files uploaded or wrong format'); // DEBUG
     }
 
     // Process dateRanges if sent as JSON string
-    if (req.body.dateRanges && typeof req.body.dateRanges === 'string') {
+    if (updateData.dateRanges && typeof updateData.dateRanges === 'string') {
       try {
-        req.body.dateRanges = JSON.parse(req.body.dateRanges);
-        console.log("Parsed dateRanges:", req.body.dateRanges);
-      } catch (error) {
-        console.log("Error parsing dateRanges JSON:", error);
-        req.body.dateRanges = [];
+        updateData.dateRanges = JSON.parse(updateData.dateRanges);        
+      } catch (error) {        
+        updateData.dateRanges = [];
       }
-    }
-
-    console.log("Request body after file processing:", req.body);
-
-    updateEventHost(req.body, (error: any, result: any) => {
+    }        
+    
+    updateEventHost(updateData, (error: any, result: any) => {
       if (error) {
         return res.status(500).json({
           code: "INTERNAL_SERVER_ERROR",

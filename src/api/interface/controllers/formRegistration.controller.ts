@@ -294,7 +294,7 @@ export const getFormRegistrationListController = async (req: Request, res: Respo
   try {
     const { 
       page = 1, 
-      pageSize = 10, 
+      limit = 10, 
       search = "", 
       eventId = "", 
       approved = "", 
@@ -303,7 +303,7 @@ export const getFormRegistrationListController = async (req: Request, res: Respo
 
     getFormRegistrationListModel(
       parseInt(page as string),
-      parseInt(pageSize as string),
+      parseInt(limit as string),
       search as string,
       eventId as string,
       approved as string,

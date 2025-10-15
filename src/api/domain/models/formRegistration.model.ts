@@ -704,7 +704,7 @@ export const getFormRegistrationModel = async (
 
 export const getFormRegistrationListModel = async (
   page: number,
-  pageSize: number,
+  limit: number,
   search: string,
   eventId: string,
   approved: string,
@@ -713,7 +713,7 @@ export const getFormRegistrationListModel = async (
 ) => {
   try {
     const currentPage = page || 1;
-    const size = pageSize || 10;
+    const size = limit || 10;
     const skip = (currentPage - 1) * size;
 
     const filter: any = {};
@@ -744,7 +744,7 @@ export const getFormRegistrationListModel = async (
             currentPage,
             totalPages: 0,
             totalData: 0,
-            pageSize: size,
+            limit: size,
           },
         });
       }
@@ -771,7 +771,7 @@ export const getFormRegistrationListModel = async (
         currentPage,
         totalPages: Math.ceil(totalCount / size),
         totalData: totalCount,
-        pageSize: size,
+        limit: size,
       },
     };
 

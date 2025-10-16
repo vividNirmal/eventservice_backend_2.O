@@ -49,6 +49,8 @@ import { createUserTypeMapController, deleteUserTypeMapByIdController, getAllUse
 import { createUserTypeMapSchema, updateUserTypeMapSchema } from "../../utils/validation-schems/userTypeMap.validation";
 import { generateFormRegistrationPdf, getFormRegistrationListController, resolveEmailController, resolveFormUrlController, submitRegistrationController, updateFormRegistrationStatusController } from "../controllers/formRegistration.controller";
 import { formRegistrationStatusValidation, generatePdfValidation, resolveEmailValidation, resolveFormUrlValidation, submitRegistrationValidation } from "../../utils/validation-schems/formRegistration.validation";
+import { createEBadgeTemplateSchema, updateEBadgeTemplateSchema } from "../../utils/validation-schems/eBadgeTemplate.validation";
+import { createEBadgeTemplateController, deleteEBadgeTemplateByIdController, getAllEBadgeTemplatesController, getEBadgeTemplateByIdController, updateEBadgeTemplateByIdController } from "../controllers/eBadgeTemplate.controller";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -292,6 +294,11 @@ export const upload = multer({ storage: storage });
             route.get("/form-registration-list", protectedRoute, getFormRegistrationListController);
             route.put("/form-registration-status-change/:id", protectedRoute, validateRequest(formRegistrationStatusValidation), updateFormRegistrationStatusController);
 
+            route.get("/get-e-badge-templates", protectedRoute, getAllEBadgeTemplatesController);
+            route.get("/get-e-badge-template-byId/:id", protectedRoute, getEBadgeTemplateByIdController);
+            route.post("/create-e-badge-template", protectedRoute, validateRequest(createEBadgeTemplateSchema), createEBadgeTemplateController);
+            route.put("/update-e-badge-template/:id", protectedRoute, validateRequest(updateEBadgeTemplateSchema), updateEBadgeTemplateByIdController);
+            route.delete("/delete-e-badge-template/:id", protectedRoute, deleteEBadgeTemplateByIdController);
 
             route.post('/send-otp',verifyScannerToken,validateRequest(sendOtpValidation),OtpGenerate);
             route.post('/verify-otp',verifyScannerToken,validateRequest(verifyOtpValidation),OtpVerify);

@@ -51,6 +51,8 @@ import { generateFormRegistrationPdf, getFormRegistrationListController, resolve
 import { formRegistrationStatusValidation, generatePdfValidation, resolveEmailValidation, resolveFormUrlValidation, submitRegistrationValidation } from "../../utils/validation-schems/formRegistration.validation";
 import { createEBadgeTemplateSchema, updateEBadgeTemplateSchema } from "../../utils/validation-schems/eBadgeTemplate.validation";
 import { createEBadgeTemplateController, deleteEBadgeTemplateByIdController, getAllEBadgeTemplatesController, getEBadgeTemplateByIdController, updateEBadgeTemplateByIdController } from "../controllers/eBadgeTemplate.controller";
+import { createEBadgeSettingSchema, updateEBadgeSettingSchema } from "../../utils/validation-schems/eBadgeSetting.validation";
+import { createEBadgeSettingController, deleteEBadgeSettingByIdController, getAllEBadgeSettingsController, getEBadgeSettingByIdController, updateEBadgeSettingByIdController } from "../controllers/eBadgeSetting.controller";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -299,6 +301,12 @@ export const upload = multer({ storage: storage });
             route.post("/create-e-badge-template", protectedRoute, validateRequest(createEBadgeTemplateSchema), createEBadgeTemplateController);
             route.put("/update-e-badge-template/:id", protectedRoute, validateRequest(updateEBadgeTemplateSchema), updateEBadgeTemplateByIdController);
             route.delete("/delete-e-badge-template/:id", protectedRoute, deleteEBadgeTemplateByIdController);
+
+            route.get("/get-e-badge-settings", protectedRoute, getAllEBadgeSettingsController);
+            route.get("/get-e-badge-setting-byId/:id", protectedRoute, getEBadgeSettingByIdController);
+            route.post("/create-e-badge-setting", protectedRoute, validateRequest(createEBadgeSettingSchema), createEBadgeSettingController);
+            route.put("/update-e-badge-setting/:id", protectedRoute, validateRequest(updateEBadgeSettingSchema), updateEBadgeSettingByIdController);
+            route.delete("/delete-e-badge-setting/:id", protectedRoute, deleteEBadgeSettingByIdController);
 
             route.post('/send-otp',verifyScannerToken,validateRequest(sendOtpValidation),OtpGenerate);
             route.post('/verify-otp',verifyScannerToken,validateRequest(verifyOtpValidation),OtpVerify);

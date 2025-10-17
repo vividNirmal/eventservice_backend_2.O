@@ -336,7 +336,10 @@ export const getFormRegistrationListController = async (req: Request, res: Respo
       search = "", 
       eventId = "", 
       approved = "", 
-      userTypeId = "" 
+      userTypeId = "",
+      ticketId = "", // Add this line
+      startDate = "", // Add this line
+      endDate = "",   // Add this line
     } = req.query;
 
     getFormRegistrationListModel(
@@ -346,6 +349,10 @@ export const getFormRegistrationListController = async (req: Request, res: Respo
       eventId as string,
       approved as string,
       userTypeId as string,
+      ticketId as string, // Add this line
+      startDate as string, // Add this line
+      endDate as string,   // Add this line
+
       (error, result) => {
         if (error) {
           return ErrorResponse(res, error.message);

@@ -709,6 +709,9 @@ export const getFormRegistrationListModel = async (
   eventId: string,
   approved: string,
   userTypeId: string,
+  ticketId: string, // Add this parameter
+  startDate: string, // Add this parameter
+  endDate: string,   // Add this parameter
   callback: (error: any, result: any) => void
 ) => {
   try {
@@ -728,12 +731,15 @@ export const getFormRegistrationListModel = async (
 
     if (eventId) filter.eventId = eventId;
     if (approved !== "") filter.approved = approved === "true";
-
-    // 🧩 Step 1: If userTypeId filter applied → find all tickets with that userType
-    let ticketIds: string[] = [];
-    if (userTypeId) {
+    
+    // Direct ticket filter
+    if (ticketId) {
+      filter.ticketId = ticketId;
+    } 
+    // UserType filter (existing logic)
+    else if (userTypeId) {
       const tickets = await Ticket.find({ userType: userTypeId }, { _id: 1 }).lean();
-      ticketIds = tickets.map((t) => t._id.toString());
+      const ticketIds = tickets.map((t) => t._id.toString());
       if (ticketIds.length > 0) {
         filter.ticketId = { $in: ticketIds };
       } else {
@@ -750,6 +756,15 @@ export const getFormRegistrationListModel = async (
       }
     }
 
+    // Date range filter
+    if (startDate && endDate) {
+      filter.createdAt = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate)
+      };
+    }
+
+    // Rest of your existing code...
     // 🧩 Step 2: Fetch form registrations with populated data
     const registrations = await FormRegistration.find(filter)
       .populate({

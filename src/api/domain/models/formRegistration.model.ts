@@ -21,24 +21,23 @@ import {
 } from "@aws-sdk/client-rekognition";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 
-
 const addImageUrls = (ticket: any) => {
-    const baseUrl = env.BASE_URL;
-    if (ticket) {
-        if (ticket.bannerImage) {
-            ticket.bannerImageUrl = `${baseUrl}/uploads/${ticket.bannerImage}`;
-        }
-        if (ticket.desktopBannerImage) {
-            ticket.desktopBannerImageUrl = `${baseUrl}/uploads/${ticket.desktopBannerImage}`;
-        }
-        if (ticket.mobileBannerImage) {
-            ticket.mobileBannerImageUrl = `${baseUrl}/uploads/${ticket.mobileBannerImage}`;
-        }
-        if (ticket.loginBannerImage) {
-            ticket.loginBannerImageUrl = `${baseUrl}/uploads/${ticket.loginBannerImage}`;
-        }
+  const baseUrl = env.BASE_URL;
+  if (ticket) {
+    if (ticket.bannerImage) {
+      ticket.bannerImageUrl = `${baseUrl}/uploads/${ticket.bannerImage}`;
     }
-    return ticket;
+    if (ticket.desktopBannerImage) {
+      ticket.desktopBannerImageUrl = `${baseUrl}/uploads/${ticket.desktopBannerImage}`;
+    }
+    if (ticket.mobileBannerImage) {
+      ticket.mobileBannerImageUrl = `${baseUrl}/uploads/${ticket.mobileBannerImage}`;
+    }
+    if (ticket.loginBannerImage) {
+      ticket.loginBannerImageUrl = `${baseUrl}/uploads/${ticket.loginBannerImage}`;
+    }
+  }
+  return ticket;
 };
 
 export const resolveFormUrlModel = async (
@@ -98,7 +97,7 @@ export const resolveFormUrlModel = async (
       userType: matchedUserType._id,
       status: "active",
     })
-        // .populate("registrationFormId")
+      // .populate("registrationFormId")
       .populate("userType");
 
     if (!ticket)
@@ -122,7 +121,7 @@ export const resolveFormUrlModel = async (
     // Final Response
     const result = {
       event,
-      ticket : ticketWithUrls,
+      ticket: ticketWithUrls,
       userType: matchedUserType,
     };
 
@@ -168,8 +167,6 @@ export const resolveEmailModel = async (
     //     null
     //   );
     // }
-    
-
 
     // Check user's existing registrations for this event & ticket
     const emailLower = email.toLowerCase();
@@ -196,13 +193,14 @@ export const resolveEmailModel = async (
       const existing = await FormRegistration.findOne({
         email: emailLower,
         ticketId,
-      }).populate('eventId').populate("ticketId");
+      })
+        .populate("eventId")
+        .populate("ticketId");
 
       // ✅ Append base URL if qrImage exists
       if (existing?.qrImage) {
         existing.qrImage = `${env.BASE_URL}/uploads/${existing.qrImage}`;
       }
-
 
       return callback(null, {
         alreadyRegistered: true,
@@ -262,29 +260,37 @@ export const storeFormRegistrationModel = async (
   callback: (error: any, result: any) => void
 ) => {
   try {
-    const { ticketId, eventId, email, businessData, ...dynamicFormData } = formData;        
+    const { ticketId, eventId, email, businessData, ...dynamicFormData } =
+      formData;
     let parsedBusinessData = null;
-    
+
     if (businessData) {
       // If it's a JSON string, parse it
-      if (typeof businessData === 'string') {
+      if (typeof businessData === "string") {
         try {
           parsedBusinessData = JSON.parse(businessData);
         } catch (e) {
-          console.error('Failed to parse businessData:', e);
+          console.error("Failed to parse businessData:", e);
         }
-      } else if (typeof businessData === 'object') {
+      } else if (typeof businessData === "object") {
         parsedBusinessData = businessData;
       }
-    
-      if (parsedBusinessData && parsedBusinessData.amount !== undefined && parsedBusinessData.amount !== null) {
+
+      if (
+        parsedBusinessData &&
+        parsedBusinessData.amount !== undefined &&
+        parsedBusinessData.amount !== null
+      ) {
         parsedBusinessData.amount = Number(parsedBusinessData.amount);
       }
 
-      if (parsedBusinessData && (!parsedBusinessData.category && !parsedBusinessData.amount)) {
+      if (
+        parsedBusinessData &&
+        !parsedBusinessData.category &&
+        !parsedBusinessData.amount
+      ) {
         parsedBusinessData = null;
       }
-      
     }
 
     // Validate required fields
@@ -331,32 +337,40 @@ export const storeFormRegistrationModel = async (
 
     // Process face scan if provided
     let faceId = "";
-    let faceImageUrl = "";
-    let uploadedImageBuffer: Buffer | null = null;
+    let faceImageUrl: any = "";
+    let uploadedImageBuffer: any = null;
 
     // Check for face scan in files or base64
-    const faceScanFile = files?.find(file => file.fieldname === 'faceScan');
+    const faceScanFile = files?.find((file) => file.fieldname === "faceScan");
     if (faceScanFile) {
-      console.log('🔧 Processing face scan from file upload');
+      console.log("🔧 Processing face scan from file upload");
       try {
         const processedFaceData = await processFaceImage(faceScanFile);
         faceId = processedFaceData.faceId;
         faceImageUrl = processedFaceData.imageKey;
         uploadedImageBuffer = processedFaceData.imageBuffer;
       } catch (faceError) {
-        console.error('❌ Face processing failed:', faceError);
+        console.error("❌ Face processing failed:", faceError);
         return callback(
-          { 
-            message: `Face processing failed: ${faceError instanceof Error ? faceError.message : 'Unknown error'}`,
-            errorType: "FACE_PROCESSING_ERROR"
+          {
+            message: `Face processing failed: ${
+              faceError instanceof Error ? faceError.message : "Unknown error"
+            }`,
+            errorType: "FACE_PROCESSING_ERROR",
           },
           null
         );
       }
-    } else if (formData.faceScan && typeof formData.faceScan === 'string' && formData.faceScan.startsWith('data:image/')) {
-      console.log('🔧 Processing face scan from base64');
+    } else if (
+      formData.faceScan &&
+      typeof formData.faceScan === "string" &&
+      formData.faceScan.startsWith("data:image/")
+    ) {
+      console.log("🔧 Processing face scan from base64");
       try {
-        const processedFaceData = await processFaceImageBase64(formData.faceScan);
+        const processedFaceData = await processFaceImageBase64(
+          formData.faceScan
+        );
         faceId = processedFaceData.faceId;
         faceImageUrl = processedFaceData.imageKey;
         uploadedImageBuffer = processedFaceData.imageBuffer;
@@ -364,11 +378,13 @@ export const storeFormRegistrationModel = async (
         delete formData.faceScan;
         delete dynamicFormData.faceScan;
       } catch (faceError) {
-        console.error('❌ Face processing failed:', faceError);
+        console.error("❌ Face processing failed:", faceError);
         return callback(
-          { 
-            message: `Face processing failed: ${faceError instanceof Error ? faceError.message : 'Unknown error'}`,
-            errorType: "FACE_PROCESSING_ERROR"
+          {
+            message: `Face processing failed: ${
+              faceError instanceof Error ? faceError.message : "Unknown error"
+            }`,
+            errorType: "FACE_PROCESSING_ERROR",
           },
           null
         );
@@ -380,7 +396,7 @@ export const storeFormRegistrationModel = async (
     const filesByField: { [key: string]: Express.Multer.File[] } = {};
 
     files?.forEach((file) => {
-      if (file.fieldname !== 'faceScan') {
+      if (file.fieldname !== "faceScan") {
         if (!filesByField[file.fieldname]) filesByField[file.fieldname] = [];
         filesByField[file.fieldname].push(file);
       }
@@ -419,33 +435,42 @@ export const storeFormRegistrationModel = async (
       // token: userToken,
     };
 
+    const savePath = path.join("uploads/participants", faceImageUrl);
+
+    // Ensure the directory exists before writing the file
+    const dir = path.dirname(savePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(savePath, uploadedImageBuffer);
+
     if (faceId) {
       registrationData.faceId = faceId;
     }
-    
+
     if (faceImageUrl) {
       registrationData.faceImageUrl = faceImageUrl;
     }
-    
+
     if (parsedBusinessData) {
       registrationData.businessData = parsedBusinessData;
-    }    
+    }
 
     // Create and save record
     const registration = new FormRegistration(registrationData);
 
     await registration.save();
 
-    console.log('✅ Registration saved successfully:', registration._id);
+    console.log("✅ Registration saved successfully:", registration._id);
 
     // Generate QR code and update registration
-    console.log('🔧 Generating QR code for registration...');
+    console.log("🔧 Generating QR code for registration...");
     const baseUrl = process.env.BASE_URL;
-    
+
     // Get event details for QR code
-    const EventHost = mongoose.model('EventHost');
+    const EventHost = mongoose.model("EventHost");
     let eventDetails = await EventHost.findById(eventId || ticket.eventId);
-    
+
     let qrCodeBase64 = null;
     let qrFileName = null;
 
@@ -456,14 +481,14 @@ export const storeFormRegistrationModel = async (
         event_slug: eventDetails.event_slug,
         formRegistration_id: registration._id,
       });
-      
+
       // Generate base64 QR code
       qrCodeBase64 = await QRCode.toDataURL(qrData);
-      console.log('🔧 QR code generated successfully');
-      
+      console.log("🔧 QR code generated successfully");
+
       // Save QR code as file
       qrFileName = saveQrImage(qrCodeBase64, userToken);
-      registration.qrImage =`${qrFileName}`;
+      registration.qrImage = `${qrFileName}`;
       await registration.save();
     }
 
@@ -479,7 +504,7 @@ export const storeFormRegistrationModel = async (
       email: email,
       // token: userToken,
     };
-    
+
     if (faceId) {
       responseData.faceId = faceId;
     }
@@ -509,7 +534,6 @@ export const storeFormRegistrationModel = async (
     }
 
     callback(null, responseData);
-
   } catch (error: any) {
     loggerMsg("Error in storeFormRegistrationModel", error);
     callback(error, null);
@@ -517,7 +541,9 @@ export const storeFormRegistrationModel = async (
 };
 
 // Face processing functions (updated to handle disk storage)
-async function processFaceImage(file: Express.Multer.File): Promise<{ faceId: string; imageKey: string; imageBuffer: Buffer }> {
+async function processFaceImage(
+  file: Express.Multer.File
+): Promise<{ faceId: string; imageKey: string; imageBuffer: Buffer }> {
   const allowedMimeTypes = ["image/png", "image/jpeg", "image/jpg"];
   if (!allowedMimeTypes.includes(file.mimetype)) {
     throw new Error("Only PNG and JPG files are allowed");
@@ -529,7 +555,7 @@ async function processFaceImage(file: Express.Multer.File): Promise<{ faceId: st
   }
 
   let imageBuffer: Buffer;
-  
+
   // Check if buffer exists (memory storage) or read from disk (disk storage)
   if (file.buffer) {
     // File is in memory
@@ -554,10 +580,12 @@ async function processFaceImage(file: Express.Multer.File): Promise<{ faceId: st
   return await uploadFaceToAWS(processedBuffer, file.mimetype);
 }
 
-async function processFaceImageBase64(base64Image: string): Promise<{ faceId: string; imageKey: string; imageBuffer: Buffer }> {
+async function processFaceImageBase64(
+  base64Image: string
+): Promise<{ faceId: string; imageKey: string; imageBuffer: Buffer }> {
   const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
   const imageBuffer = Buffer.from(base64Data, "base64");
-  const mimeType = base64Image.split(';')[0].split(':')[1];
+  const mimeType = base64Image.split(";")[0].split(":")[1];
 
   const allowedMimeTypes = ["image/png", "image/jpeg"];
   if (!allowedMimeTypes.includes(mimeType)) {
@@ -573,7 +601,7 @@ async function processFaceImageBase64(base64Image: string): Promise<{ faceId: st
     .resize(100)
     .jpeg({ quality: 100 })
     .toBuffer();
-  
+
   // // Return mock AWS upload response
   // return {
   //   faceId: "mock-face-id-" + uuidv4(),
@@ -584,11 +612,18 @@ async function processFaceImageBase64(base64Image: string): Promise<{ faceId: st
   return await uploadFaceToAWS(processedBuffer, mimeType);
 }
 
-async function uploadFaceToAWS(imageBuffer: Buffer, mimeType: string): Promise<{ faceId: string; imageKey: string; imageBuffer: Buffer }> {
+async function uploadFaceToAWS(
+  imageBuffer: Buffer,
+  mimeType: string
+): Promise<{ faceId: string; imageKey: string; imageBuffer: Buffer }> {
   // Ensure Rekognition collection exists
-  await rekognition.send(new CreateCollectionCommand({
-    CollectionId: FACE_COLLECTION_ID,
-  })).catch(err => console.log("Collection already exists or error:", err));
+  await rekognition
+    .send(
+      new CreateCollectionCommand({
+        CollectionId: FACE_COLLECTION_ID,
+      })
+    )
+    .catch((err) => console.log("Collection already exists or error:", err));
 
   const fileKey = `${uuidv4()}.jpg`;
 
@@ -701,7 +736,6 @@ export const getFormRegistrationModel = async (
   }
 };
 
-
 export const getFormRegistrationListModel = async (
   page: number,
   limit: number,
@@ -711,7 +745,7 @@ export const getFormRegistrationListModel = async (
   userTypeId: string,
   ticketId: string, // Add this parameter
   startDate: string, // Add this parameter
-  endDate: string,   // Add this parameter
+  endDate: string, // Add this parameter
   callback: (error: any, result: any) => void
 ) => {
   try {
@@ -731,14 +765,17 @@ export const getFormRegistrationListModel = async (
 
     if (eventId) filter.eventId = eventId;
     if (approved !== "") filter.approved = approved === "true";
-    
+
     // Direct ticket filter
     if (ticketId) {
       filter.ticketId = ticketId;
-    } 
+    }
     // UserType filter (existing logic)
     else if (userTypeId) {
-      const tickets = await Ticket.find({ userType: userTypeId }, { _id: 1 }).lean();
+      const tickets = await Ticket.find(
+        { userType: userTypeId },
+        { _id: 1 }
+      ).lean();
       const ticketIds = tickets.map((t) => t._id.toString());
       if (ticketIds.length > 0) {
         filter.ticketId = { $in: ticketIds };
@@ -760,7 +797,7 @@ export const getFormRegistrationListModel = async (
     if (startDate && endDate) {
       filter.createdAt = {
         $gte: new Date(startDate),
-        $lte: new Date(endDate)
+        $lte: new Date(endDate),
       };
     }
 
@@ -796,7 +833,6 @@ export const getFormRegistrationListModel = async (
   }
 };
 
-
 export const updateFormRegistrationStatusModel = async (
   registrationId: string,
   approved: boolean,
@@ -821,7 +857,9 @@ export const updateFormRegistrationStatusModel = async (
     return callback(null, {
       registrationId: registration._id,
       approved: registration.approved,
-      message: approved ? "Registration approved." : "Registration disapproved.",
+      message: approved
+        ? "Registration approved."
+        : "Registration disapproved.",
     });
   } catch (error) {
     return callback(error, null);
@@ -837,7 +875,7 @@ async function sendStatusEmailAfterUpdate(
 ) {
   try {
     const actionType = approved ? "approve" : "disapprove";
-    
+
     const templateData = {
       badgeNo: registration.badgeNo,
       email: registration.email,
@@ -859,8 +897,6 @@ async function sendStatusEmailAfterUpdate(
     // Don't throw error to avoid affecting status update flow
   }
 }
-
-
 
 export const updateFormRegistrationModel = async (
   registrationId: string,
@@ -887,21 +923,21 @@ export const updateFormRegistrationModel = async (
 
     if (!existingRegistration) {
       return callback(
-        { 
-          message: "Registration not found.", 
-          errorType: "NOT_FOUND" 
+        {
+          message: "Registration not found.",
+          errorType: "NOT_FOUND",
         },
         null
       );
     }
 
     // Parse form data
-    const { 
-      // email, 
-      approved, 
-      businessData, 
+    const {
+      // email,
+      approved,
+      businessData,
       faceImage, // This will be handled separately
-      ...dynamicFormData 
+      ...dynamicFormData
     } = formData;
 
     // Prepare update object
@@ -938,22 +974,29 @@ export const updateFormRegistrationModel = async (
     // Parse and update business data
     if (businessData) {
       let parsedBusinessData = null;
-      
-      if (typeof businessData === 'string') {
+
+      if (typeof businessData === "string") {
         try {
           parsedBusinessData = JSON.parse(businessData);
         } catch (e) {
-          console.error('Failed to parse businessData:', e);
+          console.error("Failed to parse businessData:", e);
         }
-      } else if (typeof businessData === 'object') {
+      } else if (typeof businessData === "object") {
         parsedBusinessData = businessData;
       }
-    
-      if (parsedBusinessData && parsedBusinessData.amount !== undefined && parsedBusinessData.amount !== null) {
+
+      if (
+        parsedBusinessData &&
+        parsedBusinessData.amount !== undefined &&
+        parsedBusinessData.amount !== null
+      ) {
         parsedBusinessData.amount = Number(parsedBusinessData.amount);
       }
 
-      if (parsedBusinessData && (parsedBusinessData.category || parsedBusinessData.amount)) {
+      if (
+        parsedBusinessData &&
+        (parsedBusinessData.category || parsedBusinessData.amount)
+      ) {
         updateData.businessData = parsedBusinessData;
       }
     }
@@ -962,25 +1005,27 @@ export const updateFormRegistrationModel = async (
     let faceId = existingRegistration.faceId;
     let faceImageUrl = existingRegistration.faceImageUrl;
 
-    const faceScanFile = files?.find(file => file.fieldname === 'faceImage' || file.fieldname === 'faceScan');
-    
+    const faceScanFile = files?.find(
+      (file) => file.fieldname === "faceImage" || file.fieldname === "faceScan"
+    );
+
     if (faceScanFile) {
-      console.log('🔧 Processing new face image...');
+      console.log("🔧 Processing new face image...");
       try {
         // Delete old face from Rekognition if exists
         if (existingRegistration.faceId) {
           await deleteFaceFromRekognition(existingRegistration.faceId);
         }
-        
+
         // Process new face image
         const processedFaceData = await processFaceImage(faceScanFile);
         faceId = processedFaceData.faceId;
         faceImageUrl = processedFaceData.imageKey;
-        
+
         updateData.faceId = faceId;
         updateData.faceImageUrl = faceImageUrl;
       } catch (faceError) {
-        console.error('❌ Face processing failed:', faceError);
+        console.error("❌ Face processing failed:", faceError);
         // Continue with update even if face processing fails
       }
     }
@@ -990,7 +1035,7 @@ export const updateFormRegistrationModel = async (
     const filesByField: { [key: string]: Express.Multer.File[] } = {};
 
     files?.forEach((file) => {
-      if (file.fieldname !== 'faceImage' && file.fieldname !== 'faceScan') {
+      if (file.fieldname !== "faceImage" && file.fieldname !== "faceScan") {
         if (!filesByField[file.fieldname]) filesByField[file.fieldname] = [];
         filesByField[file.fieldname].push(file);
       }
@@ -1017,9 +1062,9 @@ export const updateFormRegistrationModel = async (
         // Handle array values
         if (Array.isArray(dynamicFormData[key])) {
           processedFormData[key] = dynamicFormData[key];
-        } else if (dynamicFormData[key] === '') {
+        } else if (dynamicFormData[key] === "") {
           // Allow empty strings to clear fields
-          processedFormData[key] = '';
+          processedFormData[key] = "";
         } else {
           processedFormData[key] = dynamicFormData[key];
         }
@@ -1034,20 +1079,29 @@ export const updateFormRegistrationModel = async (
       updateData,
       { new: true, runValidators: true }
     )
-    .populate("ticketId")
-    .populate("eventId");
+      .populate("ticketId")
+      .populate("eventId");
 
     // If update did not return a document, return not found error
     if (!updatedRegistration) {
       return callback(
-        { message: "Registration not found after update.", errorType: "NOT_FOUND" },
+        {
+          message: "Registration not found after update.",
+          errorType: "NOT_FOUND",
+        },
         null
       );
     }
 
     // Send notification if approval status changed
-    if (updateData.approved !== undefined && updateData.approved !== existingRegistration.approved) {
-      sendStatusEmailAfterUpdate(updatedRegistration, updateData.approved).catch((error) => {
+    if (
+      updateData.approved !== undefined &&
+      updateData.approved !== existingRegistration.approved
+    ) {
+      sendStatusEmailAfterUpdate(
+        updatedRegistration,
+        updateData.approved
+      ).catch((error) => {
         console.error("Failed to send status email:", error);
       });
     }
@@ -1070,7 +1124,6 @@ export const updateFormRegistrationModel = async (
     }
 
     callback(null, responseData);
-
   } catch (error: any) {
     loggerMsg("Error in updateFormRegistrationModel", error);
     callback(
@@ -1087,14 +1140,14 @@ export const updateFormRegistrationModel = async (
 async function deleteFaceFromRekognition(faceId: string) {
   try {
     const { DeleteFacesCommand } = await import("@aws-sdk/client-rekognition");
-    
+
     await rekognition.send(
       new DeleteFacesCommand({
         CollectionId: FACE_COLLECTION_ID,
         FaceIds: [faceId],
       })
     );
-    
+
     console.log(`✅ Deleted face ${faceId} from Rekognition`);
   } catch (error) {
     console.error(`Failed to delete face from Rekognition:`, error);

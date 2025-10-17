@@ -268,6 +268,7 @@ export const scanParticipantFace = async (req: Request, res: Response) => {
         }
       }
       processTimestamps["status_update_end"] = getTimestamp();    
+      participant_details.faceImageUrl = baseUrl + "/uploads/participants/" + participant_details.faceImageUrl;      
       participant_details.qrImage =
         baseUrl + "/uploads/" + participant_details.qrImage;
 

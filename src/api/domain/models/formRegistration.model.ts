@@ -754,7 +754,7 @@ export const getFormRegistrationListModel = async (
     const registrations = await FormRegistration.find(filter)
       .populate({
         path: "ticketId",
-        select: "ticketName userType",
+        // select: "ticketName userType registrationFormId",
         populate: { path: "userType", select: "typeName" },
       })
       .populate("eventId", "event_title event_slug")
@@ -842,5 +842,247 @@ async function sendStatusEmailAfterUpdate(
   } catch (error) {
     console.error("Error in sendStatusEmailAfterUpdate:", error);
     // Don't throw error to avoid affecting status update flow
+  }
+}
+
+
+
+export const updateFormRegistrationModel = async (
+  registrationId: string,
+  formData: any,
+  files: Express.Multer.File[],
+  callback: (error: any, result: any) => void
+) => {
+  try {
+    // Validate registration ID
+    if (!registrationId) {
+      return callback(
+        {
+          message: "Registration ID is required.",
+          errorType: "REQUIRE_PARAMETER",
+        },
+        null
+      );
+    }
+
+    // Find existing registration
+    const existingRegistration = await FormRegistration.findById(registrationId)
+      .populate("ticketId")
+      .populate("eventId");
+
+    if (!existingRegistration) {
+      return callback(
+        { 
+          message: "Registration not found.", 
+          errorType: "NOT_FOUND" 
+        },
+        null
+      );
+    }
+
+    // Parse form data
+    const { 
+      // email, 
+      approved, 
+      businessData, 
+      faceImage, // This will be handled separately
+      ...dynamicFormData 
+    } = formData;
+
+    // Prepare update object
+    const updateData: any = {};
+
+    // // Update email if provided and different
+    // if (email && email !== existingRegistration.email) {
+    //   // Check if new email is already registered for this ticket
+    //   const emailExists = await FormRegistration.findOne({
+    //     email: email.toLowerCase(),
+    //     ticketId: existingRegistration.ticketId,
+    //     _id: { $ne: registrationId }
+    //   });
+
+    //   if (emailExists) {
+    //     return callback(
+    //       {
+    //         message: "Email already registered for this event.",
+    //         errorType: "EMAIL_EXISTS",
+    //       },
+    //       null
+    //     );
+    //   }
+    //   updateData.email = email.toLowerCase();
+    // }
+
+    // Update approval status if provided
+    if (typeof approved === "boolean") {
+      updateData.approved = approved;
+    } else if (approved === "true" || approved === "false") {
+      updateData.approved = approved === "true";
+    }
+
+    // Parse and update business data
+    if (businessData) {
+      let parsedBusinessData = null;
+      
+      if (typeof businessData === 'string') {
+        try {
+          parsedBusinessData = JSON.parse(businessData);
+        } catch (e) {
+          console.error('Failed to parse businessData:', e);
+        }
+      } else if (typeof businessData === 'object') {
+        parsedBusinessData = businessData;
+      }
+    
+      if (parsedBusinessData && parsedBusinessData.amount !== undefined && parsedBusinessData.amount !== null) {
+        parsedBusinessData.amount = Number(parsedBusinessData.amount);
+      }
+
+      if (parsedBusinessData && (parsedBusinessData.category || parsedBusinessData.amount)) {
+        updateData.businessData = parsedBusinessData;
+      }
+    }
+
+    // Process face image update if provided
+    let faceId = existingRegistration.faceId;
+    let faceImageUrl = existingRegistration.faceImageUrl;
+
+    const faceScanFile = files?.find(file => file.fieldname === 'faceImage' || file.fieldname === 'faceScan');
+    
+    if (faceScanFile) {
+      console.log('🔧 Processing new face image...');
+      try {
+        // Delete old face from Rekognition if exists
+        if (existingRegistration.faceId) {
+          await deleteFaceFromRekognition(existingRegistration.faceId);
+        }
+        
+        // Process new face image
+        const processedFaceData = await processFaceImage(faceScanFile);
+        faceId = processedFaceData.faceId;
+        faceImageUrl = processedFaceData.imageKey;
+        
+        updateData.faceId = faceId;
+        updateData.faceImageUrl = faceImageUrl;
+      } catch (faceError) {
+        console.error('❌ Face processing failed:', faceError);
+        // Continue with update even if face processing fails
+      }
+    }
+
+    // Process other file uploads and merge with existing form data
+    const processedFormData = { ...existingRegistration.formData };
+    const filesByField: { [key: string]: Express.Multer.File[] } = {};
+
+    files?.forEach((file) => {
+      if (file.fieldname !== 'faceImage' && file.fieldname !== 'faceScan') {
+        if (!filesByField[file.fieldname]) filesByField[file.fieldname] = [];
+        filesByField[file.fieldname].push(file);
+      }
+    });
+
+    // Update file fields
+    Object.keys(filesByField).forEach((fieldName) => {
+      const fileArray = filesByField[fieldName];
+      if (fileArray.length === 1) {
+        processedFormData[fieldName] = `${(fileArray[0] as any).uploadFolder}/${
+          fileArray[0].filename
+        }`;
+      } else {
+        processedFormData[fieldName] = fileArray.map(
+          (f) => `${(f as any).uploadFolder}/${f.filename}`
+        );
+      }
+    });
+
+    // Merge dynamic form data with processed form data
+    Object.keys(dynamicFormData).forEach((key) => {
+      // Skip null or undefined values to preserve existing data
+      if (dynamicFormData[key] !== null && dynamicFormData[key] !== undefined) {
+        // Handle array values
+        if (Array.isArray(dynamicFormData[key])) {
+          processedFormData[key] = dynamicFormData[key];
+        } else if (dynamicFormData[key] === '') {
+          // Allow empty strings to clear fields
+          processedFormData[key] = '';
+        } else {
+          processedFormData[key] = dynamicFormData[key];
+        }
+      }
+    });
+
+    updateData.formData = processedFormData;
+
+    // Update the registration
+    const updatedRegistration = await FormRegistration.findByIdAndUpdate(
+      registrationId,
+      updateData,
+      { new: true, runValidators: true }
+    )
+    .populate("ticketId")
+    .populate("eventId");
+
+    // If update did not return a document, return not found error
+    if (!updatedRegistration) {
+      return callback(
+        { message: "Registration not found after update.", errorType: "NOT_FOUND" },
+        null
+      );
+    }
+
+    // Send notification if approval status changed
+    if (updateData.approved !== undefined && updateData.approved !== existingRegistration.approved) {
+      sendStatusEmailAfterUpdate(updatedRegistration, updateData.approved).catch((error) => {
+        console.error("Failed to send status email:", error);
+      });
+    }
+
+    // Prepare response
+    const responseData: any = {
+      registrationId: updatedRegistration._id,
+      badgeNo: updatedRegistration.badgeNo,
+      email: updatedRegistration.email,
+      approved: updatedRegistration.approved,
+      formData: updatedRegistration.formData,
+    };
+
+    if (updatedRegistration.faceImageUrl) {
+      responseData.faceImageUrl = `https://${AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${updatedRegistration.faceImageUrl}`;
+    }
+
+    if (updatedRegistration.businessData) {
+      responseData.businessData = updatedRegistration.businessData;
+    }
+
+    callback(null, responseData);
+
+  } catch (error: any) {
+    loggerMsg("Error in updateFormRegistrationModel", error);
+    callback(
+      {
+        message: error.message || "Failed to update registration",
+        errorType: "UPDATE_ERROR",
+      },
+      null
+    );
+  }
+};
+
+// Helper function to delete face from AWS Rekognition
+async function deleteFaceFromRekognition(faceId: string) {
+  try {
+    const { DeleteFacesCommand } = await import("@aws-sdk/client-rekognition");
+    
+    await rekognition.send(
+      new DeleteFacesCommand({
+        CollectionId: FACE_COLLECTION_ID,
+        FaceIds: [faceId],
+      })
+    );
+    
+    console.log(`✅ Deleted face ${faceId} from Rekognition`);
+  } catch (error) {
+    console.error(`Failed to delete face from Rekognition:`, error);
+    // Don't throw - continue with update even if deletion fails
   }
 }

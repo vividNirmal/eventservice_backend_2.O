@@ -20,6 +20,7 @@ import {
   resolveFormUrlModel,
   storeFormRegistrationModel,
   updateFormRegistrationStatusModel,
+  updateFormRegistrationModel
 } from "../../domain/models/formRegistration.model";
 import mongoose from "mongoose";
 import FormRegistration from "../../domain/schema/formRegistration.schema";
@@ -27,6 +28,43 @@ import Ticket from "../../domain/schema/ticket.schema";
 import EventHost from "../../domain/schema/eventHost.schema";
 import QRCode from "qrcode";
 import puppeteer from "puppeteer";
+
+// Helper to append BASE_URL for file/image fields
+const appendBaseUrlToFiles = (registration: any) => {
+  const baseUrl = env.BASE_URL;
+  if (!registration) return registration;
+
+  // Direct file fields (stored at root level)
+  const directFileFields = ["faceImageUrl", "qrImage"];
+  directFileFields.forEach((field) => {
+    if (registration[field]) {
+      registration[`${field}Url`] = `${baseUrl}/uploads/${registration[field]}`;
+    }
+  });
+
+  // Handle dynamic fields inside formData
+  if (registration.formData && typeof registration.formData === "object") {
+    Object.keys(registration.formData).forEach((key) => {
+      const value = registration.formData[key];
+
+      // Case 1: single file name string (e.g., "image1.png")
+      if (typeof value === "string" && /\.(jpg|jpeg|png|gif|pdf|docx?)$/i.test(value)) {
+        registration.formData[key] = `${baseUrl}/uploads/${value}`;
+      }
+
+      // Case 2: array of files (e.g., ["img1.png", "img2.jpg"])
+      else if (Array.isArray(value)) {
+        registration.formData[key] = value.map((file) =>
+          typeof file === "string" && /\.(jpg|jpeg|png|gif|pdf|docx?)$/i.test(file)
+            ? `${baseUrl}/uploads/${file}`
+            : file
+        );
+      }
+    });
+  }
+
+  return registration;
+};
 
 // Resolve Ticket URL Controller
 export const resolveFormUrlController = async (req: Request, res: Response) => {
@@ -132,7 +170,7 @@ export const getRegistrationController = async (
   res: Response
 ) => {
   try {
-    const { registrationId } = req.params;
+    const { id: registrationId } = req.params;
     getFormRegistrationModel(registrationId, (error, result) => {
       if (error) {
         return errorResponseWithData(
@@ -312,10 +350,16 @@ export const getFormRegistrationListController = async (req: Request, res: Respo
         if (error) {
           return ErrorResponse(res, error.message);
         }
+        // Append BASE_URL to all image/file fields
+        if (result?.registrations?.length) {
+          result.data = result.registrations.map((r: any) => appendBaseUrlToFiles(r));
+        }
+
         return successResponse(res, "Form registrations retrieved successfully", result);
       }
     );
   } catch (error) {
+    console.error(error);
     return ErrorResponse(res, "An error occurred while fetching form registrations.");
   }
 };
@@ -335,5 +379,43 @@ export const updateFormRegistrationStatusController = async (req: Request, res: 
     });
   } catch (error) {
     return ErrorResponse(res, "Error updating registration status.");
+  }
+};
+
+export const updateFormRegistrationController = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { id } = req.params;
+    
+    if (!id) {
+      return ErrorResponse(res, "Registration ID is required");
+    }
+
+    updateFormRegistrationModel(
+      id,
+      req.body,
+      req.files as Express.Multer.File[],
+      (error, result) => {
+        if (error) {
+          return errorResponseWithData(
+            res,
+            error.message,
+            {},
+            { errorType: error.errorType }
+          );
+        }
+        return successResponse(
+          res,
+          "Registration updated successfully",
+          result
+        );
+      }
+    );
+  } catch (error) {
+    return ErrorResponse(res, "An error occurred while updating registration.", {
+      errorType: "INTERNAL_SERVER_ERROR",
+    });
   }
 };

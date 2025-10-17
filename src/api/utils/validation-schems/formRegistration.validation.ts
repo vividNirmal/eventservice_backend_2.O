@@ -46,3 +46,8 @@ export const formRegistrationStatusValidation = Joi.object({
   approved: Joi.boolean().required(),
   id: Joi.string().optional(),
 });
+
+export const updateRegistrationValidation = Joi.object({
+  id: Joi.string().optional(),
+  // Since form fields are dynamic, we allow extra keys
+}).unknown(true);

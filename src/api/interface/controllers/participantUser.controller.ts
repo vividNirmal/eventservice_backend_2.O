@@ -1529,6 +1529,8 @@ export const OtpVerify = async (req: Request, res: Response) => {
       return successResponse(res, "OTP generated successfully", result);
     });
   } catch (error) {
+    console.log(error);
+    
     console.error(error);
     return ErrorResponse(res, "An error occurred during OTP verification.");
   }

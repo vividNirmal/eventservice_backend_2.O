@@ -311,7 +311,7 @@ export const upload = multer({ storage: storage });
             route.delete("/delete-e-badge-setting/:id", protectedRoute, deleteEBadgeSettingByIdController);
 
             route.post('/send-otp',verifyScannerToken,validateRequest(sendOtpValidation),OtpGenerate);
-            route.post('/verify-otp',verifyScannerToken,validateRequest(verifyOtpValidation),OtpVerify);
+            route.post('/verify-otp',validateRequest(verifyOtpValidation),OtpVerify);
 
 
         } catch (error) {

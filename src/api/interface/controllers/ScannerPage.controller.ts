@@ -39,7 +39,6 @@ import eventHostSchema from "../../domain/schema/eventHost.schema";
             if (eventEndDate < currentDate) {
             return ErrorResponse(res, 'Event expired.');
             }
-            console.log('company_details._id',company_details._id)
             const scanner_machine_list = await Scannermachine.find({company_id:company_details._id});
 
             const result = {

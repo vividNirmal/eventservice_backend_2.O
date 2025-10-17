@@ -160,7 +160,7 @@ export const upload = multer({ storage: storage });
             route.get('/get-country',getCountry)
             route.get('/get-state/:id',getState)
             route.get('/get-city/:id',getCity)
-            route.get('/scanner-page',verifyScannerToken,getSetting)
+            route.get('/scanner-page',getSetting)
             route.post("/importXlsxData",importXlsxData)
             route.post('/update-button-setting',validateRequest(settingSchema),updateSetting)
             

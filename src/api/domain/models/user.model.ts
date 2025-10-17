@@ -172,9 +172,7 @@ export const userLogin = async (userData: userLoginData,  callback: (error:any, 
 };
 
 export const scannerLogin = async (userData: scannerUserLoginData,  callback: (error:any, result: any) => void) => {
-    try {
-
-        const company_name = userData.subdomain;
+    try {        
         const subdomain = userData.subdomain;
         const company_details = await companySchema.findOne({ subdomain });
 

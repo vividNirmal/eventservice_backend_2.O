@@ -10,7 +10,10 @@ export interface IFormRegistration extends Document {
   faceId?: string; // Added for face recognition
   faceImageUrl?: string; // Added for S3 face image storage
   qrImage?: string; // Added for QR code storage
-  // token?: string; // Added for user token
+  // token?: string; // Added for user token,
+  checkin_time:Date,
+  checkout_time: Date,
+  status : String,
   businessData?: {
     category?: string;
     amount?: number;
@@ -36,6 +39,9 @@ const formRegistrationSchema: Schema = new Schema<IFormRegistration>(
     faceId: { type: String }, // Store face recognition ID
     faceImageUrl: { type: String }, // Store S3 image key
     qrImage: { type: String }, // Store QR code filename
+    checkin_time: { type: Date, required: false }, // event Enter
+    checkout_time: { type: Date, required: false }, // event exit 
+    status: { type: String, required: false }, //// event Status
     // token: { type: String }, // Store user token for QR generation
     businessData: { type : businessData  },
   },

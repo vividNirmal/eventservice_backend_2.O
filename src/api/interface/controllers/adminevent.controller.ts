@@ -22,6 +22,7 @@ import scannerTokenSchema from "../../domain/schema/scannerToken.schema";
 import eventHostSchema from "../../domain/schema/eventHost.schema";
 import crypto from "crypto";
 import ticketSchema from "../../domain/schema/ticket.schema";
+import formRegistrationSchema from "../../domain/schema/formRegistration.schema";
 
 interface FileWithBuffer extends Express.Multer.File {
 buffer: Buffer;
@@ -642,15 +643,15 @@ export const getEventStatistics = async (req: Request, res: Response) => {
         }
 
         // Get all participants for this event
-        const participants = await eventParticipantSchema.find({ event_id: id });
-        
+        const participants = await formRegistrationSchema.find({ eventId: id }).populate("eventId").populate("ticketId");
+        console.log("Total participants found:", participants.length);
         // Calculate statistics
         const totalRegistered = participants.length;
         const totalCheckedIn = participants.filter(p => p.status === 'in').length;
         const totalCapacity = event.participant_capacity || 1000; // Default capacity if not set
         
         // Get participants with face scan data (if applicable)
-        const faceScansCount = participants.filter(p => p.face_id && p.face_id.trim() !== '').length;
+        const faceScansCount = participants.filter(p => p.faceId && p.faceId.trim() !== '').length;
         
         // Daily check-ins for chart data (last 7 days)
         const now = new Date();

@@ -11,6 +11,7 @@ import QRCode from "qrcode";
 import { cryptoService } from "../../services/cryptoService";
 import eventHostSchema from "../schema/eventHost.schema";
 import ticketSchema from "../schema/ticket.schema";
+import formRegistrationSchema from "../schema/formRegistration.schema";
 
 interface eventData{
     company_name: string;
@@ -469,217 +470,81 @@ export const getAllEventParticipantUserListModal = async (
     const { page = 1, limit = 10 } = pagination;
     const skip = (page - 1) * limit;
 
-    console.log('🔍 Debug getAllEventParticipantUserListModal:', {
-      loginUserData: loginUserData?.company_id,
-      filters,
-      pagination,
-      event_id
-    });
+    console.log('🔍 Fetching participants for event:', event_id);
 
-    // If event_id is provided, fetch participants for that specific event
+    // ✅ If event_id provided → fetch participants for that event
     if (event_id) {
-      console.log('🔍 Searching for specific event ID:', event_id);
-      
-      // Try to find event in both eventHost and regular event schemas
-      let event = await eventHostSchema.findById(event_id);
-      let eventSource = 'eventHost';
-      
-      if (!event) {
-        event = await eventSchema.findById(event_id);
-        eventSource = 'event';
-      }
-      
+      const event = await eventHostSchema.findById(event_id);
       if (!event) {
         return callback({ message: "Event not found" }, null);
       }
-      
-      console.log('🔍 Found event in schema:', eventSource, event._id);
 
-      // Get participants linked to this event
-      const eventParticipants = await EventParticipantSchema.find({
-        event_id: event._id,
-      });
+      // 🔍 Build filter for form registrations
+      const participantFilter: any = { eventId: event._id };
 
-      console.log('🔍 Found event participants:', eventParticipants.length);
-      console.log('🔍 Event participants details:', eventParticipants.map(ep => ({
-        id: ep._id,
-        participant_user_id: ep.participant_user_id,
-        event_id: ep.event_id,
-        status: ep.status,
-        checkin_time: ep.checkin_time,
-        checkout_time: ep.checkout_time
-      })));
-
-      if (!eventParticipants.length) {
-        return callback(null, { 
-          participants: [], 
-          totalUsers: 0,
-          totalPages: 0,
-          page, 
-          limit 
-        });
-      }
-
-      const participantUserIds = eventParticipants.map(
-        (ep) => ep.participant_user_id.toString()
-      );
-
-      console.log('🔍 Participant user IDs:', participantUserIds);
-
-      // Build filter for participants
-      let participantFilter: any = {
-        _id: { $in: participantUserIds },
-      };
-
-      if (filters) {
-        participantFilter["$or"] = [
-          { "dynamic_fields.first_name": { $regex: filters, $options: "i" } },
-          { "dynamic_fields.last_name": { $regex: filters, $options: "i" } },
-          { "dynamic_fields.email": { $regex: filters, $options: "i" } },
-          { "dynamic_fields.email_address": { $regex: filters, $options: "i" } },
-          { "dynamic_fields.name": { $regex: filters, $options: "i" } },
+      if (filters && filters.trim() !== "") {
+        participantFilter.$or = [
+          { email: { $regex: filters, $options: "i" } },
+          { "formData.first_name": { $regex: filters, $options: "i" } },
+          { "formData.last_name": { $regex: filters, $options: "i" } },
+          { "formData.name": { $regex: filters, $options: "i" } },
+          { "formData.phone_number": { $regex: filters, $options: "i" } },
         ];
       }
 
-      console.log('🔍 Participant filter:', JSON.stringify(participantFilter, null, 2));
+      console.log('🔍 Participant filter:', participantFilter);
 
-      // Get total count for pagination
-      const totalUsers = await ParticipantSchema.countDocuments(participantFilter);
+      // 🧮 Get total count for pagination
+      const totalUsers = await formRegistrationSchema.countDocuments(participantFilter);
       const totalPages = Math.ceil(totalUsers / limit);
 
-      const participants = await ParticipantSchema.find(participantFilter)
+      // 📋 Get participants with populated ticket info
+      const participants = await formRegistrationSchema
+        .find(participantFilter)
+        .populate("ticketId")
+        .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit);
+        .limit(limit)
+        .lean();
 
-      console.log('🔍 Found participants:', participants.length);
+      // 🧩 Map response for UI
+      const participantsWithEvent = participants.map((p) => ({
+        _id: p._id,
+        email: p.email,
+        phone: p.formData?.phone_number || null,
+        name: p.formData?.name || p.formData?.first_name || "",
+        badgeNo: p.badgeNo,
+        approved: p.approved,
+        checkin_time: p.checkin_time || null,
+        checkout_time: p.checkout_time || null,
+        status: p.status || null,
+        ticketName: (p.ticketId as any)?.ticketName || "N/A",
+userType: (p.ticketId as any)?.userType || "N/A",
+registrationFormId: (p.ticketId as any)?.registrationFormId || null,
 
-        const participantsWithEvent = participants.map((participant) => {
-        const matchingEP = eventParticipants.find(
-          (ep) => {
-            const epUserId = ep.participant_user_id ? ep.participant_user_id.toString() : '';
-            const participantId = (participant as { _id: any })._id ? (participant as { _id: any })._id.toString() : '';
-            return epUserId === participantId;
-          }
-        );
+        qrImage: p.qrImage ? `${process.env.BASE_URL}/uploads/${p.qrImage}` : null,
+        event_title: event.eventName,
+        event_id: event._id,
+      }));
 
-        console.log(`🔍 Mapping participant ${participant._id}:`, {
-          participant_id: participant._id,
-          matchingEP_id: matchingEP?._id,
-          matchingEP_participant_user_id: matchingEP?.participant_user_id,
-          registration_number: matchingEP?.registration_number,
-          checkin_time: matchingEP?.checkin_time,
-          checkout_time: matchingEP?.checkout_time,
-          status: matchingEP?.status
-        });
-
-        return {
-          ...participant.toObject(),
-          event_title: event.eventName || event.event_title,
-          event_id: event._id,
-          registration_number: matchingEP?.registration_number || null,
-          checkin_time: matchingEP?.checkin_time || null,
-          checkout_time: matchingEP?.checkout_time || null,
-          status: matchingEP?.status || null,
-        };
-      });      return callback(null, { 
-        participants: participantsWithEvent, 
+      return callback(null, {
+        participants: participantsWithEvent,
         totalUsers,
         totalPages,
-        page, 
-        limit 
+        page,
+        limit,
       });
     }
 
-    // If no specific event_id, get all events for this company and their participants
-    let eventFilter: any = { company_id: loginUserData.company_id };
+    // ❌ If no event_id provided
+    return callback({ message: "Event ID is required" }, null);
 
-    // Search in both event schemas
-    const hostEvents = await eventHostSchema
-      .find(eventFilter)
-      .select("eventName company_name _id");
-      
-    const regularEvents = await eventSchema
-      .find(eventFilter)
-      .select("event_title company_name _id");
-
-    const allEvents = [
-      ...hostEvents.map(e => ({ ...e.toObject(), eventName: e.eventName, source: 'host' })),
-      ...regularEvents.map(e => ({ ...e.toObject(), eventName: e.event_title, source: 'regular' }))
-    ];
-
-    if (!allEvents.length) {
-      return callback({ message: "No events found" }, null);
-    }
-
-    let allParticipants: any[] = [];
-
-    for (const event of allEvents) {
-      const eventParticipants = await EventParticipantSchema.find({
-        event_id: event._id,
-      });
-
-      if (eventParticipants.length) {
-        const participantUserIds = eventParticipants.map(
-          (ep) => ep.participant_user_id.toString()
-        );
-
-        let participantFilter: any = {
-          _id: { $in: participantUserIds },
-        };
-
-        if (filters) {
-          participantFilter["$or"] = [
-            { "dynamic_fields.first_name": { $regex: filters, $options: "i" } },
-            { "dynamic_fields.last_name": { $regex: filters, $options: "i" } },
-            { "dynamic_fields.email": { $regex: filters, $options: "i" } },
-            { "dynamic_fields.email_address": { $regex: filters, $options: "i" } },
-            { "dynamic_fields.name": { $regex: filters, $options: "i" } },
-          ];
-        }
-
-        const participants = await ParticipantSchema.find(participantFilter);
-
-        const participantsWithEvent = participants.map((participant) => {
-          const matchingEP = eventParticipants.find(
-            (ep) => {
-              const epUserId = ep.participant_user_id ? ep.participant_user_id.toString() : '';
-              const participantId = (participant as { _id: any })._id ? (participant as { _id: any })._id.toString() : '';
-              return epUserId === participantId;
-            }
-          );
-
-          return {
-            ...participant.toObject(),
-            event_title: event.eventName,
-            event_id: event._id,
-            registration_number: matchingEP?.registration_number || null,
-            checkin_time: matchingEP?.checkin_time || null,
-            checkout_time: matchingEP?.checkout_time || null,
-            status: matchingEP?.status || null,
-          };
-        });
-
-        allParticipants = allParticipants.concat(participantsWithEvent);
-      }
-    }
-
-    // Apply pagination to final results
-    const totalUsers = allParticipants.length;
-    const totalPages = Math.ceil(totalUsers / limit);
-    const paginatedParticipants = allParticipants.slice(skip, skip + limit);
-
-    return callback(null, { 
-      participants: paginatedParticipants, 
-      totalUsers,
-      totalPages,
-      page, 
-      limit 
-    });
   } catch (error) {
-    console.error('❌ Error in getAllEventParticipantUserListModal:', error);
+    console.error("❌ Error in getAllEventParticipantUserListModal:", error);
     return callback({ message: "An error occurred", error }, null);
   }
 };
+
 
 
 export const getPeopleListOptimized = async (

@@ -200,20 +200,24 @@ export const createTicket = async (
     try {
         const parsedData = parseJsonFields(ticketData);
         // ---- Add uniqueness check ----
-        const existingTicket = await TicketSchema.findOne({
+        const existingTicket = await TicketSchema.find({
             eventId,
             userType: parsedData.userType
         });
-        if (existingTicket) {
-            return {
-                success: false,
-                message: 'A ticket for this user type already exists for this event.'
-            };
+        let isActiveForm = false;
+        if (existingTicket.length === 0) {
+            isActiveForm = true;
+        } else {
+            const hasActive = existingTicket.some(t => t.isActiveForm);
+            if (!hasActive) {
+                isActiveForm = true;
+            }
         }
         const newTicket = new TicketSchema({
             ...parsedData,
             companyId,
-            eventId
+            eventId,
+            isActiveForm
         });
 
         const savedTicket = await newTicket.save();
@@ -258,13 +262,6 @@ export const updateTicket = async (
                 eventId: parsedData.eventId,
                 userType: parsedData.userType
             });
-
-            if (existingTicket) {
-                return {
-                    success: false,
-                    message: 'A ticket for this user type already exists for this event.'
-                };
-            }
         }
 
         const updatedTicket = await TicketSchema.findOneAndUpdate(

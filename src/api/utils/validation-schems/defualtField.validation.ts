@@ -60,7 +60,8 @@ export const createDefaultFieldSchema = Joi.object({
   optionRequestType: Joi.string().optional().allow("", null),
   optionDepending :  Joi.string().optional().allow("", null),
   filevalidation : Joi.optional(),
-  fieldConfigration : Joi.optional()
+  fieldConfigration : Joi.optional(),
+  mapField: Joi.optional(),
 });
 
 export const deleteDefaultFieldSchema = Joi.object({

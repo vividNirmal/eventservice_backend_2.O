@@ -8,11 +8,11 @@ export const createUserTypeModule = async (
   try {
     // Check if user type already exists
     const existingType = await userTypeSchema.findOne({
-      typeName: data.typeName,
+      $or: [{ typeName: data.typeName }, { order: data.order }],
     });
 
     if (existingType) {
-      return callback(new Error("User type with this name already exists"));
+      return callback(new Error("User type with this name or order already exists"));
     }
 
     const newType = new userTypeSchema(data);
@@ -21,12 +21,12 @@ export const createUserTypeModule = async (
     callback(null, { userType: savedType });
   } catch (error: any) {
     loggerMsg("error", `Error creating user type: ${error}`);
-    
+
     // Handle MongoDB duplicate key error (in case the unique index is triggered)
     if (error.code === 11000) {
       return callback(new Error("User type with this name already exists"));
     }
-    
+
     callback(error, null);
   }
 };
@@ -35,7 +35,7 @@ export const getAllUserTypes = async (
   callback: (error: Error | null, result?: any) => void,
   page: number = 1,
   limit: number = 10,
-  search?: string,
+  search?: string
   // companyId?: string,
 ) => {
   try {
@@ -50,7 +50,7 @@ export const getAllUserTypes = async (
 
     const userTypes = await userTypeSchema
       .find(searchQuery)
-      .sort({ createdAt: -1 })
+      .sort({ order: 1 })
       .skip(skip)
       .limit(limit);
 
@@ -97,31 +97,29 @@ export const updateUserTypeById = async (
     if (updateData.typeName || updateData.companyId) {
       const existingType = await userTypeSchema.findOne({
         _id: { $ne: id }, // Exclude current document
-        typeName: updateData.typeName,
+        $or: [{ typeName: updateData.typeName }, { order: updateData.order }],
       });
 
       if (existingType) {
-        return callback(new Error("User type with this name already exists"));
+        return callback(new Error("User type with this name or order already exists"));
       }
     }
 
-    const updatedType = await userTypeSchema.findByIdAndUpdate(
-      id, 
-      updateData, 
-      { new: true }
-    );
+    const updatedType = await userTypeSchema.findByIdAndUpdate(id, updateData, {
+      new: true,
+    });
 
     if (!updatedType) return callback(new Error("User type not found"), null);
 
     callback(null, { userType: updatedType });
   } catch (error: any) {
     loggerMsg("error", `Error updating user type: ${error}`);
-    
+
     // Handle MongoDB duplicate key error
     if (error.code === 11000) {
       return callback(new Error("User type with this name already exists"));
     }
-    
+
     callback(error, null);
   }
 };

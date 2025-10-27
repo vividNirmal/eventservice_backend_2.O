@@ -53,6 +53,8 @@ import { createEBadgeTemplateSchema, updateEBadgeTemplateSchema } from "../../ut
 import { createEBadgeTemplateController, deleteEBadgeTemplateByIdController, getAllEBadgeTemplatesController, getEBadgeTemplateByIdController, updateEBadgeTemplateByIdController } from "../controllers/eBadgeTemplate.controller";
 import { createEBadgeSettingSchema, updateEBadgeSettingSchema } from "../../utils/validation-schems/eBadgeSetting.validation";
 import { createEBadgeSettingController, deleteEBadgeSettingByIdController, getAllEBadgeSettingsController, getEBadgeSettingByIdController, updateEBadgeSettingByIdController } from "../controllers/eBadgeSetting.controller";
+import { createFieldConstantController, deleteFieldConstantByIdController, getAllFieldConstantsController, getFieldConstantByIdController, updateFieldConstantByIdController } from "../controllers/fieldConstant.controller";
+import { createfieldConstantSchema, updateFieldConstantSchema } from "../../utils/validation-schems/fieldconstant.validation";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -280,6 +282,15 @@ export const upload = multer({ storage: storage });
             route.post('/user-types', protectedRoute, validateRequest(createUserTypeSchema), createUserTypeController);
             route.put('/user-types/:id', protectedRoute, validateRequest(updateUserTypeSchema), updateUserTypeByIdController);
             route.delete('/user-types/:id', protectedRoute, deleteUserTypeByIdController);
+
+            // user types
+            route.get('/contant-map', protectedRoute, getAllFieldConstantsController);
+            route.get('/contant-map/:id', protectedRoute, getFieldConstantByIdController);
+            route.post('/contant-map', protectedRoute, validateRequest(createfieldConstantSchema), createFieldConstantController);
+            route.put('/contant-map/:id', protectedRoute, validateRequest(updateFieldConstantSchema), updateFieldConstantByIdController);
+            route.delete('/contant-map/:id', protectedRoute, deleteFieldConstantByIdController);
+
+
 
             // user type maps
             route.get('/user-type-maps', protectedRoute, getAllUserTypeMapsController);

@@ -43,7 +43,8 @@ const defaultFieldSchema = new mongoose.Schema(
     optionRequestType : {type :String},
     optionDepending : {type : String},
     filevalidation : {type:[fileValidation],default :[]},
-    fieldConfigration : {type:[fieldConfigration],default :[]}
+    fieldConfigration : {type:[fieldConfigration],default :[]},
+    mapField : {type : String}
   },
   { timestamps: true, autoIndex: true }
 );

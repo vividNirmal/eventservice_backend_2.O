@@ -6,6 +6,9 @@ export const createUserTypeSchema = Joi.object({
     "string.min": "User type name must be at least 1 character",
     "string.max": "User type name must not exceed 100 characters"
   }),
+  order: Joi.number().optional().messages({
+    "number.base": "Order must be a number"
+  })
 });
 
 export const updateUserTypeSchema = Joi.object({
@@ -13,5 +16,8 @@ export const updateUserTypeSchema = Joi.object({
     "string.min": "User type name must be at least 1 character",
     "string.max": "User type name must not exceed 100 characters"
   }),
-  id: Joi.string().optional()
+  id: Joi.string().optional(),
+  order: Joi.number().optional().messages({
+    "number.base": "Order must be a number"
+  })
 });

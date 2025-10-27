@@ -1,10 +1,8 @@
 import mongoose, { Document, Schema } from "mongoose";
 
 export interface IUserType extends Document {
-  // Basic Info
   typeName: string;
-
-  // System fields
+  order: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -16,6 +14,10 @@ const userTypeSchema: Schema = new Schema<IUserType>(
       type: String,
       required: true,
       trim: true,
+    },
+    order: {
+      type: Number,
+      required: true,
     },
   },
   {

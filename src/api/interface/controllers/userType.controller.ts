@@ -16,6 +16,7 @@ export const createUserTypeController: RequestHandler = async (
 ) => {
   try {
     const data = req.body;
+    
 
     createUserTypeModule(data, (error, result) => {
       if (error) {

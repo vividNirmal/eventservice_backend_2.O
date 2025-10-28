@@ -767,30 +767,34 @@ export const getFormRegistrationListModel = async (
     if (approved !== "") filter.approved = approved === "true";
 
     // Direct ticket filter
-    if (ticketId) {
-      filter.ticketId = ticketId;
-    }
-    // UserType filter (existing logic)
-    else if (userTypeId) {
-      const tickets = await Ticket.find(
-        { userType: userTypeId },
-        { _id: 1 }
-      ).lean();
-      const ticketIds = tickets.map((t) => t._id.toString());
-      if (ticketIds.length > 0) {
-        filter.ticketId = { $in: ticketIds };
-      } else {
-        // If no tickets found for this userType → return empty result
-        return callback(null, {
-          registrations: [],
-          pagination: {
-            currentPage,
-            totalPages: 0,
-            totalData: 0,
-            limit: size,
-          },
-        });
-      }
+    const map_array = {}
+    const tickets = await Ticket.find({
+      ...(userTypeId ? { userType: userTypeId } : {}),
+      ...(ticketId ? { _id: ticketId } : {}),
+    })
+      .populate("registrationFormId")
+      .lean();
+
+    if (tickets.length > 0) {
+      const ticketIds = tickets.map((t: any) => {
+        console.log("ticketIds", t);
+        const forms_registration = t.registrationFormId
+        const pages = forms_registration?.pages
+        // pages.elements?.forEach
+        return t._id.toString();
+      });
+
+      filter.ticketId = { $in: ticketIds };
+    } else {
+      return callback(null, {
+        registrations: [],
+        pagination: {
+          currentPage,
+          totalPages: 0,
+          totalData: 0,
+          limit: size,
+        },
+      });
     }
 
     // Date range filter

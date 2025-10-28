@@ -255,20 +255,52 @@ export const linkTicketToEventHost = async (req: Request, res: Response) => {
     if (!ticket) {
       return ErrorResponse(res, "Ticket not found");
     }
+    
+    const isCurrentlyActive = ticket.isActiveForm === true;
 
-    // Link the ticket and form to the event host
-    eventHost.ticketId = ticketId;
-    eventHost.selected_form_id = ticket.registrationFormId ? ticket.registrationFormId.toString() : undefined;
+    if (!isCurrentlyActive) {
+      await ticketSchema.updateMany(
+        { eventId: ticket.eventId, userType: ticket.userType },
+        { $set: { isActiveForm: false } }
+      );
+      ticket.isActiveForm = true;
+      await ticket.save();
+    } else {
+      ticket.isActiveForm = false;
+      await ticket.save();
 
-    await eventHost.save();
+      const stillActive = await ticketSchema.exists({
+        eventId: ticket.eventId,
+        userType: ticket.userType,
+        isActiveForm: true,
+      });
 
-    return successResponse(res, "Ticket successfully linked to Event Host", {
-      eventHostId: eventHost._id,
-      ticketId: ticketId,
-      eventName: eventHost.eventName,
-      ticketName: ticket.ticketName
-    });
+      if (!stillActive) {
+        const latestTicket = await ticketSchema
+          .findOne({ eventId: ticket.eventId, userType: ticket.userType })
+          .sort({ createdAt: -1 });
 
+        if (latestTicket) {
+          latestTicket.isActiveForm = true;
+          await latestTicket.save();
+        }
+      }
+    }
+
+    return successResponse(
+      res,
+      !isCurrentlyActive
+        ? "Form successfully linked for user type"
+        : "Form successfully unlinked for user type",
+      {
+        eventHostId: eventHost._id,
+        ticketId: ticket._id,
+        eventName: eventHost.eventName,
+        ticketName: ticket.ticketName,
+        registrationFormId: ticket.registrationFormId,
+        isActiveForm: ticket.isActiveForm,
+      }
+    );
   } catch (error) {
     return res.status(500).json({
       status: "error",

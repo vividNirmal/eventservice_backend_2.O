@@ -97,6 +97,7 @@ export interface ITicket extends Document {
     updatedAt: Date;
     companyId?: mongoose.Types.ObjectId;
     eventId?: mongoose.Types.ObjectId;
+    isActiveForm: boolean;
 }
 
 const dateSlabSchema = new Schema<IDateSlab>({
@@ -251,7 +252,8 @@ const ticketSchema: Schema = new Schema<ITicket>({
         default: 'active' 
     },
     companyId: { type: Schema.Types.ObjectId, ref: "Company" },
-    eventId: { type: Schema.Types.ObjectId, ref: "EventHost" }
+    eventId: { type: Schema.Types.ObjectId, ref: "EventHost" },
+    isActiveForm: { type: Boolean, default: false },
 }, {
     timestamps: true,
 });
@@ -260,7 +262,7 @@ const ticketSchema: Schema = new Schema<ITicket>({
 ticketSchema.index({ companyId: 1, status: 1 });
 ticketSchema.index({ userType: 1 });
 ticketSchema.index({ ticketCategory: 1 });
-ticketSchema.index({ eventId: 1, userType: 1 }, { unique: true });
+ticketSchema.index({ eventId: 1, userType: 1 });
 ticketSchema.index({ createdAt: -1 });
 
 export default mongoose.model<ITicket>("Ticket", ticketSchema);

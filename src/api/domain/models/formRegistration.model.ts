@@ -96,6 +96,7 @@ export const resolveFormUrlModel = async (
       eventId: event._id,
       userType: matchedUserType._id,
       status: "active",
+      isActiveForm: true,
     })
       // .populate("registrationFormId")
       .populate("userType");
@@ -442,8 +443,9 @@ export const storeFormRegistrationModel = async (
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(savePath, uploadedImageBuffer);
-
+    if(uploadedImageBuffer){
+      fs.writeFileSync(savePath, uploadedImageBuffer);
+    } 
     if (faceId) {
       registrationData.faceId = faceId;
     }

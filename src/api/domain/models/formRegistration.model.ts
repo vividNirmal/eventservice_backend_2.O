@@ -780,12 +780,16 @@ export const getFormRegistrationListModel = async (
     if (tickets.length > 0) {
       const ticketIds = tickets.map((t: any) => {        
         const forms_registration = t.registrationFormId;
-        const pages = forms_registration?.pages;        
-        pages[0]?.elements?.forEach((element: any) => {
-          if (element.mapField) {                        
-            map_array[element.mapField] = element.fieldName;
-          }
-        });
+        const pages = forms_registration?.pages; 
+        if (pages) {
+          pages.forEach((page: any) => {
+            page.elements?.forEach((element: any) => {
+              if (element.mapField) {
+                map_array[element.mapField] = element.fieldName;
+              }
+            });
+          });
+        }              
         return t._id.toString();
       });
 

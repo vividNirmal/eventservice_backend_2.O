@@ -56,14 +56,6 @@ export const storeParticipantUser = async (
   callback: (error: any, result: any) => void
 ) => {
   try {
-    console.log("🔧 Store Participant User - Input Data:", {
-      event_id: participantUserData.event_id,
-      user_token: participantUserData.user_token,
-      form_type: participantUserData.form_type,
-      root_level_email: participantUserData.email,
-      all_data: participantUserData,
-    });
-
     // Process dynamic form data if it exists as a string
     let processedDynamicFields: { [key: string]: any } = {};
 
@@ -179,16 +171,9 @@ export const storeParticipantUser = async (
         $or: emailQueries,
       });
     }
-
-    console.log(
-      "🔧 Existing User Check Result:",
-      existingUser ? "Found" : "Not Found"
-    );
-
     let savedUser;
 
-    if (existingUser) {
-      console.log("🔧 Updating Existing User");
+    if (existingUser) {      
       // Update the existing user's dynamic fields and root-level email
       existingUser.email = emailField; // Update root-level email field
       existingUser.dynamic_fields = {
@@ -196,8 +181,7 @@ export const storeParticipantUser = async (
         ...dynamicFields,
       };
       savedUser = await existingUser.save();
-    } else {
-      console.log("🔧 Creating New User");
+    } else {      
       // Create new user with all dynamic fields and root-level email field
       const newParticipantUser = new participantUsers({
         email: emailField, // Set root-level email field to avoid null constraint issues
@@ -208,9 +192,7 @@ export const storeParticipantUser = async (
     }
 
     // Get user ID for event participant creation
-    const userId = savedUser._id; // console.log("image_urlimage_urlimage_urlimage_urlimage_url",participantUserData.image_url);
-    // console.log("face_idface_idface_idface_idface_idface_idface_idface_idface_idface_id",participantUserData.face_id)
-    // check if the participant already exist then skip creating new participant
+    const userId = savedUser._id;     
     const existingParticipant = await EventParticipant.findOne({
       participant_user_id: userId,
       event_id: participantUserData.event_id,
@@ -230,36 +212,24 @@ export const storeParticipantUser = async (
         );
       }
 
-      if (event_details_for_registration?.ticketId) {
-        console.log(
-          "🔧 Generating registration number for ticketId:",
-          event_details_for_registration.ticketId
-        );
+      if (event_details_for_registration?.ticketId) {     
 
         try {
           // Convert ticketId to ObjectId
           const ticketObjectId = new mongoose.Types.ObjectId(
             event_details_for_registration.ticketId
           );
-          console.log("🔧 Converted ticketId to ObjectId:", ticketObjectId);
+          
           // Find ticket details
           const ticket_details = await ticketSchema.findOne({
             _id: ticketObjectId,
-          });
-          console.log("🔧 Fetched Ticket Details:", ticket_details);
+          });          
 
           if (
             (ticket_details?.serialNoPrefix &&
               ticket_details?.startCount != null) ||
             ticket_details?.startCount !== undefined
-          ) {
-            console.log(
-              "🔧 Ticket details found - Prefix:",
-              ticket_details.serialNoPrefix,
-              "StartCount:",
-              ticket_details.startCount
-            );
-
+          ) {          
             // Find the highest registration number for this event to get next sequence
             const latestParticipant = await EventParticipant.findOne({
               event_id: participantUserData.event_id,
@@ -278,18 +248,11 @@ export const storeParticipantUser = async (
               const currentNumber =
                 parseInt(latestNumber, 10) ||
                 parseInt(ticket_details.startCount.toString(), 10);
-              nextNumber = currentNumber + 1;
-              console.log(
-                "🔧 Latest registration found:",
-                latestParticipant.registration_number,
-                "Next number:",
-                nextNumber
-              );
+              nextNumber = currentNumber + 1;            
             } else {
               // First participant - use startCount
               nextNumber =
-                parseInt(ticket_details.startCount.toString(), 10) || 0;
-              console.log("🔧 First participant - starting with:", nextNumber);
+                parseInt(ticket_details.startCount.toString(), 10) || 0;              
             }
 
             // Format number with leading zeros (same length as startCount)
@@ -300,10 +263,7 @@ export const storeParticipantUser = async (
               .padStart(startCountLength, "0");
             registrationNumber = `${ticket_details.serialNoPrefix}${paddedNumber}`;
 
-            console.log(
-              "🔧 Generated registration number:",
-              registrationNumber
-            );
+          
           } else {
             console.log(
               "⚠️ Ticket details incomplete - no prefix or startCount found"
@@ -334,12 +294,7 @@ export const storeParticipantUser = async (
         referral_source: dynamicFields.referral_source || "Dynamic Form",
         company_activity:
           dynamicFields.company_activity || "Dynamic Form Response",
-      };
-
-      console.log(
-        "🔧 Event Participant Data with Registration Number:",
-        eventParticipantData
-      );
+      };   
 
       const EventParticipants = new EventParticipant(eventParticipantData);
 
@@ -347,9 +302,6 @@ export const storeParticipantUser = async (
     } else {
       saveEventParticipants = existingParticipant;
     }
-
-    // Generate QR Code immediately for response
-    console.log("🔧 Generating QR code for immediate response...");
 
     const token = participantUserData.user_token;
     const baseUrl = env.BASE_URL;
@@ -384,8 +336,7 @@ export const storeParticipantUser = async (
       });
 
       // Generate base64 QR code
-      qrCodeBase64 = await QRCode.toDataURL(participant_qr_details);
-      console.log("🔧 QR code generated successfully", qrCodeBase64);
+      qrCodeBase64 = await QRCode.toDataURL(participant_qr_details);      
       // Save QR code as file
       const qrFileName = saveQrImage(qrCodeBase64, token || "default");
       saveEventParticipants.qr_image = qrFileName;
@@ -393,8 +344,7 @@ export const storeParticipantUser = async (
 
       // Add QR code data to response - match getEventTokenDetails structure
       responseData.base64Image = qrCodeBase64;
-      responseData.qr_image_url = baseUrl + "/uploads/" + qrFileName;
-      console.log("responseData.base64Image", responseData);
+      responseData.qr_image_url = baseUrl + "/uploads/" + qrFileName;      
 
       // Add formatted event details to response
       if (event_details_for_qr?.event_logo) {
@@ -448,20 +398,14 @@ export const storeParticipantUser = async (
         });
       }
 
-      responseData.event = event_details_for_qr;
-
-      console.log("✅ QR code generated successfully for immediate response");
-    }
-
-    // Success - return complete data with QR code
-    console.log("🔧 Participant saved successfully with QR code");
+      responseData.event = event_details_for_qr;      
+    }    
 
     callback(null, responseData);
 
     // Send email in background - don't block the response
     process.nextTick(async () => {
-      try {
-        console.log("📧 Starting background email process...");
+      try {     
 
         // Re-fetch event participant details to ensure we have the latest data
         const event_participant_details = await EventParticipant.findOne({
@@ -537,11 +481,9 @@ export const storeParticipantUser = async (
           base64Image,
           event_participant_details.token
         );
-        event_participant_details.qr_image = qrFileName;
-        console.log("qrFileName_qrFileName_qrFileName_", qrFileName);
+        event_participant_details.qr_image = qrFileName;        
         await event_participant_details.save();
         const qr_iamge_url = baseUrl + "/uploads/" + qrFileName;
-        console.log("qr_iamge_url_qr_iamge_url_qr_iamge_url", qr_iamge_url);
         const htmlContent =
           `
                     <!DOCTYPE html>
@@ -692,12 +634,7 @@ export const storeParticipantUser = async (
                         </div>
                     </body>
                     </html>
-                  `;
-
-        console.log(
-          "event_details?.event_logo",
-          event_details_for_qr?.event_logo
-        );
+                  `;        
 
         // Use EmailService instead of nodemailer directly
         try {
@@ -706,7 +643,6 @@ export const storeParticipantUser = async (
             "Your Event ID!",
             htmlContent
           );
-          console.log("✅ Email sent successfully to:", emailField);
         } catch (emailError) {
           console.log("❌ Email sending failed:", emailError);
           // Don't throw error - email failure shouldn't affect participant creation
@@ -733,10 +669,7 @@ export const storeParticipantUser = async (
         const existingUser = await participantUsers.findOne({
           [duplicateField]: duplicateValue,
         });
-        if (existingUser) {
-          console.log(
-            "✅ Found existing user with duplicate email, returning existing user"
-          );
+        if (existingUser) {          
           return callback(null, existingUser);
         }
       } catch (findError) {
@@ -926,24 +859,64 @@ export const verifyOtpModel = async (
   callback: (error: any, result: any) => void
 ) => {
   try {
+    // ✅ First, get event and tickets to determine all possible field mappings
+    const eventId = await eventHostSchema.findOne({
+      event_slug: userData.event_slug,
+    });
+    
+    if (!eventId) {
+      return callback(new Error("Event not found!"), null);
+    }
+
+    const tickets = await ticketSchema
+      .find({ eventId: eventId })
+      .populate("registrationFormId");
+      
+    let ticketsWithMapArray: any;
+    let contactFieldNames: string[] = []; // Array to store all contact field names
+
+    if (tickets.length > 0) {
+      ticketsWithMapArray = tickets.map((t: any) => {
+        const map_array: any = {};
+        const forms_registration = t.registrationFormId;
+        const pages = forms_registration?.pages;
+
+        if (pages) {
+          pages.forEach((page: any) => {
+            page.elements?.forEach((element: any) => {
+              if (element.mapField) {
+                map_array[element.mapField] = element.fieldName;
+              }
+            });
+          });
+        }
+
+        
+        if (map_array.contact_no) {
+          contactFieldNames.push(map_array.contact_no);
+        }
+
+        return {
+          ...t.toObject(),
+          map_array: map_array,
+        };
+      });
+      contactFieldNames = [...new Set(contactFieldNames)];
+    }    
+    const orConditions = contactFieldNames.map(fieldName => ({
+      [`formData.${fieldName}`]: userData.contact
+    }));    
+    orConditions.push(
+      { "formData.contact": userData.contact },
+      { "formData.phone_number": userData.contact }
+    );    
     const user = await FormRegistration.findOne({
-      $or: [
-        { "formData.contact": userData.contact },
-        { "formData.phone_number": userData.contact },
-      ],
+      $or: orConditions
     }).lean();
+
     if (!user) {
       return callback(new Error("User not found!"), null);
-    }
-    console.log(user, "userData");
-
-    // ✅ Check OTP validity
-    const userContact = user.formData?.contact || user.formData?.phone_number;
-    // const otpRecord = await UsersOtp.findOne({
-    //   user: userContact,
-    //   otp: userData.otp,
-    //   status: "pending",
-    // });
+    }    
 
     const event_details = await eventHostSchema
       .findOne({
@@ -960,63 +933,20 @@ export const verifyOtpModel = async (
     var color_status = "";
     var scanning_msg = "";
 
-    // if (userData.scanner_type == 0) {
-    //   // Check-in Process
-    //   if (user.status == "in") {
-    //     scanning_msg = "You are already in the event";
-    //     color_status = "yellow";
-    //   } else {
-    //     user.checkin_time = new Date();
-    //     user.status = "in";
-    //     await FormRegistration.updateOne(
-    //       { _id: user._id },
-    //       {
-    //         $set: {
-    //           checkin_time: user.checkin_time,
-    //           status: user.status,
-    //         },
-    //       }
-    //     );
-    //     scanning_msg = "You are now checked into the event";
-    //     color_status = "green";
-    //   }
-    // }
-
-    // if (userData?.scanner_type == 1) {
-    //   // Check-out Process
-    //   if (user.status != "in") {
-    //     scanning_msg = "You can't check out without checking in";
-    //     color_status = "red";
-    //   } else {
-    //     user.checkout_time = new Date();
-    //     user.status = "out";
-    //     await FormRegistration.updateOne(
-    //       { _id: user._id },
-    //       {
-    //         $set: {
-    //           checkin_time: user.checkin_time,
-    //           status: user.status,
-    //         },
-    //       }
-    //     );
-    //     scanning_msg = "You are now checked out from the event";
-    //     color_status = "green";
-    //   }
-    // }
     user.qrImage = baseUrl + "/uploads/" + user.qrImage;
-    if(user.faceImageUrl){
+    if (user.faceImageUrl) {
       user.faceImageUrl = baseUrl + "/uploads/" + user.faceImageUrl;
     }
+    
     const result = [];
     event_details.event_logo = `${env.BASE_URL}/${event_details.event_logo}`;
     event_details.event_image = `${env.BASE_URL}/${event_details.event_image}`;
     result.push(event_details);
     result.push(user);
     result.push({ color_status: color_status, scanning_msg: scanning_msg });
+    
     return callback(null, result);
-  } catch (error) {
-    console.log("Error during OTP verification:", error);
-
+  } catch (error) {    
     console.error("Error during OTP verification:", error);
     callback(new Error("Something went wrong!"), null);
   }
@@ -1050,7 +980,6 @@ export const updateParticipantUserModel = async (
       updatedUser,
     });
   } catch (error) {
-    console.log(error);
     return callback({ message: "An error occurred", error }, null);
   }
 };

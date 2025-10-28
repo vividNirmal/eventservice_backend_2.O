@@ -17,3 +17,16 @@ export const scanParticipantFaceSchema = Joi.object({
         "any.required": "event Slug required is required."
     })
 })
+
+
+export const scanParticipantQRSchema = Joi.object({
+    event_id: Joi.string().required().messages({
+        "any.required": "event Slug required is required."
+    }),
+    scanner_type: Joi.string().required().messages({
+        "any.required": "event Slug required is required."
+    }),
+    qrValue: Joi.string().required().messages({
+        "any.required": "QR Value required is required."
+    })
+})

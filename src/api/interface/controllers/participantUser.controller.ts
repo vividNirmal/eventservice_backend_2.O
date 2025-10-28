@@ -307,7 +307,108 @@ export const scanParticipantFace = async (req: Request, res: Response) => {
     return ErrorResponse(res, "Face recognition failed");
   }
 };
- 
+
+export const scanParticipantQR = async (req: Request, res: Response) => {
+  const processTimestamps: any = {};
+  const getTimestamp = () => new Date().toISOString();
+
+  try {
+    processTimestamps["start"] = getTimestamp();
+
+    const { scanner_type, qrValue } = req.body;
+    if (!qrValue) return ErrorResponse(res, "QR code value is required");
+
+    // 🧩 Step 1: Parse QR code JSON
+    let qrData;
+    try {
+      qrData = typeof qrValue === "string" ? JSON.parse(qrValue) : qrValue;
+    } catch {
+      return ErrorResponse(res, "Invalid QR code format (must be JSON)");
+    }
+
+    const event_id = qrData.event_id;
+    const formRegistrationId = qrData.formRegistration_id;
+
+    if (!event_id || !formRegistrationId)
+      return ErrorResponse(res, "Invalid QR data — missing event or participant ID");
+
+    // 🧩 Step 2: Fetch event details
+    processTimestamps["event_fetch_start"] = getTimestamp();
+    let eventDetails = await eventHostSchema.findById(event_id);
+    if (!eventDetails) eventDetails = await eventSchema.findById(event_id);
+    processTimestamps["event_fetch_end"] = getTimestamp();
+
+    if (!eventDetails) return ErrorResponse(res, "Event not found");
+
+    // 🧩 Step 3: Fetch participant
+    processTimestamps["participant_lookup_start"] = getTimestamp();
+    const participant = await FormRegistration.findById(formRegistrationId);
+    processTimestamps["participant_lookup_end"] = getTimestamp();
+
+    if (!participant) {
+      const result = [{ color_status: "red", scanning_msg: "Invalid QR code" }];
+      return errorResponseWithData(res, "No participant found for this QR", result);
+    }
+
+    // 🧩 Step 4: Validate approval and handle check-in/out
+    let color_status = "";
+    let scanning_msg = "";
+
+    if (!participant.approved) {
+      scanning_msg = "Participant is blocked from this event";
+      color_status = "red";
+    } else {
+      if (scanner_type == 0) {
+        // ✅ Check-in
+        if (participant.status === "in") {
+          scanning_msg = "Already checked in";
+          color_status = "yellow";
+        } else {
+          participant.status = "in";
+          participant.checkin_time = new Date();
+          await participant.save();
+          scanning_msg = "Welcome! You are now checked in.";
+          color_status = "green";
+        }
+      } else if (scanner_type == 1) {
+        // ✅ Check-out
+        if (participant.status !== "in") {
+          scanning_msg = "You can't check out without checking in first";
+          color_status = "red";
+        } else {
+          participant.status = "out";
+          participant.checkout_time = new Date();
+          await participant.save();
+          scanning_msg = "You are now checked out from the event.";
+          color_status = "green";
+        }
+      }
+    }
+
+    // 🧩 Step 5: Add image URLs and response formatting
+    const baseUrl = env.BASE_URL;
+    if (participant.faceImageUrl)
+      participant.faceImageUrl = `${baseUrl}/uploads/participants/${participant.faceImageUrl}`;
+    if (participant.qrImage)
+      participant.qrImage = `${baseUrl}/uploads/${participant.qrImage}`;
+    if (eventDetails.event_logo)
+      eventDetails.event_logo = `${baseUrl}/${eventDetails.event_logo}`;
+    if (eventDetails.event_image)
+      eventDetails.event_image = `${baseUrl}/${eventDetails.event_image}`;
+
+    const result = [
+      eventDetails,
+      participant,
+      { color_status, scanning_msg, processTimestamps },
+    ];
+
+    return successResponse(res, "Participant QR Scan Successful", result);
+  } catch (error) {
+    processTimestamps["error"] = getTimestamp();
+    console.error("❌ Error in scanParticipantQR:", error);
+    return ErrorResponse(res, "QR scanning failed");
+  }
+};
 
 export const scanFaceId = async (req: Request, res: Response) => {
   try {

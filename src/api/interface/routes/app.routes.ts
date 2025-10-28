@@ -9,7 +9,7 @@ import { storeScannerMachine,updateScannerMachine,deleteScannerMachine,getScanne
 import { storeCompanyController,getCompany,getCompanyDetails,updateCompanyController,deleteCompany,updateCompanyStatus, updateCompanyLogo } from "../../interface/controllers/company.controller";
 
 import { getEventDetailsSlug,logoutAllScanners,scannerPageLogin } from "../../interface/controllers/ScannerPage.controller";
-import { storeEventParticipantUser ,getUserDetailsUsingEmail,generateEventPdf,generateScannerEventPdf,getParticipantDetails,getParticipantDetailsScanner,scanFaceId,scanParticipantFace, OtpGenerate, OtpVerify, updateParticipantUser, toggleParticipantBlockStatus } from "../../interface/controllers/participantUser.controller";
+import { storeEventParticipantUser ,getUserDetailsUsingEmail,generateEventPdf,generateScannerEventPdf,getParticipantDetails,getParticipantDetailsScanner,scanFaceId,scanParticipantFace, OtpGenerate, OtpVerify, updateParticipantUser, toggleParticipantBlockStatus, scanParticipantQR } from "../../interface/controllers/participantUser.controller";
 import { getAdminUser,storeAdminUser,getSingleAdminUser,updateAdminUser,checkEmailUser,deleteAdminUser,forgetPassword,setPassword,updateUserStatus,changePassword} from "../../interface/controllers/adminuser.controller";
 import { registerUserSchema,loginUserSchema,updateUserSchema,forgetPasswordSchema,setPasswordSchema,updateStatusUserSchema,deleteUsersSchema,changePasswordSchema,scannerPageLoginUserSchema} from "../../utils/validation-schems/user.validation";
 import { EventParticipantUsers, DynamicEventParticipantUsers, sendOtpValidation, UpdateParticipantUsers, verifyOtpValidation } from "../../utils/validation-schems/event_participant_users.validation";
@@ -26,7 +26,7 @@ import { storeAdminCompanyController,getAdminCompanyList,getAdminCompanyDetails,
 import {  storeCompanyTeamController , updateCompanyTeamController,deleteCompanyTeamController,getCompanyTeamDetails,getCompanyTeamList } from "../../interface/controllers/companyTeam.controller";
 import { adminCompanySchema,updateAdminCompanySchema,deleteAdminCompanySchema } from "../../utils/validation-schems/adminCompanySchema.validation";
 import { companyTeamSchema,updateCompanyTeamSchema,deleteCompanyTeamSchema } from "../../utils/validation-schems/companyTeamSchema.validation";
-import { getEventDetailValidation,scanParticipantFaceSchema } from "../../utils/validation-schems/scannerPage.validation";
+import { getEventDetailValidation,scanParticipantFaceSchema, scanParticipantQRSchema } from "../../utils/validation-schems/scannerPage.validation";
 import { verifyScannerToken } from "../../middleware/scanner.middleware";
 import { getAdminEventHostList, storeAdminEventHost, updateAdminEventHost, getAdminEventHostDetails, getAdminEventHostListByCompany, linkTicketToEventHost, checkTicketLinkStatus, copyAdminEventHost } from "../controllers/eventHost.controller";
 import { eventHostUpdateSchema, eventHostSchema } from "../../utils/validation-schems/eventHostSchema.validation";
@@ -227,7 +227,8 @@ export const upload = multer({ storage: storage });
             route.get("/check-scanner-machine", protectedRoute ,checkUniqueMachineId);
             route.post("/scan-face-id" ,scanFaceId);
             route.post("/scan-participant-face",validateRequest(scanParticipantFaceSchema),scanParticipantFace);
-            
+            route.post("/scan-participant-qr",validateRequest(scanParticipantQRSchema),scanParticipantQR);
+
             //device configuration module
             route.post("/create-device-configuration",protectedRoute,validateRequest(createDeviceConfigurationSchema),createDeviceConfiguration);
             route.post("/update-device-configuration",protectedRoute,validateRequest(updateDeviceConfigurationSchema),updateDeviceConfiguration);

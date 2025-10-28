@@ -443,9 +443,9 @@ export const storeFormRegistrationModel = async (
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    if(uploadedImageBuffer){
+    if (uploadedImageBuffer) {
       fs.writeFileSync(savePath, uploadedImageBuffer);
-    } 
+    }
     if (faceId) {
       registrationData.faceId = faceId;
     }
@@ -769,7 +769,7 @@ export const getFormRegistrationListModel = async (
     if (approved !== "") filter.approved = approved === "true";
 
     // Direct ticket filter
-    const map_array = {}
+    const map_array: any = {};
     const tickets = await Ticket.find({
       ...(userTypeId ? { userType: userTypeId } : {}),
       ...(ticketId ? { _id: ticketId } : {}),
@@ -778,11 +778,14 @@ export const getFormRegistrationListModel = async (
       .lean();
 
     if (tickets.length > 0) {
-      const ticketIds = tickets.map((t: any) => {
-        console.log("ticketIds", t);
-        const forms_registration = t.registrationFormId
-        const pages = forms_registration?.pages
-        // pages.elements?.forEach
+      const ticketIds = tickets.map((t: any) => {        
+        const forms_registration = t.registrationFormId;
+        const pages = forms_registration?.pages;        
+        pages[0]?.elements?.forEach((element: any) => {
+          if (element.mapField) {                        
+            map_array[element.mapField] = element.fieldName;
+          }
+        });
         return t._id.toString();
       });
 
@@ -825,6 +828,7 @@ export const getFormRegistrationListModel = async (
 
     const result = {
       registrations,
+      map_array,
       pagination: {
         currentPage,
         totalPages: Math.ceil(totalCount / size),

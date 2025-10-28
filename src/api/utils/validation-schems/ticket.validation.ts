@@ -185,7 +185,8 @@ export const updateTicketBodySchema = Joi.object({
     // System fields
     status: Joi.string().valid('active', 'inactive', 'expired').optional(),
     companyId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
-    eventId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional()
+    eventId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
+    isActiveForm: Joi.boolean().optional()
 });
 
 export const updateTicketSchema = Joi.object({

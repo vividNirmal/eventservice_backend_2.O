@@ -464,81 +464,81 @@ export const getAllEventParticipantUserListModal = async (
   filters: any,
   pagination: any,
   event_id: any,
+  startDate: any,
+  endDate: any,
   callback: (error: any, result: any) => void
 ) => {
   try {
     const { page = 1, limit = 10 } = pagination;
     const skip = (page - 1) * limit;
 
-    console.log('🔍 Fetching participants for event:', event_id);
-
-    // ✅ If event_id provided → fetch participants for that event
-    if (event_id) {
-      const event = await eventHostSchema.findById(event_id);
-      if (!event) {
-        return callback({ message: "Event not found" }, null);
-      }
-
-      // 🔍 Build filter for form registrations
-      const participantFilter: any = { eventId: event._id };
-
-      if (filters && filters.trim() !== "") {
-        participantFilter.$or = [
-          { email: { $regex: filters, $options: "i" } },
-          { "formData.first_name": { $regex: filters, $options: "i" } },
-          { "formData.last_name": { $regex: filters, $options: "i" } },
-          { "formData.name": { $regex: filters, $options: "i" } },
-          { "formData.phone_number": { $regex: filters, $options: "i" } },
-        ];
-      }
-
-      console.log('🔍 Participant filter:', participantFilter);
-
-      // 🧮 Get total count for pagination
-      const totalUsers = await formRegistrationSchema.countDocuments(participantFilter);
-      const totalPages = Math.ceil(totalUsers / limit);
-
-      // 📋 Get participants with populated ticket info
-      const participants = await formRegistrationSchema
-        .find(participantFilter)
-        .populate("ticketId")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean();
-
-      // 🧩 Map response for UI
-      const participantsWithEvent = participants.map((p) => ({
-        _id: p._id,
-        email: p.email,
-        phone: p.formData?.phone_number || null,
-        name: p.formData?.name || p.formData?.first_name || "",
-        badgeNo: p.badgeNo,
-        approved: p.approved,
-        checkin_time: p.checkin_time || null,
-        checkout_time: p.checkout_time || null,
-        status: p.status || null,
-        ticketName: (p.ticketId as any)?.ticketName || "N/A",
-userType: (p.ticketId as any)?.userType || "N/A",
-registrationFormId: (p.ticketId as any)?.registrationFormId || null,
-
-        qrImage: p.qrImage ? `${process.env.BASE_URL}/uploads/${p.qrImage}` : null,
-        event_title: event.eventName,
-        event_id: event._id,
-      }));
-
-      return callback(null, {
-        participants: participantsWithEvent,
-        totalUsers,
-        totalPages,
-        page,
-        limit,
-      });
+    if (!event_id) {
+      return callback({ message: "Event ID is required" }, null);
     }
 
-    // ❌ If no event_id provided
-    return callback({ message: "Event ID is required" }, null);
+    // ✅ Validate event
+    const event = await eventHostSchema.findById(event_id).lean();
+    if (!event) {
+      return callback({ message: "Event not found" }, null);
+    }
 
+    // ✅ Base filter (only event)
+    const filter: any = { eventId: event_id };
+if (startDate && endDate) {
+      filter.createdAt = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
+    }
+    // 🔍 Optional search filter
+    if (filters && filters.trim() !== "") {
+      const searchRegex = { $regex: filters, $options: "i" };
+      filter.$or = [
+        { email: searchRegex },
+        { badgeNo: searchRegex },
+        { "formData.name": searchRegex },
+        { "formData.first_name": searchRegex },
+        { "formData.last_name": searchRegex },
+        { "formData.phone_number": searchRegex },
+      ];
+    }
+
+    // 🧮 Count total
+    const totalCount = await formRegistrationSchema.countDocuments(filter);
+
+    // 📋 Fetch data
+    const registrations = await formRegistrationSchema
+      .find(filter)
+      .populate({
+        path: "ticketId",
+        select: "ticketName registrationFormId userType",
+        populate: [
+          { path: "registrationFormId", select: "formName" },
+          { path: "userType", select: "typeName" },
+        ],
+        strictPopulate: false,
+      })
+      .populate("eventId", "event_title event_slug")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
+
+    // ✅ Just add userType name directly (don’t remap)
+    registrations.forEach((r: any) => {
+      r.userType = r.ticketId?.userType?.typeName || "N/A";
+    });
+
+    // ✅ Return same as getFormRegistrationListModel
+    return callback(null, {
+      registrations,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalCount / limit),
+        totalData: totalCount,
+        limit,
+      },
+    });
   } catch (error) {
     console.error("❌ Error in getAllEventParticipantUserListModal:", error);
     return callback({ message: "An error occurred", error }, null);
@@ -801,9 +801,3 @@ export const updateEventExtraDetails = async (ExtraEventData: ExtraEventData, ca
         return callback(error, null); 
     }
 };
-  
-
-
-
-
-

@@ -508,15 +508,16 @@ export const generateRegistrationURL = async (req: Request, res: Response) => {
 
 export const getAllParticipantUserList = async (req: Request, res: Response) => {
     try {
-        const { search = "", page = "1", limit = "10",event_id = "" } = req.query;
+        const { searchQuery = "", page = "1", limit = "10",event_id = "", startDate = "", // Add this line
+      endDate = "" } = req.query;
 
-        const filters = search.toString();
+        const filters = searchQuery.toString();
         const pagination = {
             page: parseInt(page as string, 10),
             limit: parseInt(limit as string, 10),
         };
 
-        getAllEventParticipantUserListModal(req.user, filters,pagination ,event_id, (error: any, result: any) => {
+        getAllEventParticipantUserListModal(req.user, filters,pagination ,event_id, startDate, endDate, (error: any, result: any) => {
             if (error) {
                 return ErrorResponse(res, error.message || "Invalid or expired token.");
             }
@@ -1044,14 +1045,3 @@ export const resolveFormUrl = async (req: Request, res: Response) => {
         return ErrorResponse(res, "An error occurred while resolving form URL.");
     }
 };
-
-
-
-
-
-
-
-
-
-
-

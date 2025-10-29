@@ -66,6 +66,23 @@ export const getEBadgeTemplateById = async (
   }
 };
 
+export const getEBadgeTemplateByEventId = async (
+  eventid: string,
+  callback: (error: Error | null, result?: any) => void
+) => {
+  try {
+    const template = await eBadgeTemplateSchema.find({
+      eventId: eventid
+    });
+    console.log(template, "template")
+    if (!template) return callback(new Error("Template not found"));
+    callback(null, { template });
+  } catch (error: any) {
+    loggerMsg("error", `Error fetching template by ID: ${error}`);
+    callback(error, null);
+  }
+};
+
 export const updateEBadgeTemplateById = async (
   id: string,
   updateData: Partial<IEBadgeTemplate>,

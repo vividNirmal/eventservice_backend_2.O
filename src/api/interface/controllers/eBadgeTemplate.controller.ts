@@ -5,6 +5,7 @@ import {
   getEBadgeTemplateById,
   updateEBadgeTemplateById,
   deleteEBadgeTemplateById,
+  getEBadgeTemplateByEventId,
 } from "../../domain/models/eBadgeTemplate.model";
 import { ErrorResponse, successResponse } from "../../helper/apiResponse";
 import { loggerMsg } from "../../lib/logger";
@@ -42,6 +43,17 @@ export const getAllEBadgeTemplatesController: RequestHandler = async (req, res) 
 export const getEBadgeTemplateByIdController: RequestHandler = async (req, res) => {
   try {
     getEBadgeTemplateById(req.params.id, (error, result) => {
+      if (error) return ErrorResponse(res, error.message);
+      return successResponse(res, "Template fetched successfully", result);
+    });
+  } catch (error: any) {
+    return ErrorResponse(res, error.message);
+  }
+};
+
+export const getEBadgeTemplateByEventIdController: RequestHandler = async (req, res) => {
+  try {
+    getEBadgeTemplateByEventId(req.params.eventid, (error, result) => {
       if (error) return ErrorResponse(res, error.message);
       return successResponse(res, "Template fetched successfully", result);
     });

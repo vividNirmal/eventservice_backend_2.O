@@ -1,31 +1,31 @@
 import { loggerMsg } from "../../lib/logger";
-import eBadgeSettingSchema, { IEBadgeSetting } from "../schema/eBadgeSetting.schema";
+import paperBadgeSettingSchema, { IPaperBadgeSetting } from "../schema/paperBadgeSetting.schema";
 
-export const createEBadgeSetting = async (
-  data: Partial<IEBadgeSetting>,
+export const createPaperBadgeSetting = async (
+  data: Partial<IPaperBadgeSetting>,
   callback: (error: Error | null, result?: any) => void
 ) => {
   try {
     // Check if same name already exists for same event
-    const existingSetting = await eBadgeSettingSchema.findOne({
+    const existingSetting = await paperBadgeSettingSchema.findOne({
       name: data.name,
       eventId: data.eventId,
     });
 
     if (existingSetting)
-      return callback(new Error("E-Badge setting with this name already exists for this event"));
+      return callback(new Error("Paper Badge setting with this name already exists for this event"));
 
-    const newSetting = new eBadgeSettingSchema(data);
+    const newSetting = new paperBadgeSettingSchema(data);
     const saved = await newSetting.save();
 
     callback(null, { setting: saved });
   } catch (error: any) {
-    loggerMsg("error", `Error creating eBadgeSetting: ${error}`);
+    loggerMsg("error", `Error creating paperBadgeSetting: ${error}`);
     callback(error, null);
   }
 };
 
-export const getAllEBadgeSettings = async (
+export const getAllPaperBadgeSettings = async (
   callback: (error: Error | null, result?: any) => void,
   page: number = 1,
   limit: number = 10,
@@ -39,15 +39,14 @@ export const getAllEBadgeSettings = async (
     if (eventId) query.eventId = eventId;
     if (search) query.name = { $regex: search, $options: "i" };
 
-    const settings = await eBadgeSettingSchema
+    const settings = await paperBadgeSettingSchema
       .find(query)
-      .populate("templateId", "name")
       .populate("ticketIds", "ticketName")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    const totalData = await eBadgeSettingSchema.countDocuments(query);
+    const totalData = await paperBadgeSettingSchema.countDocuments(query);
 
     callback(null, {
       settings,
@@ -59,37 +58,36 @@ export const getAllEBadgeSettings = async (
       },
     });
   } catch (error: any) {
-    loggerMsg("error", `Error fetching eBadgeSettings: ${error}`);
+    loggerMsg("error", `Error fetching paperBadgeSettings: ${error}`);
     callback(error, null);
   }
 };
 
-export const getEBadgeSettingById = async (
+export const getPaperBadgeSettingById = async (
   id: string,
   callback: (error: Error | null, result?: any) => void
 ) => {
   try {
-    const setting = await eBadgeSettingSchema
+    const setting = await paperBadgeSettingSchema
       .findById(id)
-      .populate("templateId", "name")
       .populate("ticketIds", "ticketName");
 
-    if (!setting) return callback(new Error("E-Badge setting not found"));
+    if (!setting) return callback(new Error("Paper Badge setting not found"));
     callback(null, { setting });
   } catch (error: any) {
-    loggerMsg("error", `Error fetching eBadgeSetting by ID: ${error}`);
+    loggerMsg("error", `Error fetching paperBadgeSetting by ID: ${error}`);
     callback(error, null);
   }
 };
 
-export const updateEBadgeSettingById = async (
+export const updatePaperBadgeSettingById = async (
   id: string,
-  updateData: Partial<IEBadgeSetting>,
+  updateData: Partial<IPaperBadgeSetting>,
   callback: (error: Error | null, result?: any) => void
 ) => {
   try {
     if (updateData.name) {
-      const existing = await eBadgeSettingSchema.findOne({
+      const existing = await paperBadgeSettingSchema.findOne({
         _id: { $ne: id },
         name: updateData.name,
         eventId: updateData.eventId,
@@ -97,20 +95,19 @@ export const updateEBadgeSettingById = async (
       if (existing) return callback(new Error("Another setting with this name already exists"));
     }
 
-    const updated = await eBadgeSettingSchema.findByIdAndUpdate(id, updateData, { new: true });
-    if (!updated) return callback(new Error("E-Badge setting not found"));
+    const updated = await paperBadgeSettingSchema.findByIdAndUpdate(id, updateData, { new: true });
+    if (!updated) return callback(new Error("Paper Badge setting not found"));
 
     callback(null, { setting: updated });
   } catch (error: any) {
-    loggerMsg("error", `Error updating eBadgeSetting: ${error}`);
+    loggerMsg("error", `Error updating paperBadgeSetting: ${error}`);
     callback(error, null);
   }
 };
 
-export const updateEBadgeSettingPropertiesById = async (
+export const updatePaperBadgeSettingPropertiesById = async (
   id: string,
   updateData: {
-    templateId?: string;
     fields?: any[];
     fieldProperties?: Record<string, any>;
   },
@@ -120,37 +117,36 @@ export const updateEBadgeSettingPropertiesById = async (
     // Prepare clean update object
     const updateFields: any = {};
 
-    if (updateData.templateId) updateFields.templateId = updateData.templateId;
     if (updateData.fields) updateFields.fields = updateData.fields;
     if (updateData.fieldProperties)
       updateFields.fieldProperties = updateData.fieldProperties;
 
     // Run update
-    const updated = await eBadgeSettingSchema.findByIdAndUpdate(id, updateFields, {
+    const updated = await paperBadgeSettingSchema.findByIdAndUpdate(id, updateFields, {
       new: true,
       runValidators: true,
     });
 
-    if (!updated) return callback(new Error("E-Badge setting not found"));
+    if (!updated) return callback(new Error("Paper Badge setting not found"));
 
     callback(null, { setting: updated });
   } catch (error: any) {
-    loggerMsg("error", `Error updating eBadgeSetting: ${error}`);
+    loggerMsg("error", `Error updating paperBadgeSetting: ${error}`);
     callback(error, null);
   }
 };
 
 
-export const deleteEBadgeSettingById = async (
+export const deletePaperBadgeSettingById = async (
   id: string,
   callback: (error: Error | null, result?: any) => void
 ) => {
   try {
-    const deleted = await eBadgeSettingSchema.findByIdAndDelete(id);
-    if (!deleted) return callback(new Error("E-Badge setting not found"));
+    const deleted = await paperBadgeSettingSchema.findByIdAndDelete(id);
+    if (!deleted) return callback(new Error("Paper Badge setting not found"));
     callback(null, { deleted });
   } catch (error: any) {
-    loggerMsg("error", `Error deleting eBadgeSetting: ${error}`);
+    loggerMsg("error", `Error deleting paperBadgeSetting: ${error}`);
     callback(error, null);
   }
 };

@@ -5,6 +5,7 @@ import {
   getEBadgeSettingById,
   updateEBadgeSettingById,
   deleteEBadgeSettingById,
+  updateEBadgeSettingPropertiesById,
 } from "../../domain/models/eBadgeSetting.model";
 import { ErrorResponse, successResponse } from "../../helper/apiResponse";
 import { loggerMsg } from "../../lib/logger";
@@ -66,6 +67,17 @@ export const deleteEBadgeSettingByIdController: RequestHandler = async (req, res
     deleteEBadgeSettingById(req.params.id, (error, result) => {
       if (error) return ErrorResponse(res, error.message);
       return successResponse(res, "E-Badge setting deleted successfully", result);
+    });
+  } catch (error: any) {
+    return ErrorResponse(res, error.message);
+  }
+};
+
+export const updateEBadgeSettingPropertiesByIdController: RequestHandler = async (req, res) => {
+  try {
+    updateEBadgeSettingPropertiesById(req.params.id, req.body, (error, result) => {
+      if (error) return ErrorResponse(res, error.message);
+      return successResponse(res, "E-Badge setting updated successfully", result);
     });
   } catch (error: any) {
     return ErrorResponse(res, error.message);

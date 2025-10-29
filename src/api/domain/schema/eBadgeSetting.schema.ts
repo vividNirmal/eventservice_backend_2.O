@@ -28,7 +28,27 @@ export interface IEBadgeSetting extends Document {
   // Additional settings
   companyId?: mongoose.Types.ObjectId;
   eventId: mongoose.Types.ObjectId;
-  
+    fields?: {
+    id: string;
+    name: string;
+    type?: string;
+  }[];
+
+  fieldProperties?: Record<
+    string,
+    {
+      position?: string;
+      marginLeft?: string;
+      marginTop?: string;
+      fontFamily?: string;
+      fontSize?: string;
+      fontColor?: string;
+      fontStyle?: string;
+      textFormat?: string;
+      height?: string;
+      width?: string;
+    }
+  >;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -75,6 +95,8 @@ const eBadgeSettingSchema = new Schema<IEBadgeSetting>(
       ref: "EventHost", 
       required: true 
     },
+    fields: { type: Array, default: [] }, // ✅ add this
+    fieldProperties: { type: Object, default: {} }, // ✅ add this
   },
   { timestamps: true }
 );

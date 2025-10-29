@@ -50,11 +50,13 @@ import { createUserTypeMapSchema, updateUserTypeMapSchema } from "../../utils/va
 import { generateFormRegistrationPdf, getFormRegistrationListController, getRegistrationController, resolveEmailController, resolveFormUrlController, submitRegistrationController, updateFormRegistrationController, updateFormRegistrationStatusController } from "../controllers/formRegistration.controller";
 import { formRegistrationStatusValidation, generatePdfValidation, resolveEmailValidation, resolveFormUrlValidation, submitRegistrationValidation, updateRegistrationValidation } from "../../utils/validation-schems/formRegistration.validation";
 import { createEBadgeTemplateSchema, updateEBadgeTemplateSchema } from "../../utils/validation-schems/eBadgeTemplate.validation";
-import { createEBadgeTemplateController, deleteEBadgeTemplateByIdController, getAllEBadgeTemplatesController, getEBadgeTemplateByIdController, updateEBadgeTemplateByIdController } from "../controllers/eBadgeTemplate.controller";
-import { createEBadgeSettingSchema, updateEBadgeSettingSchema } from "../../utils/validation-schems/eBadgeSetting.validation";
-import { createEBadgeSettingController, deleteEBadgeSettingByIdController, getAllEBadgeSettingsController, getEBadgeSettingByIdController, updateEBadgeSettingByIdController } from "../controllers/eBadgeSetting.controller";
+import { createEBadgeTemplateController, deleteEBadgeTemplateByIdController, getAllEBadgeTemplatesController, getEBadgeTemplateByEventIdController, getEBadgeTemplateByIdController, updateEBadgeTemplateByIdController } from "../controllers/eBadgeTemplate.controller";
+import { createEBadgeSettingSchema, updateEBadgeSettingPropertiesSchema, updateEBadgeSettingSchema } from "../../utils/validation-schems/eBadgeSetting.validation";
+import { createEBadgeSettingController, deleteEBadgeSettingByIdController, getAllEBadgeSettingsController, getEBadgeSettingByIdController, updateEBadgeSettingByIdController, updateEBadgeSettingPropertiesByIdController } from "../controllers/eBadgeSetting.controller";
 import { createFieldConstantController, deleteFieldConstantByIdController, getAllFieldConstantsController, getFieldConstantByIdController, updateFieldConstantByIdController } from "../controllers/fieldConstant.controller";
 import { createfieldConstantSchema, updateFieldConstantSchema } from "../../utils/validation-schems/fieldconstant.validation";
+import { createPaperBadgeSettingController, deletePaperBadgeSettingByIdController, getAllPaperBadgeSettingsController, getPaperBadgeSettingByIdController, updatePaperBadgeSettingByIdController, updatePaperBadgeSettingPropertiesByIdController } from "../controllers/paperBadgeSetting.controller";
+import { createPaperBadgeSettingSchema, updatePaperBadgeSettingPropertiesSchema, updatePaperBadgeSettingSchema } from "../../utils/validation-schems/paperBadgeSetting.validation";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -315,12 +317,21 @@ export const upload = multer({ storage: storage });
             route.post("/create-e-badge-template", protectedRoute, validateRequest(createEBadgeTemplateSchema), createEBadgeTemplateController);
             route.put("/update-e-badge-template/:id", protectedRoute, validateRequest(updateEBadgeTemplateSchema), updateEBadgeTemplateByIdController);
             route.delete("/delete-e-badge-template/:id", protectedRoute, deleteEBadgeTemplateByIdController);
+            route.get("/get-badge-template-by-eventid/:eventid", protectedRoute, getEBadgeTemplateByEventIdController);
 
             route.get("/get-e-badge-settings", protectedRoute, getAllEBadgeSettingsController);
             route.get("/get-e-badge-setting-byId/:id", protectedRoute, getEBadgeSettingByIdController);
             route.post("/create-e-badge-setting", protectedRoute, validateRequest(createEBadgeSettingSchema), createEBadgeSettingController);
             route.put("/update-e-badge-setting/:id", protectedRoute, validateRequest(updateEBadgeSettingSchema), updateEBadgeSettingByIdController);
             route.delete("/delete-e-badge-setting/:id", protectedRoute, deleteEBadgeSettingByIdController);
+            route.post("/update-e-badge-setting-properties/:id", protectedRoute, validateRequest(updateEBadgeSettingPropertiesSchema), updateEBadgeSettingPropertiesByIdController);
+
+            route.get("/get-paper-badge-settings", protectedRoute, getAllPaperBadgeSettingsController);
+            route.get("/get-paper-badge-setting-byId/:id", protectedRoute, getPaperBadgeSettingByIdController);
+            route.post("/create-paper-badge-setting", protectedRoute, validateRequest(createPaperBadgeSettingSchema), createPaperBadgeSettingController);
+            route.put("/update-paper-badge-setting/:id", protectedRoute, validateRequest(updatePaperBadgeSettingSchema), updatePaperBadgeSettingByIdController);
+            route.delete("/delete-paper-badge-setting/:id", protectedRoute, deletePaperBadgeSettingByIdController);
+            route.post("/update-paper-badge-setting-properties/:id", protectedRoute, validateRequest(updatePaperBadgeSettingPropertiesSchema), updatePaperBadgeSettingPropertiesByIdController);
 
             route.post('/send-otp',verifyScannerToken,validateRequest(sendOtpValidation),OtpGenerate);
             route.post('/verify-otp',validateRequest(verifyOtpValidation),OtpVerify);

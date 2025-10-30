@@ -57,6 +57,8 @@ import { createFieldConstantController, deleteFieldConstantByIdController, getAl
 import { createfieldConstantSchema, updateFieldConstantSchema } from "../../utils/validation-schems/fieldconstant.validation";
 import { createPaperBadgeSettingController, deletePaperBadgeSettingByIdController, getAllPaperBadgeSettingsController, getPaperBadgeSettingByIdController, updatePaperBadgeSettingByIdController, updatePaperBadgeSettingPropertiesByIdController } from "../controllers/paperBadgeSetting.controller";
 import { createPaperBadgeSettingSchema, updatePaperBadgeSettingPropertiesSchema, updatePaperBadgeSettingSchema } from "../../utils/validation-schems/paperBadgeSetting.validation";
+import { createBadgeCategorySchema, updateBadgeCategorySchema } from "../../utils/validation-schems/badgeCategory.validation";
+import { createBadgeCategoryController, deleteBadgeCategoryByIdController, getAllBadgeCategoriesController, getBadgeCategoryByEventIdController, getBadgeCategoryByIdController, updateBadgeCategoryByIdController } from "../controllers/badgeCategory.controller";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -332,6 +334,13 @@ export const upload = multer({ storage: storage });
             route.put("/update-paper-badge-setting/:id", protectedRoute, validateRequest(updatePaperBadgeSettingSchema), updatePaperBadgeSettingByIdController);
             route.delete("/delete-paper-badge-setting/:id", protectedRoute, deletePaperBadgeSettingByIdController);
             route.post("/update-paper-badge-setting-properties/:id", protectedRoute, validateRequest(updatePaperBadgeSettingPropertiesSchema), updatePaperBadgeSettingPropertiesByIdController);
+
+            route.get("/get-badge-categories", protectedRoute, getAllBadgeCategoriesController);
+            route.get("/get-badge-category-byId/:id", protectedRoute, getBadgeCategoryByIdController);
+            route.post("/create-badge-category", protectedRoute, validateRequest(createBadgeCategorySchema), createBadgeCategoryController);
+            route.put("/update-badge-category/:id", protectedRoute, validateRequest(updateBadgeCategorySchema), updateBadgeCategoryByIdController);
+            route.delete("/delete-badge-category/:id", protectedRoute, deleteBadgeCategoryByIdController);
+            route.get("get-badge-template-by-eventid/:eventid", protectedRoute, getBadgeCategoryByEventIdController);
 
             route.post('/send-otp',verifyScannerToken,validateRequest(sendOtpValidation),OtpGenerate);
             route.post('/verify-otp',validateRequest(verifyOtpValidation),OtpVerify);

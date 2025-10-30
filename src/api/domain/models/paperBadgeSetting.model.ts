@@ -41,6 +41,7 @@ export const getAllPaperBadgeSettings = async (
 
     const settings = await paperBadgeSettingSchema
       .find(query)
+      .populate("templateId", "name")
       .populate("ticketIds", "ticketName")
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -70,6 +71,7 @@ export const getPaperBadgeSettingById = async (
   try {
     const setting = await paperBadgeSettingSchema
       .findById(id)
+      .populate("templateId", "name")
       .populate("ticketIds", "ticketName");
 
     if (!setting) return callback(new Error("Paper Badge setting not found"));
@@ -108,6 +110,7 @@ export const updatePaperBadgeSettingById = async (
 export const updatePaperBadgeSettingPropertiesById = async (
   id: string,
   updateData: {
+    templateId?: any;
     fields?: any[];
     fieldProperties?: Record<string, any>;
   },
@@ -117,6 +120,7 @@ export const updatePaperBadgeSettingPropertiesById = async (
     // Prepare clean update object
     const updateFields: any = {};
 
+    if (updateData.templateId) updateFields.templateId = updateData.templateId;
     if (updateData.fields) updateFields.fields = updateData.fields;
     if (updateData.fieldProperties)
       updateFields.fieldProperties = updateData.fieldProperties;

@@ -2,6 +2,7 @@ import mongoose, { Document, Schema } from "mongoose";
 
 export interface IPaperBadgeSetting extends Document {
   name: string;
+  templateId?: mongoose.Types.ObjectId; // Reference to EBadgeTemplate
   ticketIds?: mongoose.Types.ObjectId[]; // References to Ticket/UserType
     
   // Additional settings
@@ -35,11 +36,15 @@ export interface IPaperBadgeSetting extends Document {
 const paperBadgeSettingSchema = new Schema<IPaperBadgeSetting>(
   {
     name: { type: String, required: true, trim: true },
+    templateId: { 
+      type: Schema.Types.ObjectId, 
+      ref: "EBadgeTemplate",
+      default: null, 
+    },
     ticketIds: [{ 
       type: Schema.Types.ObjectId, 
       ref: "Ticket",
     }],
-    // fields: [fieldMappingSchema],
     companyId: { type: Schema.Types.ObjectId, ref: "Company" },
     eventId: { 
       type: Schema.Types.ObjectId, 

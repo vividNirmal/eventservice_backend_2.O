@@ -6,6 +6,7 @@ export const createPaperBadgeSettingSchema = Joi.object({
     "string.min": "Setting name must be at least 1 character",
     "string.max": "Setting name must not exceed 100 characters",
   }),
+  templateId: Joi.string().optional().allow(null, ""),
   ticketIds: Joi.array().items(Joi.string()).optional(),
   eventId: Joi.string().required().messages({
     "string.empty": "Event ID is required",
@@ -18,6 +19,7 @@ export const updatePaperBadgeSettingSchema = Joi.object({
     "string.min": "Setting name must be at least 1 character",
     "string.max": "Setting name must not exceed 100 characters",
   }),
+  templateId: Joi.string().optional().allow(null, ""),
   ticketIds: Joi.array().items(Joi.string()).optional(),
   eventId: Joi.string().optional(),
   companyId: Joi.string().optional(),
@@ -26,6 +28,7 @@ export const updatePaperBadgeSettingSchema = Joi.object({
 
 export const updatePaperBadgeSettingPropertiesSchema = Joi.object({
   id: Joi.string().optional(),
+  templateId: Joi.string().optional().allow(null, ""),
   fields: Joi.array().optional(),
   fieldProperties: Joi.object().optional(),
 });

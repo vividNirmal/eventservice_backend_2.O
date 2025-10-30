@@ -121,7 +121,9 @@ export const updatePaperBadgeSettingPropertiesById = async (
     // Prepare clean update object
     const updateFields: any = {};
 
-    if (updateData.templateId) updateFields.templateId = updateData.templateId;
+    if ("templateId" in updateData) {
+      updateFields.templateId = updateData.templateId === "" ? null : updateData.templateId;
+    }
     if (updateData.paperSize) updateFields.paperSize = updateData.paperSize;
     if (updateData.fields) updateFields.fields = updateData.fields;
     if (updateData.fieldProperties)

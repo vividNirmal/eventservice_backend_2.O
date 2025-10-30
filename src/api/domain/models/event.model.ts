@@ -513,7 +513,7 @@ if (startDate && endDate) {
         path: "ticketId",
         select: "ticketName registrationFormId userType",
         populate: [
-          { path: "registrationFormId", select: "formName" },
+          { path: "registrationFormId", select: ["formName",'pages'] },
           { path: "userType", select: "typeName" },
         ],
         strictPopulate: false,
@@ -525,9 +525,40 @@ if (startDate && endDate) {
       .lean();
 
     // ✅ Just add userType name directly (don’t remap)
-    registrations.forEach((r: any) => {
-      r.userType = r.ticketId?.userType?.typeName || "N/A";
-    });
+   registrations.forEach((r: any) => {
+  // Extract userType name directly
+  r.userType = r.ticketId?.userType?.typeName || "N/A";
+  
+  // Get registration form from ticketId
+  const registrationForm = r.ticketId?.registrationFormId;
+  
+  if (registrationForm) {
+    // Build map_array from form pages and elements
+    const map_array: Record<string, string> = {};
+    
+    if (Array.isArray(registrationForm.pages)) {
+      registrationForm.pages.forEach((page: any) => {
+        if (Array.isArray(page.elements)) {
+          page.elements.forEach((element: any) => {
+            if (element.mapField && element.fieldName) {
+              map_array[element.mapField] = element.fieldName;
+            }
+          });
+        }
+      });
+    }    
+    
+    r.registrationFormId = {
+      ...registrationForm,
+      map_array,
+    };
+  } else {
+    r.registrationFormId = null;
+  }
+});
+
+
+    
 
     // ✅ Return same as getFormRegistrationListModel
     return callback(null, {

@@ -35,6 +35,7 @@ import {
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { v4 as uuidv4 } from "uuid";
 import sharp from "sharp";
+import ticketSchema from "../../domain/schema/ticket.schema";
 
 const rekognition = new RekognitionClient({
   region: process.env.AWS_REGION,
@@ -51,7 +52,7 @@ const ss3 = new S3Client({
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   },
   endpoint: `https://s3.${process.env.AWS_REGION}.amazonaws.com`,
-  forcePathStyle: true, 
+  forcePathStyle: true,
 });
 
 const FACE_COLLECTION_ID = process.env.AWS_REKOGNITION_COLLECTION;
@@ -81,7 +82,9 @@ export const scanParticipantFace = async (req: Request, res: Response) => {
     const file = (req.files as Express.Multer.File[])[0];
     if (!file) {
       processTimestamps["file_upload_check_end"] = getTimestamp();
-      return res.status(400).json({ error: "No file uploaded", processTimestamps });
+      return res
+        .status(400)
+        .json({ error: "No file uploaded", processTimestamps });
     }
     processTimestamps["file_upload_check_end"] = getTimestamp();
 
@@ -107,73 +110,95 @@ export const scanParticipantFace = async (req: Request, res: Response) => {
       .toBuffer();
     processTimestamps["image_compression_end"] = getTimestamp();
 
-    processTimestamps["participant_fetch_start"] = getTimestamp();    
-    
+    processTimestamps["participant_fetch_start"] = getTimestamp();
+
     // First check if event exists in eventHost schema (most likely)
     let eventDetails = await eventHostSchema.findById(eventId);
     if (!eventDetails) {
       // Fallback to event schema if not found in eventHost
       eventDetails = await eventSchema.findById(eventId);
     }
-    
+
     if (!eventDetails) {
       return ErrorResponse(res, "Event not found");
-    }        
-    const participants = await FormRegistration.find({ eventId: eventId });        
-    
+    }    
+    let participants:any = await FormRegistration.find({ eventId: eventId }).lean(); 
+    participants.map(async(participant : any)=>{
+
+      const map_array: any = {};
+      const ticket: any = await ticketSchema
+        .findOne({ _id: participant?.ticketId })
+        .populate("registrationFormId")
+        .lean();
+      const forms_registration = ticket?.registrationFormId;
+      const pages = forms_registration?.pages;
+      if (pages) {
+        pages.forEach((page: any) => {
+          page.elements?.forEach((element: any) => {
+            if (element.mapField) {
+              map_array[element.mapField] = element.fieldName;
+            }
+          });
+        });
+      }
+      participant = {...participant,map_array}
+    })   
+
     processTimestamps["participant_fetch_end"] = getTimestamp();
 
-    if (!participants.length) {      
+    if (!participants.length) {
       return ErrorResponse(res, "No participants found for this event");
-    }    
+    }
     processTimestamps["face_compare_start"] = getTimestamp();
-    
-    const participantsWithImages = participants.filter((p) => p.faceImageUrl && p.faceImageUrl.trim() !== "");    
-    
-    if (participantsWithImages.length === 0) {      
+
+    const participantsWithImages = participants.filter(
+      (p:any) => p.faceImageUrl && p.faceImageUrl.trim() !== ""
+    );
+
+    if (participantsWithImages.length === 0) {
       return ErrorResponse(res, "No face images found for comparison");
     }
 
-    const comparePromises = participantsWithImages.map(async (participant) => {
-        const imageKey = participant.faceImageUrl;        
-        try {
-          const compareCommand = new CompareFacesCommand({
-            SourceImage: { Bytes: compressedImageBuffer },
-            TargetImage: {
-              S3Object: {
-                Bucket: AWS_BUCKET_NAME,
-                Name: imageKey,
-              },
+    const comparePromises = participantsWithImages.map(async (participant:any) => {
+      const imageKey = participant.faceImageUrl;
+      try {
+        const compareCommand = new CompareFacesCommand({
+          SourceImage: { Bytes: compressedImageBuffer },
+          TargetImage: {
+            S3Object: {
+              Bucket: AWS_BUCKET_NAME,
+              Name: imageKey,
             },
-            SimilarityThreshold: 70,
-          });
+          },
+          SimilarityThreshold: 70,
+        });
 
-          const compareResult = await rekognition.send(compareCommand);          
-          if (
-            compareResult.FaceMatches &&
-            compareResult.FaceMatches.length > 0
-          ) {
-            const similarity = compareResult.FaceMatches[0].Similarity;
-            
-            user_image_date =
-              baseUrl + "/uploads/participants/" + participant.faceImageUrl;
-            return participant;
-          }
-          return null;
-        } catch (error) {
-          console.error("❌ Error during face comparison:", error);
-          console.error(`❌ Error comparing faces for participant ${participant.email}:`, error);
-          return null;
+        const compareResult = await rekognition.send(compareCommand);
+        if (compareResult.FaceMatches && compareResult.FaceMatches.length > 0) {
+          const similarity = compareResult.FaceMatches[0].Similarity;
+
+          user_image_date =
+            baseUrl + "/uploads/participants/" + participant.faceImageUrl;
+          return participant;
         }
-      });
+        return null;
+      } catch (error) {
+        console.error("❌ Error during face comparison:", error);
+        console.error(
+          `❌ Error comparing faces for participant ${participant.email}:`,
+          error
+        );
+        return null;
+      }
+    });
 
     const results = await Promise.all(comparePromises);
     processTimestamps["face_compare_end"] = getTimestamp();
-    
+
     const matchedParticipant = results.find((r) => r !== null);
 
-    if (matchedParticipant) {      
-      processTimestamps["participant_details_fetch_start"] = getTimestamp();            
+    if (matchedParticipant) {
+      processTimestamps["participant_details_fetch_start"] = getTimestamp();
       const participant_details = await FormRegistration.findOne({
         _id: matchedParticipant._id,
       });
@@ -181,99 +206,103 @@ export const scanParticipantFace = async (req: Request, res: Response) => {
 
       if (!participant_details) {
         return ErrorResponse(res, "Participant User Not Found");
-      }     
+      }
       // Check if participant is blocked
-      const isBlocked = participant_details.approved ;      
-      
+      const isBlocked = participant_details.approved;
+
       var color_status = "";
       var scanning_msg = "";
 
-      processTimestamps["event_participant_event_fetch_start"] = getTimestamp();      
-      
+      processTimestamps["event_participant_event_fetch_start"] = getTimestamp();
+
       // Use the eventDetails we already found instead of searching again
       processTimestamps["event_participant_event_fetch_end"] = getTimestamp();
 
       if (!eventDetails) {
         return ErrorResponse(res, "Event Details Not Found");
-      }    
+      }
 
       processTimestamps["status_update_start"] = getTimestamp();
 
       // Skip check-in/check-out if participant is blocked
       if (!isBlocked) {
-        console.log("🚫 Participant is  blocked - skipping check-in/check-out process");
+        console.log(
+          "🚫 Participant is  blocked - skipping check-in/check-out process"
+        );
         scanning_msg = "Participant is blocked from this event";
         color_status = "red";
       } else {
         // Original check-in/check-out logic for non-blocked participants
-        if (scanner_type == 0) {                    
-          
-          if (participant_details.status == "in"  ) {
+        if (scanner_type == 0) {
+          if (participant_details.status == "in") {
             scanning_msg = "You are already in the event";
             color_status = "yellow";
           } else {
-
             participant_details.checkin_time = new Date();
             participant_details.status = "in";
-            
-            try {                                              
-                
-                await FormRegistration.updateOne(
-                  { _id: participant_details._id },
-                  {
+
+            try {
+              await FormRegistration.updateOne(
+                { _id: participant_details._id },
+                {
                   $set: {
                     checkin_time: participant_details.checkin_time,
                     status: participant_details.status,
                   },
-                  }
-                );              
-
+                }
+              );
             } catch (saveError) {
-              console.error("❌ Error saving event participant details:", saveError);
+              console.error(
+                "❌ Error saving event participant details:",
+                saveError
+              );
               return ErrorResponse(res, "Failed to update participant status");
             }
-            
+
             scanning_msg = "We welcome you";
             color_status = "green";
           }
-        
         }
 
-        if (scanner_type == 1 ) {
+        if (scanner_type == 1) {
           if (participant_details.status != "in") {
             scanning_msg = "You can't check out without checking in";
             color_status = "red";
-          } else {            
+          } else {
             participant_details.checkout_time = new Date();
             participant_details.status = "out";
-            
+
             try {
-               await FormRegistration.updateOne(
-                  { _id: participant_details._id },
-                  {
+              await FormRegistration.updateOne(
+                { _id: participant_details._id },
+                {
                   $set: {
                     checkin_time: participant_details.checkin_time,
                     status: participant_details.status,
                   },
-                  }
-                );                                  
+                }
+              );
             } catch (saveError) {
-              console.error("❌ Error saving event participant details:", saveError);
+              console.error(
+                "❌ Error saving event participant details:",
+                saveError
+              );
               return ErrorResponse(res, "Failed to update participant status");
             }
-            
+
             scanning_msg = "You are now checked out from the event";
             color_status = "green";
           }
         }
       }
-      processTimestamps["status_update_end"] = getTimestamp();    
-      participant_details.faceImageUrl = baseUrl + "/uploads/participants/" + participant_details.faceImageUrl;      
+      processTimestamps["status_update_end"] = getTimestamp();
+      participant_details.faceImageUrl =
+        baseUrl + "/uploads/participants/" + participant_details.faceImageUrl;
       participant_details.qrImage =
         baseUrl + "/uploads/" + participant_details.qrImage;
 
       const resutl = [];
-      
+
       // Handle both eventHost and event schema fields
       if (eventDetails.event_logo) {
         eventDetails.event_logo = `${env.BASE_URL}/${eventDetails.event_logo}`;
@@ -281,16 +310,16 @@ export const scanParticipantFace = async (req: Request, res: Response) => {
       if (eventDetails.event_image) {
         eventDetails.event_image = `${env.BASE_URL}/${eventDetails.event_image}`;
       }
-      
+
       resutl.push(eventDetails);
       resutl.push(participant_details);
-      
+
       // Include blockStatus in participant details for face scanner
       const participantWithBlockStatus = {
         ...participant_details.toObject(),
-        blockStatus: participant_details.approved || false
+        blockStatus: participant_details.approved || false,
       };
-      
+
       resutl.push(participantWithBlockStatus);
       resutl.push({ user_image: user_image_date });
       resutl.push({ color_status: color_status, scanning_msg: scanning_msg });
@@ -300,10 +329,11 @@ export const scanParticipantFace = async (req: Request, res: Response) => {
       let result = [];
       const color_status = "red";
       const scanning_msg = "You have not registered yet!";
-      result.push({ color_status: color_status, scanning_msg: scanning_msg });      
+      result.push({ color_status: color_status, scanning_msg: scanning_msg });
       return errorResponseWithData(res, "You have not registered yet!", result);
     }
-  } catch (error) { processTimestamps["error"] = getTimestamp();
+  } catch (error) {
+    processTimestamps["error"] = getTimestamp();
     return ErrorResponse(res, "Face recognition failed");
   }
 };
@@ -328,9 +358,31 @@ export const scanParticipantQR = async (req: Request, res: Response) => {
 
     const event_id = qrData.event_id;
     const formRegistrationId = qrData.formRegistration_id;
+    let participant:any = await FormRegistration.findById(formRegistrationId).lean();
+    const map_array: any = {};
+    const ticket: any = await ticketSchema
+      .findOne({ _id: participant?.ticketId })
+      .populate("registrationFormId")
+      .lean();
+    const forms_registration = ticket?.registrationFormId;
+    const pages = forms_registration?.pages;
+    if (pages) {
+      pages.forEach((page: any) => {
+        page.elements?.forEach((element: any) => {
+          if (element.mapField) {
+            map_array[element.mapField] = element.fieldName;
+          }
+        });
+      });
+    }
+    participant = {...participant,map_array}
+
 
     if (!event_id || !formRegistrationId)
-      return ErrorResponse(res, "Invalid QR data — missing event or participant ID");
+      return ErrorResponse(
+        res,
+        "Invalid QR data — missing event or participant ID"
+      );
 
     // 🧩 Step 2: Fetch event details
     processTimestamps["event_fetch_start"] = getTimestamp();
@@ -342,12 +394,16 @@ export const scanParticipantQR = async (req: Request, res: Response) => {
 
     // 🧩 Step 3: Fetch participant
     processTimestamps["participant_lookup_start"] = getTimestamp();
-    const participant = await FormRegistration.findById(formRegistrationId);
+
     processTimestamps["participant_lookup_end"] = getTimestamp();
 
     if (!participant) {
       const result = [{ color_status: "red", scanning_msg: "Invalid QR code" }];
-      return errorResponseWithData(res, "No participant found for this QR", result);
+      return errorResponseWithData(
+        res,
+        "No participant found for this QR",
+        result
+      );
     }
 
     // 🧩 Step 4: Validate approval and handle check-in/out
@@ -422,9 +478,11 @@ export const scanFaceId = async (req: Request, res: Response) => {
   } catch (error) {}
 };
 
-export const storeEventParticipantUser = async (req: Request, res: Response) => {
-  try {    
-
+export const storeEventParticipantUser = async (
+  req: Request,
+  res: Response
+) => {
+  try {
     let uploadedImage = "";
     let faceId = "";
 
@@ -434,7 +492,6 @@ export const storeEventParticipantUser = async (req: Request, res: Response) => 
 
     if (req.files && Array.isArray(req.files) && req.files.length > 0) {
       const file = req.files[0];
-   
 
       const allowedMimeTypes = ["image/png", "image/jpeg", "image/jpg"];
       if (!allowedMimeTypes.includes(file.mimetype)) {
@@ -455,20 +512,25 @@ export const storeEventParticipantUser = async (req: Request, res: Response) => 
       // Handle base64 image in dynamic_form_data
       let dynamicFormData;
       try {
-        dynamicFormData = typeof req.body.dynamic_form_data === 'string'
-          ? JSON.parse(req.body.dynamic_form_data)
-          : req.body.dynamic_form_data;
+        dynamicFormData =
+          typeof req.body.dynamic_form_data === "string"
+            ? JSON.parse(req.body.dynamic_form_data)
+            : req.body.dynamic_form_data;
       } catch (error) {
         console.error("Error parsing dynamic_form_data:", error);
         return ErrorResponse(res, "Invalid dynamic form data");
       }
 
       const base64Image = dynamicFormData?.face_image?.image;
-      if (base64Image && typeof base64Image === 'string' && base64Image.startsWith('data:image/')) {        
+      if (
+        base64Image &&
+        typeof base64Image === "string" &&
+        base64Image.startsWith("data:image/")
+      ) {
         const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
         try {
           imageBuffer = Buffer.from(base64Data, "base64");
-          fileMimeType = base64Image.split(';')[0].split(':')[1]; // e.g., image/jpeg
+          fileMimeType = base64Image.split(";")[0].split(":")[1]; // e.g., image/jpeg
         } catch (error) {
           console.error("Error decoding base64 image:", error);
           return ErrorResponse(res, "Invalid base64 image data");
@@ -476,7 +538,10 @@ export const storeEventParticipantUser = async (req: Request, res: Response) => 
 
         const allowedMimeTypes = ["image/png", "image/jpeg"];
         if (!allowedMimeTypes.includes(fileMimeType)) {
-          return ErrorResponse(res, "Only PNG and JPG base64 images are allowed");
+          return ErrorResponse(
+            res,
+            "Only PNG and JPG base64 images are allowed"
+          );
         }
 
         const maxSize = 5 * 1024 * 1024;
@@ -494,9 +559,15 @@ export const storeEventParticipantUser = async (req: Request, res: Response) => 
     if (imageBuffer && fileMimeType) {
       try {
         // Ensure Rekognition collection exists
-        await rekognition.send(new CreateCollectionCommand({
-          CollectionId: FACE_COLLECTION_ID,
-        })).catch(err => console.error("Collection already exists or error:", err));
+        await rekognition
+          .send(
+            new CreateCollectionCommand({
+              CollectionId: FACE_COLLECTION_ID,
+            })
+          )
+          .catch((err) =>
+            console.error("Collection already exists or error:", err)
+          );
 
         const fileKey = `${uuidv4()}.jpg`;
 
@@ -540,18 +611,23 @@ export const storeEventParticipantUser = async (req: Request, res: Response) => 
         req.body.face_id = faceId;
       } catch (error) {
         console.error("Error processing image:", error);
-        return ErrorResponse(res, `Image upload and face recognition failed1: ${error}`);
+        return ErrorResponse(
+          res,
+          `Image upload and face recognition failed1: ${error}`
+        );
       }
     } else {
       console.warn("⚠️ No face image provided in files or dynamic_form_data");
     }
 
-    
     storeParticipantUser(req.body, (error: any, result: any) => {
       if (error) {
         return res.status(500).json({
           code: "INTERNAL_SERVER_ERROR",
-          message: error instanceof Error ? error.message : "An unexpected error occurred.",
+          message:
+            error instanceof Error
+              ? error.message
+              : "An unexpected error occurred.",
         });
       }
       return successCreated(res, result);
@@ -575,9 +651,9 @@ export const getUserDetailsUsingEmail = async (req: Request, res: Response) => {
 
     const user = await participantUsers.findOne({
       $or: [
-        { 'dynamic_fields.email': email },
-        { 'dynamic_fields.email_address': email }
-      ]
+        { "dynamic_fields.email": email },
+        { "dynamic_fields.email_address": email },
+      ],
     });
     const face_scanner = true;
     if (!user) {
@@ -655,7 +731,7 @@ export const generateScannerEventPdf = async (req: Request, res: Response) => {
     if (!participant_details) {
       return ErrorResponse(res, "Participant User not found");
     }
-    
+
     // const startDates: string[] = event_details?.start_date || [];
     // const endDates: string[] = event_details?.end_date || [];
     // const getEarliestDate = (dates: string[]): Date => {
@@ -673,11 +749,11 @@ export const generateScannerEventPdf = async (req: Request, res: Response) => {
     //       new Date(date) > new Date(max) ? date : max
     //     )
     //   );
-    // };    
+    // };
 
     // // Get earliest start date and latest end date
     // const earliestStartDate = getEarliestDate(startDates);
-    // const latestEndDate = getLatestDate(endDates);    
+    // const latestEndDate = getLatestDate(endDates);
     // Function to format date with time
     const formatDateTime = (date?: Date | string): string => {
       if (!date) {
@@ -714,7 +790,9 @@ export const generateScannerEventPdf = async (req: Request, res: Response) => {
 
     // Final formatted output
     //const formattedDateRange = `${earliestStartDay} - ${latestEndDay} ${latestEndMonth} ${latestEndDate.getFullYear()} - ${startTime} to ${endTime}`;
-    const formattedDateRange = `${formatDateTime(event_details?.startDate)} to ${formatDateTime(event_details?.endDate)}`;
+    const formattedDateRange = `${formatDateTime(
+      event_details?.startDate
+    )} to ${formatDateTime(event_details?.endDate)}`;
     const participant_qr_details = JSON.stringify({
       user_token: user_token,
       event_id: event_details?.id,
@@ -811,12 +889,17 @@ export const generateScannerEventPdf = async (req: Request, res: Response) => {
       `
                      </div>
                      <h3 style="font-weight: 600;font-size: 18px;line-height: 1.2;text-align: center;margin: 0 0 4px;">` +
-      (participant_details?.dynamic_fields?.first_name || participant_details?.dynamic_fields?.name || participant_details?.dynamic_fields?.full_name || '') +
+      (participant_details?.dynamic_fields?.first_name ||
+        participant_details?.dynamic_fields?.name ||
+        participant_details?.dynamic_fields?.full_name ||
+        "") +
       ` ` +
-      (participant_details?.dynamic_fields?.last_name || '') +
+      (participant_details?.dynamic_fields?.last_name || "") +
       `</h3>
                      <p style="font-size: 14px;line-height: 1.4; font-weight: 400;margin: 0;text-align: center;">(` +
-      (participant_details?.dynamic_fields?.designation || participant_details?.dynamic_fields?.role || '') +
+      (participant_details?.dynamic_fields?.designation ||
+        participant_details?.dynamic_fields?.role ||
+        "") +
       `)</p>
                      <img src="` +
       base64Image +
@@ -906,9 +989,12 @@ export const generateScannerEventPdf = async (req: Request, res: Response) => {
     await page.setContent(htmlContent, { waitUntil: "networkidle0" });
     await page.emulateMediaType("screen");
     let file_name =
-      (participant_details.dynamic_fields?.first_name || participant_details.dynamic_fields?.name || participant_details.dynamic_fields?.full_name || 'participant') +
+      (participant_details.dynamic_fields?.first_name ||
+        participant_details.dynamic_fields?.name ||
+        participant_details.dynamic_fields?.full_name ||
+        "participant") +
       "_" +
-      (participant_details.dynamic_fields?.last_name || '') +
+      (participant_details.dynamic_fields?.last_name || "") +
       "_event_details.pdf";
     const tempFilePath = path.join(__dirname, file_name);
     const pdfBuffer = await page.pdf({
@@ -1174,9 +1260,11 @@ export const generateEventPdf = async (req: Request, res: Response) => {
 
                 <div class="text-center">
                     <p class="subheading">Participant: ` +
-      (participant_details?.dynamic_fields?.first_name || participant_details?.dynamic_fields?.name || '') +
+      (participant_details?.dynamic_fields?.first_name ||
+        participant_details?.dynamic_fields?.name ||
+        "") +
       ` ` +
-      (participant_details?.dynamic_fields?.last_name || '') +
+      (participant_details?.dynamic_fields?.last_name || "") +
       `</p>
                 </div>
             </div>
@@ -1194,9 +1282,11 @@ export const generateEventPdf = async (req: Request, res: Response) => {
     await page.setContent(htmlContent, { waitUntil: "networkidle0" });
     await page.emulateMediaType("screen");
     let file_name =
-      (participant_details.dynamic_fields?.first_name || participant_details.dynamic_fields?.name || 'participant') +
+      (participant_details.dynamic_fields?.first_name ||
+        participant_details.dynamic_fields?.name ||
+        "participant") +
       "_" +
-      (participant_details.dynamic_fields?.last_name || '') +
+      (participant_details.dynamic_fields?.last_name || "") +
       "_event_details.pdf";
     const tempFilePath = path.join(__dirname, file_name);
     const pdfBuffer = await page.pdf({
@@ -1458,9 +1548,11 @@ export const getParticipantDetails = async (req: Request, res: Response) => {
 
                     <div class="text-center">
                         <p class="subheading">Participant: ` +
-        (participant_details?.dynamic_fields?.first_name || participant_details?.dynamic_fields?.name || '') +
+        (participant_details?.dynamic_fields?.first_name ||
+          participant_details?.dynamic_fields?.name ||
+          "") +
         ` ` +
-        (participant_details?.dynamic_fields?.last_name || '') +
+        (participant_details?.dynamic_fields?.last_name || "") +
         `</p>
                     </div>
                 </div>
@@ -1478,9 +1570,11 @@ export const getParticipantDetails = async (req: Request, res: Response) => {
       await page.setContent(htmlContent, { waitUntil: "networkidle0" });
       await page.emulateMediaType("screen");
       let file_name =
-        (participant_details.dynamic_fields?.first_name || participant_details.dynamic_fields?.name || 'participant') +
+        (participant_details.dynamic_fields?.first_name ||
+          participant_details.dynamic_fields?.name ||
+          "participant") +
         "_" +
-        (participant_details.dynamic_fields?.last_name || '') +
+        (participant_details.dynamic_fields?.last_name || "") +
         "_event_details.pdf";
       const tempFilePath = path.join(__dirname, file_name);
       const pdfBuffer = await page.pdf({
@@ -1632,7 +1726,7 @@ export const OtpVerify = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.log(error);
-    
+
     console.error(error);
     return ErrorResponse(res, "An error occurred during OTP verification.");
   }
@@ -1655,63 +1749,66 @@ export const updateParticipantUser = async (req: Request, res: Response) => {
   } catch (error) {}
 };
 
-export const toggleParticipantBlockStatus = async (req: Request, res: Response) => {
-  try {    
-    
+export const toggleParticipantBlockStatus = async (
+  req: Request,
+  res: Response
+) => {
+  try {
     const { participant_id, isBlocked: isBlockedRaw } = req.body;
-    
+
     if (!participant_id) {
       return res.status(400).json({
         code: "BAD_REQUEST",
-        message: "Participant ID is required"
+        message: "Participant ID is required",
       });
     }
 
     // Convert string to boolean if needed (for FormData)
     let isBlocked: boolean;
-    if (typeof isBlockedRaw === 'boolean') {
+    if (typeof isBlockedRaw === "boolean") {
       isBlocked = isBlockedRaw;
-    } else if (typeof isBlockedRaw === 'string') {
-      isBlocked = isBlockedRaw === 'true';
+    } else if (typeof isBlockedRaw === "string") {
+      isBlocked = isBlockedRaw === "true";
     } else {
       return res.status(400).json({
-        code: "BAD_REQUEST", 
-        message: "isBlocked must be a boolean value or 'true'/'false' string"
+        code: "BAD_REQUEST",
+        message: "isBlocked must be a boolean value or 'true'/'false' string",
       });
-    }    
+    }
 
     // Find the participant
     const participant = await participantUsers.findById(participant_id);
-    
+
     if (!participant) {
       return res.status(404).json({
         code: "NOT_FOUND",
-        message: "Participant not found"
+        message: "Participant not found",
       });
     }
 
     // Update the blocked status
     participant.dynamic_fields = {
       ...participant.dynamic_fields,
-      isBlocked: isBlocked
+      isBlocked: isBlocked,
     };
-
 
     return res.status(200).json({
       status: 1,
-      message: `Participant ${isBlocked ? 'blocked' : 'unblocked'} successfully`,
+      message: `Participant ${
+        isBlocked ? "blocked" : "unblocked"
+      } successfully`,
       data: {
         participant_id,
         isBlocked,
-        updatedAt: new Date().toISOString()
-      }
+        updatedAt: new Date().toISOString(),
+      },
     });
-    
   } catch (error) {
-    console.error('❌ Error updating participant block status:', error);
+    console.error("❌ Error updating participant block status:", error);
     return res.status(500).json({
       code: "INTERNAL_SERVER_ERROR",
-      message: error instanceof Error ? error.message : "An unexpected error occurred"
+      message:
+        error instanceof Error ? error.message : "An unexpected error occurred",
     });
   }
 };

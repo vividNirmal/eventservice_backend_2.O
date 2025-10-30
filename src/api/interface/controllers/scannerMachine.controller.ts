@@ -9,16 +9,19 @@ export const storeScannerMachine = async (req: Request, res: Response) => {
     try {
         
         storeScannerMachineModel(req.body, (error:any, result:any) => {
-            if (error) {
-                return res.status(500).json({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: error instanceof Error ? error.message : "An unexpected error occurred."
+             if (error) {
+                return res.status(400).json({
+                    code: "BAD_REQUEST",
+                    message: error.message || "An unexpected error occurred."
                 });
             }
-            return successCreated(res, result)
+            return successCreated(res, result);
         });
     } catch (error) {
-       
+       return res.status(500).json({
+            code: "INTERNAL_SERVER_ERROR",
+            message: error instanceof Error ? error.message : "An unexpected error occurred."
+        });
     }
 };
 
@@ -72,18 +75,20 @@ export const checkUniqueMachineId = async (req: Request, res: Response) => {
 
 export const updateScannerMachine = async (req: Request, res: Response) => {
     try {
-        
-        updateScannerMachineModel(req.body, (error:any, result:any) => {
+        updateScannerMachineModel(req.body, (error: any, result: any) => {
             if (error) {
-                return res.status(500).json({
-                    code: "INTERNAL_SERVER_ERROR",
-                    message: error instanceof Error ? error.message : "An unexpected error occurred."
+                return res.status(400).json({
+                    code: "BAD_REQUEST",
+                    message: error.message || "An unexpected error occurred."
                 });
             }
-            return successCreated(res, result)
+            return successCreated(res, result);
         });
     } catch (error) {
-       
+        return res.status(500).json({
+            code: "INTERNAL_SERVER_ERROR",
+            message: error instanceof Error ? error.message : "An unexpected error occurred."
+        });
     }
 };
 

@@ -29,6 +29,17 @@ interface assignScannerMachineData{
 
 export const storeScannerMachineModel = async (scannerData: scannerMachineData, callback: (error: any, result: any) => void) => {
     try {
+        // Check if device_key already exists
+        if (scannerData.device_key) {
+            const existingScanner = await scannermachineSchema.findOne({ 
+                device_key: scannerData.device_key 
+            });
+
+            if (existingScanner) {
+                return callback({ message: "Device key already exists" }, null);
+            }
+        }
+
         // Generate auto unique ID
         const generateUniqueId = async (): Promise<string> => {
             let uniqueId: string;
@@ -79,11 +90,25 @@ export const storeScannerMachineModel = async (scannerData: scannerMachineData, 
 export const updateScannerMachineModel = async (scannerData: updateScannerMachineData, callback: (error: any, result: any) => void) => {
     try {
         const existingScanner = await scannermachineSchema.findOne({ _id: scannerData.scanner_machine_id });
+        console.log(existingScanner);
+        
 
         if (!existingScanner) {
             return callback({ message: "Scanner with this ID does not exist" }, null);
         }
 
+        // Check if device_key already exists in another scanner
+        if (scannerData.device_key) {
+            const duplicateScanner = await scannermachineSchema.findOne({ 
+                device_key: scannerData.device_key,
+                _id: { $ne: scannerData.scanner_machine_id } // Exclude current scanner
+            });
+
+            if (duplicateScanner) {
+                return callback({ message: "Device key already exists" }, null);
+            }
+        }
+        
         // Update basic scanner info
         existingScanner.scanner_name = scannerData.scanner_name;
         existingScanner.device_key = scannerData.device_key;

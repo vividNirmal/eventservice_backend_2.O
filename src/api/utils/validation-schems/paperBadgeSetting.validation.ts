@@ -1,5 +1,7 @@
 import Joi from "joi";
 
+const allowedPaperSizes = ["a4", "a5", "letter", "legal"];
+
 export const createPaperBadgeSettingSchema = Joi.object({
   name: Joi.string().required().min(1).max(100).messages({
     "string.empty": "Setting name is required",
@@ -8,6 +10,12 @@ export const createPaperBadgeSettingSchema = Joi.object({
   }),
   templateId: Joi.string().optional().allow(null, ""),
   ticketIds: Joi.array().items(Joi.string()).optional(),
+  paperSize: Joi.string()
+    .valid(...allowedPaperSizes)
+    .default("a4")
+    .messages({
+      "any.only": "Paper size must be one of 'a4', 'a5', 'letter', or 'legal'",
+    }),
   eventId: Joi.string().required().messages({
     "string.empty": "Event ID is required",
   }),
@@ -21,6 +29,12 @@ export const updatePaperBadgeSettingSchema = Joi.object({
   }),
   templateId: Joi.string().optional().allow(null, ""),
   ticketIds: Joi.array().items(Joi.string()).optional(),
+  paperSize: Joi.string()
+    .valid(...allowedPaperSizes)
+    .optional()
+    .messages({
+      "any.only": "Paper size must be one of 'a4', 'a5', 'letter', or 'legal'",
+    }),
   eventId: Joi.string().optional(),
   companyId: Joi.string().optional(),
   id: Joi.string().optional(),
@@ -29,6 +43,12 @@ export const updatePaperBadgeSettingSchema = Joi.object({
 export const updatePaperBadgeSettingPropertiesSchema = Joi.object({
   id: Joi.string().optional(),
   templateId: Joi.string().optional().allow(null, ""),
+  paperSize: Joi.string()
+    .valid(...allowedPaperSizes)
+    .optional()
+    .messages({
+      "any.only": "Paper size must be one of 'a4', 'a5', 'letter', or 'legal'",
+    }),
   fields: Joi.array().optional(),
   fieldProperties: Joi.object().optional(),
 });

@@ -8,7 +8,8 @@ export interface IPaperBadgeSetting extends Document {
   // Additional settings
   companyId?: mongoose.Types.ObjectId;
   eventId: mongoose.Types.ObjectId;
-    fields?: {
+  paperSize?: "a4" | "a5" | "letter" | "legal"; // paper size
+  fields?: {
     id: string;
     name: string;
     type?: string;
@@ -50,6 +51,12 @@ const paperBadgeSettingSchema = new Schema<IPaperBadgeSetting>(
       type: Schema.Types.ObjectId, 
       ref: "EventHost", 
       required: true 
+    },
+    // paper size
+    paperSize: { 
+      type: String, 
+      enum: ["a4", "a5", "letter", "legal"], 
+      default: "a4" 
     },
     fields: { type: Array, default: [] }, // ✅ add this
     fieldProperties: { type: Object, default: {} }, // ✅ add this

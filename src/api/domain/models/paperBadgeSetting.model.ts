@@ -111,6 +111,7 @@ export const updatePaperBadgeSettingPropertiesById = async (
   id: string,
   updateData: {
     templateId?: any;
+    paperSize?: string;
     fields?: any[];
     fieldProperties?: Record<string, any>;
   },
@@ -121,6 +122,7 @@ export const updatePaperBadgeSettingPropertiesById = async (
     const updateFields: any = {};
 
     if (updateData.templateId) updateFields.templateId = updateData.templateId;
+    if (updateData.paperSize) updateFields.paperSize = updateData.paperSize;
     if (updateData.fields) updateFields.fields = updateData.fields;
     if (updateData.fieldProperties)
       updateFields.fieldProperties = updateData.fieldProperties;

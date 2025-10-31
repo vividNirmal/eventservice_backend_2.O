@@ -4,11 +4,12 @@ export interface IPaperBadgeSetting extends Document {
   name: string;
   templateId?: mongoose.Types.ObjectId; // Reference to EBadgeTemplate
   ticketIds?: mongoose.Types.ObjectId[]; // References to Ticket/UserType
+  fixedPosition: boolean;
     
   // Additional settings
   companyId?: mongoose.Types.ObjectId;
   eventId: mongoose.Types.ObjectId;
-  paperSize?: "a4" | "a5" | "letter" | "legal"; // paper size
+  paperSize?: "a4" | "a5" | "letter" | "legal" | "normal"; // paper size
   fields?: {
     id: string;
     name: string;
@@ -46,6 +47,7 @@ const paperBadgeSettingSchema = new Schema<IPaperBadgeSetting>(
       type: Schema.Types.ObjectId, 
       ref: "Ticket",
     }],
+    fixedPosition: { type: Boolean, default: false },
     companyId: { type: Schema.Types.ObjectId, ref: "Company" },
     eventId: { 
       type: Schema.Types.ObjectId, 
@@ -55,7 +57,7 @@ const paperBadgeSettingSchema = new Schema<IPaperBadgeSetting>(
     // paper size
     paperSize: { 
       type: String, 
-      enum: ["a4", "a5", "letter", "legal"], 
+      enum: ["a4", "a5", "letter", "legal", "normal"], 
       default: "a4" 
     },
     fields: { type: Array, default: [] }, // ✅ add this

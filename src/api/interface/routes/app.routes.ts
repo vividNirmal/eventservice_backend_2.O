@@ -340,7 +340,7 @@ export const upload = multer({ storage: storage });
             route.post("/create-badge-category", protectedRoute, validateRequest(createBadgeCategorySchema), createBadgeCategoryController);
             route.put("/update-badge-category/:id", protectedRoute, validateRequest(updateBadgeCategorySchema), updateBadgeCategoryByIdController);
             route.delete("/delete-badge-category/:id", protectedRoute, deleteBadgeCategoryByIdController);
-            route.get("get-badge-template-by-eventid/:eventid", protectedRoute, getBadgeCategoryByEventIdController);
+            route.get("/get-badge-category-by-eventId/:eventid", protectedRoute, getBadgeCategoryByEventIdController);
 
             route.post('/send-otp',verifyScannerToken,validateRequest(sendOtpValidation),OtpGenerate);
             route.post('/verify-otp',validateRequest(verifyOtpValidation),OtpVerify);

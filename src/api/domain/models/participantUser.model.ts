@@ -802,40 +802,7 @@ export const loginOtpGenerateModel = async (
         } catch (error) {
           loggerMsg("❌ OTP email sending failed:", String(error));
           throw error;
-        }
-        //         const mailOptions = {
-        //                     from: 'info@tradingguruji.com',
-        //                     to: participantUserData.email,
-        //                     subject: 'Your Event ID!',
-        //                     text: `Hello ${participantUserData.first_name},\n\nThank you for signing up! We're excited to have you onboard.\n\nBest Regards,\nYour Company Name`, // Customize the email body
-        //                     html: html
-        //                 };
-        //                         const transporter = nodemailer.createTransport({
-        //             host: "mail.tradingguruji.com",
-        //             port: 465,
-        //             secure: true,
-        //             auth: {
-        //               user: "info@tradingguruji.com",
-        //               pass: "q&i9$]o*z&mi[9[w",
-        //             },
-        //             tls: {
-        //     rejectUnauthorized: false
-        //   }
-        //           });
-
-        //         try {
-        //             transporter.sendMail(mailOptions, (error, info) => {
-        //             if (error) {
-        //                 console.error('Error sending email:', error);
-        //                 return callback(error, null);
-        //             }
-        //             console.log('Email sent successfully:', info.response);
-        //             callback(null, { message: 'Participant stored and email sent successfully' });
-        //             });
-        //         } catch (err) {
-        //             console.log(err)
-        //             return callback(null, { message: 'OTP generated and email sent successfully' });
-        //         }
+        }        
       } catch (bgError) {
         console.error("Background OTP process failed:", bgError);
       }
@@ -945,7 +912,7 @@ export const verifyOtpModel = async (
     }
     user = {...user,map_array}
 
-    user.qrImage = baseUrl + "/uploads" + user.qrImage;
+    user.qrImage = baseUrl + "/uploads/" + user.qrImage;
     if (user.faceImageUrl) {
       user.faceImageUrl = baseUrl + "/uploads/participants/" + user.faceImageUrl;
     }

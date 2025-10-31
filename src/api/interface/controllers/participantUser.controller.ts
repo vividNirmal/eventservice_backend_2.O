@@ -82,7 +82,9 @@ export const scanParticipantFace = async (req: Request, res: Response) => {
     const file = (req.files as Express.Multer.File[])[0];
     if (!file) {
       processTimestamps["file_upload_check_end"] = getTimestamp();
-      return res.status(400).json({ error: "No file uploaded", processTimestamps });
+      return res
+        .status(400)
+        .json({ error: "No file uploaded", processTimestamps });
     }
     processTimestamps["file_upload_check_end"] = getTimestamp();
 
@@ -108,24 +110,197 @@ export const scanParticipantFace = async (req: Request, res: Response) => {
       .toBuffer();
     processTimestamps["image_compression_end"] = getTimestamp();
 
-    processTimestamps["participant_fetch_start"] = getTimestamp();    
-    
+    processTimestamps["participant_fetch_start"] = getTimestamp();
+
     // First check if event exists in eventHost schema (most likely)
     let eventDetails = await eventHostSchema.findById(eventId);
     if (!eventDetails) {
       // Fallback to event schema if not found in eventHost
       eventDetails = await eventSchema.findById(eventId);
     }
-    
+
     if (!eventDetails) {
       return ErrorResponse(res, "Event not found");
-    }    
-    let participants:any = await FormRegistration.find({ eventId: eventId }).lean(); 
-    participants.map(async(participant : any)=>{
+    }
+    let participants: any = await FormRegistration.find({
+      eventId: eventId,
+    }).lean();
+
+    processTimestamps["participant_fetch_end"] = getTimestamp();
+
+    if (!participants.length) {
+      return ErrorResponse(res, "No participants found for this event");
+    }
+    processTimestamps["face_compare_start"] = getTimestamp();
+
+    const participantsWithImages = participants.filter(
+      (p: any) => p.faceImageUrl && p.faceImageUrl.trim() !== ""
+    );
+
+    if (participantsWithImages.length === 0) {
+      return ErrorResponse(res, "No face images found for comparison");
+    }
+
+    const comparePromises = participantsWithImages.map(
+      async (participant: any) => {
+        const imageKey = participant.faceImageUrl;
+        try {
+          const compareCommand = new CompareFacesCommand({
+            SourceImage: { Bytes: compressedImageBuffer },
+            TargetImage: {
+              S3Object: {
+                Bucket: AWS_BUCKET_NAME,
+                Name: imageKey,
+              },
+            },
+            SimilarityThreshold: 70,
+          });
+
+          const compareResult = await rekognition.send(compareCommand);
+          if (
+            compareResult.FaceMatches &&
+            compareResult.FaceMatches.length > 0
+          ) {
+            const similarity = compareResult.FaceMatches[0].Similarity;
+
+            user_image_date =
+              baseUrl + "/uploads/participants/" + participant.faceImageUrl;
+            return participant;
+          }
+          return null;
+        } catch (error) {
+          console.error("❌ Error during face comparison:", error);
+          console.error(
+            `❌ Error comparing faces for participant ${participant.email}:`,
+            error
+          );
+          return null;
+        }
+      }
+    );
+
+    const results = await Promise.all(comparePromises);
+    processTimestamps["face_compare_end"] = getTimestamp();
+
+    const matchedParticipant = results.find((r) => r !== null);
+
+    if (matchedParticipant) {
+      processTimestamps["participant_details_fetch_start"] = getTimestamp();
+      const participant_details = await FormRegistration.findOne({
+        _id: matchedParticipant._id,
+      });
+      processTimestamps["participant_details_fetch_end"] = getTimestamp();
+
+      if (!participant_details) {
+        return ErrorResponse(res, "Participant User Not Found");
+      }
+      // Check if participant is blocked
+      const isBlocked = participant_details.approved;
+
+      var color_status = "";
+      var scanning_msg = "";
+
+      processTimestamps["event_participant_event_fetch_start"] = getTimestamp();
+
+      // Use the eventDetails we already found instead of searching again
+      processTimestamps["event_participant_event_fetch_end"] = getTimestamp();
+
+      if (!eventDetails) {
+        return ErrorResponse(res, "Event Details Not Found");
+      }
+
+      processTimestamps["status_update_start"] = getTimestamp();
+
+      // Skip check-in/check-out if participant is blocked
+      if (!isBlocked) {
+        console.log(
+          "🚫 Participant is  blocked - skipping check-in/check-out process"
+        );
+        scanning_msg = "Participant is blocked from this event";
+        color_status = "red";
+      } else {
+        // Original check-in/check-out logic for non-blocked participants
+        if (scanner_type == 0) {
+          if (participant_details.status == "in") {
+            scanning_msg = "You are already in the event";
+            color_status = "yellow";
+          } else {
+            participant_details.checkin_time = new Date();
+            participant_details.status = "in";
+
+            try {
+              await FormRegistration.updateOne(
+                { _id: participant_details._id },
+                {
+                  $set: {
+                    checkin_time: participant_details.checkin_time,
+                    status: participant_details.status,
+                  },
+                }
+              );
+            } catch (saveError) {
+              console.error(
+                "❌ Error saving event participant details:",
+                saveError
+              );
+              return ErrorResponse(res, "Failed to update participant status");
+            }
+
+            scanning_msg = "We welcome you";
+            color_status = "green";
+          }
+        }
+
+        if (scanner_type == 1) {
+          if (participant_details.status != "in") {
+            scanning_msg = "You can't check out without checking in";
+            color_status = "red";
+          } else {
+            participant_details.checkout_time = new Date();
+            participant_details.status = "out";
+
+            try {
+              await FormRegistration.updateOne(
+                { _id: participant_details._id },
+                {
+                  $set: {
+                    checkin_time: participant_details.checkin_time,
+                    status: participant_details.status,
+                  },
+                }
+              );
+            } catch (saveError) {
+              console.error(
+                "❌ Error saving event participant details:",
+                saveError
+              );
+              return ErrorResponse(res, "Failed to update participant status");
+            }
+
+            scanning_msg = "You are now checked out from the event";
+            color_status = "green";
+          }
+        }
+      }
+      processTimestamps["status_update_end"] = getTimestamp();
+      participant_details.faceImageUrl =
+        baseUrl + "/uploads/participants/" + participant_details.faceImageUrl;
+      participant_details.qrImage =
+        baseUrl + "/uploads/" + participant_details.qrImage;
+
+      const resutl = [];
+
+      // Handle both eventHost and event schema fields
+      if (eventDetails.event_logo) {
+        eventDetails.event_logo = `${env.BASE_URL}/${eventDetails.event_logo}`;
+      }
+      if (eventDetails.event_image) {
+        eventDetails.event_image = `${env.BASE_URL}/${eventDetails.event_image}`;
+      }
 
       const map_array: any = {};
       const ticket: any = await ticketSchema
-        .findOne({ _id: participant?.ticketId })
+        .findOne({ _id: participant_details?.ticketId })
         .populate("registrationFormId")
         .lean();
       const forms_registration = ticket?.registrationFormId;
@@ -139,182 +314,20 @@ export const scanParticipantFace = async (req: Request, res: Response) => {
           });
         });
       }
-      participant = {...participant,map_array}
-    })   
 
-    processTimestamps["participant_fetch_end"] = getTimestamp();
-
-    if (!participants.length) {
-      return ErrorResponse(res, "No participants found for this event");
-    }
-    processTimestamps["face_compare_start"] = getTimestamp();
-
-    const participantsWithImages = participants.filter(
-      (p:any) => p.faceImageUrl && p.faceImageUrl.trim() !== ""
-    );
-
-    if (participantsWithImages.length === 0) {
-      return ErrorResponse(res, "No face images found for comparison");
-    }
-
-    const comparePromises = participantsWithImages.map(async (participant:any) => {
-      const imageKey = participant.faceImageUrl;
-      try {
-        const compareCommand = new CompareFacesCommand({
-          SourceImage: { Bytes: compressedImageBuffer },
-          TargetImage: {
-            S3Object: {
-              Bucket: AWS_BUCKET_NAME,
-              Name: imageKey,
-            },
-          },
-          SimilarityThreshold: 70,
-        });
-
-        const compareResult = await rekognition.send(compareCommand);
-        if (compareResult.FaceMatches && compareResult.FaceMatches.length > 0) {
-          const similarity = compareResult.FaceMatches[0].Similarity;
-
-          user_image_date =
-            baseUrl + "/uploads/participants/" + participant.faceImageUrl;
-          return participant;
-        }
-        return null;
-      } catch (error) {
-        console.error("❌ Error during face comparison:", error);
-        console.error(
-          `❌ Error comparing faces for participant ${participant.email}:`,
-          error
-        );
-        return null;
-      }
-    });
-
-    const results = await Promise.all(comparePromises);
-    processTimestamps["face_compare_end"] = getTimestamp();
-    
-    const matchedParticipant = results.find((r) => r !== null);
-
-    if (matchedParticipant) {      
-      processTimestamps["participant_details_fetch_start"] = getTimestamp();            
-      const participant_details = await FormRegistration.findOne({
-        _id: matchedParticipant._id,
-      });
-      processTimestamps["participant_details_fetch_end"] = getTimestamp();
-
-      if (!participant_details) {
-        return ErrorResponse(res, "Participant User Not Found");
-      }     
-      // Check if participant is blocked
-      const isBlocked = participant_details.approved ;      
-      
-      var color_status = "";
-      var scanning_msg = "";
-
-      processTimestamps["event_participant_event_fetch_start"] = getTimestamp();      
-      
-      // Use the eventDetails we already found instead of searching again
-      processTimestamps["event_participant_event_fetch_end"] = getTimestamp();
-
-      if (!eventDetails) {
-        return ErrorResponse(res, "Event Details Not Found");
-      }    
-
-      processTimestamps["status_update_start"] = getTimestamp();
-
-      // Skip check-in/check-out if participant is blocked
-      if (!isBlocked) {
-        console.log("🚫 Participant is  blocked - skipping check-in/check-out process");
-        scanning_msg = "Participant is blocked from this event";
-        color_status = "red";
-      } else {
-        // Original check-in/check-out logic for non-blocked participants
-        if (scanner_type == 0) {                    
-          
-          if (participant_details.status == "in"  ) {
-            scanning_msg = "You are already in the event";
-            color_status = "yellow";
-          } else {
-
-            participant_details.checkin_time = new Date();
-            participant_details.status = "in";
-            
-            try {                                              
-                
-                await FormRegistration.updateOne(
-                  { _id: participant_details._id },
-                  {
-                  $set: {
-                    checkin_time: participant_details.checkin_time,
-                    status: participant_details.status,
-                  },
-                  }
-                );              
-
-            } catch (saveError) {
-              console.error("❌ Error saving event participant details:", saveError);
-              return ErrorResponse(res, "Failed to update participant status");
-            }
-            
-            scanning_msg = "We welcome you";
-            color_status = "green";
-          }
-        
-        }
-
-        if (scanner_type == 1 ) {
-          if (participant_details.status != "in") {
-            scanning_msg = "You can't check out without checking in";
-            color_status = "red";
-          } else {            
-            participant_details.checkout_time = new Date();
-            participant_details.status = "out";
-            
-            try {
-               await FormRegistration.updateOne(
-                  { _id: participant_details._id },
-                  {
-                  $set: {
-                    checkin_time: participant_details.checkin_time,
-                    status: participant_details.status,
-                  },
-                  }
-                );                                  
-            } catch (saveError) {
-              console.error("❌ Error saving event participant details:", saveError);
-              return ErrorResponse(res, "Failed to update participant status");
-            }
-            
-            scanning_msg = "You are now checked out from the event";
-            color_status = "green";
-          }
-        }
-      }
-      processTimestamps["status_update_end"] = getTimestamp();    
-      participant_details.faceImageUrl = baseUrl + "/uploads/participants/" + participant_details.faceImageUrl;      
-      participant_details.qrImage =
-        baseUrl + "/uploads/" + participant_details.qrImage;
-
-      const resutl = [];
-      
-      // Handle both eventHost and event schema fields
-      if (eventDetails.event_logo) {
-        eventDetails.event_logo = `${env.BASE_URL}/${eventDetails.event_logo}`;
-      }
-      if (eventDetails.event_image) {
-        eventDetails.event_image = `${env.BASE_URL}/${eventDetails.event_image}`;
-      }
-      
       resutl.push(eventDetails);
-      resutl.push(participant_details);
-      
+      // resutl.push({ ...participant_details.toObject(), map_array });
+
       // Include blockStatus in participant details for face scanner
       const participantWithBlockStatus = {
         ...participant_details.toObject(),
-        blockStatus: participant_details.approved || false
+        blockStatus: participant_details.approved || false,
+        map_array
       };
       
-      resutl.push(participantWithBlockStatus);
+        resutl.push(participantWithBlockStatus);
+      
+
       resutl.push({ user_image: user_image_date });
       resutl.push({ color_status: color_status, scanning_msg: scanning_msg });
       resutl.push({ processTimestamps }); // Add timestamps to response
@@ -323,7 +336,7 @@ export const scanParticipantFace = async (req: Request, res: Response) => {
       let result = [];
       const color_status = "red";
       const scanning_msg = "You have not registered yet!";
-      result.push({ color_status: color_status, scanning_msg: scanning_msg });      
+      result.push({ color_status: color_status, scanning_msg: scanning_msg });
       return errorResponseWithData(res, "You have not registered yet!", result);
     }
   } catch (error) { processTimestamps["error"] = getTimestamp();
@@ -351,7 +364,9 @@ export const scanParticipantQR = async (req: Request, res: Response) => {
 
     const event_id = qrData.event_id;
     const formRegistrationId = qrData.formRegistration_id;
-    let participant:any = await FormRegistration.findById(formRegistrationId).lean();
+    let participant: any = await FormRegistration.findById(
+      formRegistrationId
+    ).lean();
     const map_array: any = {};
     const ticket: any = await ticketSchema
       .findOne({ _id: participant?.ticketId })
@@ -368,8 +383,7 @@ export const scanParticipantQR = async (req: Request, res: Response) => {
         });
       });
     }
-    participant = {...participant,map_array}
-
+    participant = { ...participant, map_array };
 
     if (!event_id || !formRegistrationId)
       return ErrorResponse(

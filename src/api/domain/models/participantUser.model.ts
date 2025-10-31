@@ -173,7 +173,7 @@ export const storeParticipantUser = async (
     }
     let savedUser;
 
-    if (existingUser) {      
+    if (existingUser) {
       // Update the existing user's dynamic fields and root-level email
       existingUser.email = emailField; // Update root-level email field
       existingUser.dynamic_fields = {
@@ -181,7 +181,7 @@ export const storeParticipantUser = async (
         ...dynamicFields,
       };
       savedUser = await existingUser.save();
-    } else {      
+    } else {
       // Create new user with all dynamic fields and root-level email field
       const newParticipantUser = new participantUsers({
         email: emailField, // Set root-level email field to avoid null constraint issues
@@ -192,7 +192,7 @@ export const storeParticipantUser = async (
     }
 
     // Get user ID for event participant creation
-    const userId = savedUser._id;     
+    const userId = savedUser._id;
     const existingParticipant = await EventParticipant.findOne({
       participant_user_id: userId,
       event_id: participantUserData.event_id,
@@ -212,24 +212,23 @@ export const storeParticipantUser = async (
         );
       }
 
-      if (event_details_for_registration?.ticketId) {     
-
+      if (event_details_for_registration?.ticketId) {
         try {
           // Convert ticketId to ObjectId
           const ticketObjectId = new mongoose.Types.ObjectId(
             event_details_for_registration.ticketId
           );
-          
+
           // Find ticket details
           const ticket_details = await ticketSchema.findOne({
             _id: ticketObjectId,
-          });          
+          });
 
           if (
             (ticket_details?.serialNoPrefix &&
               ticket_details?.startCount != null) ||
             ticket_details?.startCount !== undefined
-          ) {          
+          ) {
             // Find the highest registration number for this event to get next sequence
             const latestParticipant = await EventParticipant.findOne({
               event_id: participantUserData.event_id,
@@ -248,11 +247,11 @@ export const storeParticipantUser = async (
               const currentNumber =
                 parseInt(latestNumber, 10) ||
                 parseInt(ticket_details.startCount.toString(), 10);
-              nextNumber = currentNumber + 1;            
+              nextNumber = currentNumber + 1;
             } else {
               // First participant - use startCount
               nextNumber =
-                parseInt(ticket_details.startCount.toString(), 10) || 0;              
+                parseInt(ticket_details.startCount.toString(), 10) || 0;
             }
 
             // Format number with leading zeros (same length as startCount)
@@ -262,8 +261,6 @@ export const storeParticipantUser = async (
               .toString()
               .padStart(startCountLength, "0");
             registrationNumber = `${ticket_details.serialNoPrefix}${paddedNumber}`;
-
-          
           } else {
             console.log(
               "⚠️ Ticket details incomplete - no prefix or startCount found"
@@ -294,7 +291,7 @@ export const storeParticipantUser = async (
         referral_source: dynamicFields.referral_source || "Dynamic Form",
         company_activity:
           dynamicFields.company_activity || "Dynamic Form Response",
-      };   
+      };
 
       const EventParticipants = new EventParticipant(eventParticipantData);
 
@@ -336,7 +333,7 @@ export const storeParticipantUser = async (
       });
 
       // Generate base64 QR code
-      qrCodeBase64 = await QRCode.toDataURL(participant_qr_details);      
+      qrCodeBase64 = await QRCode.toDataURL(participant_qr_details);
       // Save QR code as file
       const qrFileName = saveQrImage(qrCodeBase64, token || "default");
       saveEventParticipants.qr_image = qrFileName;
@@ -344,7 +341,7 @@ export const storeParticipantUser = async (
 
       // Add QR code data to response - match getEventTokenDetails structure
       responseData.base64Image = qrCodeBase64;
-      responseData.qr_image_url = baseUrl + "/uploads/" + qrFileName;      
+      responseData.qr_image_url = baseUrl + "/uploads/" + qrFileName;
 
       // Add formatted event details to response
       if (event_details_for_qr?.event_logo) {
@@ -398,15 +395,14 @@ export const storeParticipantUser = async (
         });
       }
 
-      responseData.event = event_details_for_qr;      
-    }    
+      responseData.event = event_details_for_qr;
+    }
 
     callback(null, responseData);
 
     // Send email in background - don't block the response
     process.nextTick(async () => {
-      try {     
-
+      try {
         // Re-fetch event participant details to ensure we have the latest data
         const event_participant_details = await EventParticipant.findOne({
           token,
@@ -481,7 +477,7 @@ export const storeParticipantUser = async (
           base64Image,
           event_participant_details.token
         );
-        event_participant_details.qr_image = qrFileName;        
+        event_participant_details.qr_image = qrFileName;
         await event_participant_details.save();
         const qr_iamge_url = baseUrl + "/uploads/" + qrFileName;
         const htmlContent =
@@ -634,7 +630,7 @@ export const storeParticipantUser = async (
                         </div>
                     </body>
                     </html>
-                  `;        
+                  `;
 
         // Use EmailService instead of nodemailer directly
         try {
@@ -669,7 +665,7 @@ export const storeParticipantUser = async (
         const existingUser = await participantUsers.findOne({
           [duplicateField]: duplicateValue,
         });
-        if (existingUser) {          
+        if (existingUser) {
           return callback(null, existingUser);
         }
       } catch (findError) {
@@ -863,7 +859,7 @@ export const verifyOtpModel = async (
     const eventId = await eventHostSchema.findOne({
       event_slug: userData.event_slug,
     });
-    
+
     if (!eventId) {
       return callback(new Error("Event not found!"), null);
     }
@@ -871,7 +867,7 @@ export const verifyOtpModel = async (
     const tickets = await ticketSchema
       .find({ eventId: eventId })
       .populate("registrationFormId");
-      
+
     let ticketsWithMapArray: any;
     let contactFieldNames: string[] = []; // Array to store all contact field names
 
@@ -891,7 +887,6 @@ export const verifyOtpModel = async (
           });
         }
 
-        
         if (map_array.contact_no) {
           contactFieldNames.push(map_array.contact_no);
         }
@@ -902,21 +897,21 @@ export const verifyOtpModel = async (
         };
       });
       contactFieldNames = [...new Set(contactFieldNames)];
-    }    
-    const orConditions = contactFieldNames.map(fieldName => ({
-      [`formData.${fieldName}`]: userData.contact
-    }));    
+    }
+    const orConditions = contactFieldNames.map((fieldName) => ({
+      [`formData.${fieldName}`]: userData.contact,
+    }));
     orConditions.push(
       { "formData.contact": userData.contact },
       { "formData.phone_number": userData.contact }
-    );    
-    const user = await FormRegistration.findOne({
-      $or: orConditions
+    );
+    let user:any = await FormRegistration.findOne({
+      $or: orConditions,
     }).lean();
 
     if (!user) {
       return callback(new Error("User not found!"), null);
-    }    
+    }
 
     const event_details = await eventHostSchema
       .findOne({
@@ -932,21 +927,38 @@ export const verifyOtpModel = async (
 
     var color_status = "";
     var scanning_msg = "";
-
-    user.qrImage = baseUrl + "/uploads/" + user.qrImage;
-    if (user.faceImageUrl) {
-      user.faceImageUrl = baseUrl + "/uploads/" + user.faceImageUrl;
+    const map_array: any = {};
+    const ticket: any = await ticketSchema
+      .findOne({ _id: user?.ticketId })
+      .populate("registrationFormId")
+      .lean();
+    const forms_registration = ticket?.registrationFormId;
+    const pages = forms_registration?.pages;
+    if (pages) {
+      pages.forEach((page: any) => {
+        page.elements?.forEach((element: any) => {
+          if (element.mapField) {
+            map_array[element.mapField] = element.fieldName;
+          }
+        });
+      });
     }
-    
+    user = {...user,map_array}
+
+    user.qrImage = baseUrl + "/uploads" + user.qrImage;
+    if (user.faceImageUrl) {
+      user.faceImageUrl = baseUrl + "/uploads/participants/" + user.faceImageUrl;
+    }
+
     const result = [];
     event_details.event_logo = `${env.BASE_URL}/${event_details.event_logo}`;
     event_details.event_image = `${env.BASE_URL}/${event_details.event_image}`;
     result.push(event_details);
     result.push(user);
     result.push({ color_status: color_status, scanning_msg: scanning_msg });
-    
+
     return callback(null, result);
-  } catch (error) {    
+  } catch (error) {
     console.error("Error during OTP verification:", error);
     callback(new Error("Something went wrong!"), null);
   }

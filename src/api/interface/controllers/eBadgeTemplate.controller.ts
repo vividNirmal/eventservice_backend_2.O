@@ -30,11 +30,12 @@ export const getAllEBadgeTemplatesController: RequestHandler = async (req, res) 
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
     const search = req.query.search as string;
+    const eventId = req.query.eventId as string
 
     getAllEBadgeTemplates((error, result) => {
       if (error) return ErrorResponse(res, error.message);
       return successResponse(res, "Templates fetched successfully", result);
-    }, page, limit, search);
+    }, page, limit, search,eventId);
   } catch (error: any) {
     return ErrorResponse(res, error.message);
   }

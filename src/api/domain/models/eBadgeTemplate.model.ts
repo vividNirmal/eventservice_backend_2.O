@@ -23,12 +23,14 @@ export const getAllEBadgeTemplates = async (
   callback: (error: Error | null, result?: any) => void,
   page: number = 1,
   limit: number = 10,
-  search?: string
+  search?: string,
+  eventId?: string
 ) => {
   try {
     const skip = (page - 1) * limit;
     const query: any = {};
     if (search) query.name = { $regex: search, $options: "i" };
+    if (eventId) query.eventId = eventId;
 
     const templates = await eBadgeTemplateSchema
       .find(query)

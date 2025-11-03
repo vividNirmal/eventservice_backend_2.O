@@ -1,7 +1,7 @@
 import express from "express";
 import { checkAdmin, protectedRoute} from "../../middleware/auth.middleware";
 import { validateRequest, validateRequestBody } from "../../middleware/validation.middleware";
-import { storeAdminEvent,updateAdminEvent,getAdminEventDetails  ,getAdminEventList,deleteAdminEvent,generateUniqueURL,generateRegistrationURL,getTokeneventDetails,getParticipantUserList,getAllParticipantUserList,getPeopleList,UpdateExtraEventDetails,GetExtraEventDetails, getParticipantUserDetails, getDeviceUrl, verifyDeviceAndLogin, getEventStatistics, generateCleanDeviceUrl, resolveDeviceUrl, generateCleanFormUrl, resolveFormUrl} from "../../interface/controllers/adminevent.controller";
+import { storeAdminEvent,updateAdminEvent,getAdminEventDetails  ,getAdminEventList,deleteAdminEvent,generateUniqueURL,generateRegistrationURL,getAllParticipantUserList,UpdateExtraEventDetails,GetExtraEventDetails, getParticipantUserDetails, getDeviceUrl, verifyDeviceAndLogin, getEventStatistics, generateCleanDeviceUrl, resolveDeviceUrl, generateCleanFormUrl, resolveFormUrl} from "../../interface/controllers/adminevent.controller";
 import { registerUser , loginUser} from "../../interface/controllers/auth.controller";
 import { getCountry,getState,getCity,importXlsxData,getHomePageCity } from "../../interface/controllers/location.controller";
 import { getSetting , updateSetting } from "../../interface/controllers/setting.controller";
@@ -113,10 +113,8 @@ export const upload = multer({ storage: storage });
             // route.get("/delete-event/:id",protectedRoute,deleteAdminEvent);
             route.get("/get-event-list",protectedRoute,getAdminEventList);
             route.post("/delete-event", protectedRoute,validateRequest(deleteEventSchema), deleteAdminEvent)
-            route.get("/get-event-statistics/:id",protectedRoute,getEventStatistics);
-            route.get("/get-paticipant-user-list/:token",protectedRoute,getParticipantUserList);
-            route.get("/get-all-paticipant-user-list",protectedRoute,getAllParticipantUserList);
-            route.get("/get-people-list",protectedRoute,getPeopleList);
+            route.get("/get-event-statistics/:id",protectedRoute,getEventStatistics);            
+            route.get("/get-all-paticipant-user-list",protectedRoute,getAllParticipantUserList);            
             route.get("/get-paticipant-user-detail/:id",protectedRoute,getParticipantUserDetails);
             route.post("/update-praticipent-user-details",validateRequest(UpdateParticipantUsers),updateParticipantUser);
             route.post("/toggle-participant-block-status",protectedRoute,validateRequestBody(toggleParticipantBlockStatusSchema),toggleParticipantBlockStatus);            
@@ -138,8 +136,7 @@ export const upload = multer({ storage: storage });
             route.get("/check-ticket-link-status/:ticketId", protectedRoute, checkTicketLinkStatus);
             
             //unique url generate
-            route.get("/generate-unique-url/:slug",protectedRoute,generateUniqueURL);
-            route.get("/get-event-details-using-token/:token",getTokeneventDetails);
+            route.get("/generate-unique-url/:slug",protectedRoute,generateUniqueURL);            
             route.get("/get-registration-url/:slug",generateRegistrationURL);
 
             route.post("/get-device-url",protectedRoute, validateRequest(getDeviceUrlSchema), getDeviceUrl);
@@ -149,8 +146,7 @@ export const upload = multer({ storage: storage });
             route.get("/resolve-form-url/:eventSlug", resolveFormUrl);
             route.post("/verify-device-and-login", validateRequest(verifyDeviceAndLoginSchema), verifyDeviceAndLogin);
 
-            //store participant urls
-            route.get("/getuser",getTokeneventDetails);
+            //store participant urls            
             route.get("/get-user-details/:email",getUserDetailsUsingEmail);
             
             // Use conditional validation based on form_type

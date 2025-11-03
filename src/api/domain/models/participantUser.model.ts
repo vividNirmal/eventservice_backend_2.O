@@ -1,13 +1,7 @@
 import mongoose from "mongoose";
-import {
-  successCreated,
-  successResponse,
-  ErrorResponse,
-} from "../../helper/apiResponse";
 import participantUsers from "../../domain/schema/participantUsers.schema";
 import EventParticipant from "../../domain/schema/eventParticipant";
 import { loggerMsg } from "../../lib/logger";
-import nodemailer from "nodemailer";
 import path from "path";
 import QRCode from "qrcode";
 import eventSchema from "../../domain/schema/event.schema";
@@ -15,11 +9,8 @@ import participantUsersSchema from "../../domain/schema/participantUsers.schema"
 import eventParticipantSchema from "../../domain/schema/eventParticipant";
 import { env } from "process";
 import fs from "fs";
-import AWS from "aws-sdk";
 import UsersOtp from "../schema/userOtp.schema";
 import { EmailService } from "../../services/sendEmail.service";
-import eventParticipant from "../../domain/schema/eventParticipant";
-import { Console } from "console";
 import eventHostSchema from "../schema/eventHost.schema";
 import ticketSchema from "../schema/ticket.schema";
 import FormRegistration from "../../domain/schema/formRegistration.schema";
@@ -316,7 +307,7 @@ export const storeParticipantUser = async (
     let qrCodeBase64 = null;
     let responseData: any = {
       message: "Participant stored successfully",
-      show_form: false, // Match getEventTokenDetails structure
+      show_form: false, 
       event: event_details_for_qr,
       user_token: token,
       slug: event_details_for_qr?.event_slug,
@@ -337,12 +328,9 @@ export const storeParticipantUser = async (
       // Save QR code as file
       const qrFileName = saveQrImage(qrCodeBase64, token || "default");
       saveEventParticipants.qr_image = qrFileName;
-      await saveEventParticipants.save();
-
-      // Add QR code data to response - match getEventTokenDetails structure
+      await saveEventParticipants.save();      
       responseData.base64Image = qrCodeBase64;
       responseData.qr_image_url = baseUrl + "/uploads/" + qrFileName;
-
       // Add formatted event details to response
       if (event_details_for_qr?.event_logo) {
         event_details_for_qr.event_logo =
@@ -730,8 +718,6 @@ export const loginOtpGenerateModel = async (
       .lean();
     if (!participantUserData)
       return callback(new Error("User not found!"), null);
-
-    // Step 2: Get QR Image from eventParticipantSchema
     const eventParticipant = await eventParticipantSchema.findOne({
       participant_user_id: participantUserData._id,
     });

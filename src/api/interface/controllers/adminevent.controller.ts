@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { loggerMsg } from "../../lib/logger";
 import { successCreated, successResponse ,ErrorResponse, errorResponseWithData } from "../../helper/apiResponse";
-import { storeEvent,updateEvent,getEventTokenDetails ,adminEventList,getEventParticipantUserListModal,getAllEventParticipantUserListModal,getPeopleListOptimized,updateEventExtraDetails} from "../../domain/models/event.model";
+import { storeEvent,updateEvent,adminEventList,getAllEventParticipantUserListModal,updateEventExtraDetails} from "../../domain/models/event.model";
 import {v4 as uuidv4} from "uuid"
 import multer from "multer"
 import path from "path"
@@ -427,55 +427,7 @@ export const verifyDeviceAndLogin = async (req: Request, res: Response) => {
     }
 };
 
-export const getTokeneventDetails = async (req:Request , res:Response) =>{
-    try {
-        let { token } = req.params;
 
-        if (!token) {
-            return ErrorResponse(res,'Token is required.')
-        }
-
-        // Remove 'token=' prefix if present
-        if (token.startsWith('token=')) {
-            token = token.substring(6);
-        }        
-
-        getEventTokenDetails(token, (error: any, result: any) => {         
-            if (error) {                
-                return ErrorResponse(res,error)
-            }            
-            return successResponse(res, 'success', {
-                result,
-            });
-
-        });
-
-    } catch (error) {
-      return  ErrorResponse(res,'An internal server error occurred.')
-    }
-}
-
-export const getParticipantUserList = async (req: Request, res: Response) => {
-    try {
-        const { token } = req.params;
-
-        if (!token) {
-            return ErrorResponse(res, 'Token is required.'); 
-        }
-
-        getEventParticipantUserListModal(token, (error: any, result: any) => {
-            if (error) {
-                return ErrorResponse(res, error.message || 'Invalid or expired token.'); 
-            }
-
-            return successResponse(res, 'Success', {
-                result,
-            });
-        });
-    } catch (error) {
-        return ErrorResponse(res, 'An internal server error occurred.');
-    }
-};
 
 export const generateRegistrationURL = async (req: Request, res: Response) => {
     try {
@@ -508,28 +460,6 @@ export const getAllParticipantUserList = async (req: Request, res: Response) => 
         };
 
         getAllEventParticipantUserListModal(req.user, filters,pagination ,event_id, startDate, endDate, (error: any, result: any) => {
-            if (error) {
-                return ErrorResponse(res, error.message || "Invalid or expired token.");
-            }
-
-            return successResponse(res, "Success", result);
-        });
-    } catch (error) {
-        return ErrorResponse(res, "An internal server error occurred.");
-    }
-};
-
-export const getPeopleList = async (req: Request, res: Response) => {
-    try {
-        const { searchQuery = "", page = "1", pageSize = "10", event_id = "" } = req.query;
-
-        const filters = searchQuery.toString();
-        const pagination = {
-            page: parseInt(page as string, 10),
-            limit: parseInt(pageSize as string, 10),
-        };
-
-        getPeopleListOptimized(req.user, filters, pagination, event_id, (error: any, result: any) => {
             if (error) {
                 return ErrorResponse(res, error.message || "Invalid or expired token.");
             }

@@ -10,12 +10,18 @@ export interface IPaperBadgeSetting extends Document {
   companyId?: mongoose.Types.ObjectId;
   eventId: mongoose.Types.ObjectId;
   paperSize?: "a4" | "a5" | "letter" | "legal" | "normal"; // paper size
-  fields?: {
-    id: string;
-    name: string;
-    type?: string;
-  }[];
+  // Updated fields structure to support both single and combined fields
+  fields?: Array<{
+    combinedId?: string; // For combined fields like "firstName_lastName"
+    id?: string; // For single fields
+    field: Array<{
+      id: string;
+      name: string;
+      type?: string;
+    }>;
+  }>;
 
+  // Properties now keyed by either combinedId or single id
   fieldProperties?: Record<
     string,
     {

@@ -20,6 +20,10 @@ import {
   CreateCollectionCommand,
 } from "@aws-sdk/client-rekognition";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import eventHostSchema from "../schema/eventHost.schema";
+import ticketSchema from "../schema/ticket.schema";
+import eventUserSchema from "../schema/eventUser.schema";
+import companySchema from "../schema/company.schema";
 
 const addImageUrls = (ticket: any) => {
   const baseUrl = env.BASE_URL;
@@ -418,10 +422,8 @@ export const storeFormRegistrationModel = async (
 
     // Determine auto-approval
     const isAutoApproved = ticket.advancedSettings?.autoApprovedUser || false;
-
     // Generate badge number
     const finalBadgeNo = await generateBadgeNumber(ticket);
-
     // Generate user token for QR code
     const userToken = uuidv4();
 
@@ -460,16 +462,8 @@ export const storeFormRegistrationModel = async (
 
     // Create and save record
     const registration = new FormRegistration(registrationData);
-
     await registration.save();
-
-    console.log("✅ Registration saved successfully:", registration._id);
-
-    // Generate QR code and update registration
-    console.log("🔧 Generating QR code for registration...");
     const baseUrl = process.env.BASE_URL;
-
-    // Get event details for QR code
     const EventHost = mongoose.model("EventHost");
     let eventDetails = await EventHost.findById(eventId || ticket.eventId);
 
@@ -535,6 +529,15 @@ export const storeFormRegistrationModel = async (
       };
     }
 
+    if (isAutoApproved) {
+      const EventuserData = {
+        email: email,
+        formData: formData,
+        eventId: eventDetails._id,
+        ticketId: ticketId,
+      };
+      StoreEventuser(EventuserData);
+    }
     callback(null, responseData);
   } catch (error: any) {
     loggerMsg("Error in storeFormRegistrationModel", error);
@@ -671,10 +674,6 @@ async function sendWelcomeEmailAfterRegistration(
   registration: any
 ) {
   try {
-    // // Get event details for template data
-    // const event = await EventHost.findById(registration.eventId);
-    // const ticket = await Ticket.findById(ticketId);
-
     const templateData = {
       badgeNo: registration.badgeNo,
       email: registration.email,
@@ -778,9 +777,9 @@ export const getFormRegistrationListModel = async (
       .lean();
 
     if (tickets.length > 0) {
-      const ticketIds = tickets.map((t: any) => {        
+      const ticketIds = tickets.map((t: any) => {
         const forms_registration = t.registrationFormId;
-        const pages = forms_registration?.pages; 
+        const pages = forms_registration?.pages;
         if (pages) {
           pages.forEach((page: any) => {
             page.elements?.forEach((element: any) => {
@@ -789,7 +788,7 @@ export const getFormRegistrationListModel = async (
               }
             });
           });
-        }              
+        }
         return t._id.toString();
       });
 
@@ -860,7 +859,15 @@ export const updateFormRegistrationStatusModel = async (
     }
 
     registration.approved = approved;
-
+    if (approved) {
+      const EventuserData = {
+        email: registration.email,
+        formData: registration?.formData,
+        eventId: registration.eventId,
+        ticketId: registration.ticketId,
+      };
+      StoreEventuser(EventuserData);
+    }
     await registration.save();
 
     // Send approval/disapproval email notification (non-blocking)
@@ -1167,4 +1174,154 @@ async function deleteFaceFromRekognition(faceId: string) {
     console.error(`Failed to delete face from Rekognition:`, error);
     // Don't throw - continue with update even if deletion fails
   }
+}
+
+export async function StoreEventuser(formData: any) {
+  try {
+    const email = formData.email;
+    let companyId;
+    let userType;
+    let EventFormData: any = {};
+    let contactNumber;
+    let password = "123456";
+    let panNo;
+    if (formData?.eventId) {
+      const eventId: any = await eventHostSchema.findById(formData?.eventId);
+      companyId = eventId.company_id;
+    }
+    const compayDetails = await companySchema.findById(companyId);
+
+    // Get userType and registration form data
+    if (formData.ticketId) {
+      const ticket: any = await ticketSchema
+        .findById(formData.ticketId)
+        .populate("registrationFormId")
+        .lean();
+      userType = ticket.userType;
+
+      const registrationForm = ticket?.registrationFormId;
+      if (registrationForm) {
+        const map_array: Record<string, string> = {};
+        if (Array.isArray(registrationForm.pages)) {
+          registrationForm.pages.forEach((page: any) => {
+            if (Array.isArray(page.elements)) {
+              page.elements.forEach((element: any) => {
+                if (element.mapField && element.fieldName) {
+                  map_array[element.mapField] = element.fieldName;
+                }
+              });
+            }
+          });
+        }
+        EventFormData = {
+          ...registrationForm,
+          map_array,
+        };
+      }
+    }
+
+    if (EventFormData?.map_array?.["contact_no"] && formData?.formData) {
+      contactNumber = formData.formData[EventFormData.map_array["contact_no"]];
+    } else if (formData?.contact) {
+      contactNumber = formData.contact;
+    }
+
+    const existingUser = await eventUserSchema.findOne({ email: email });
+
+    if (existingUser) {
+      const updateQuery: any = {
+        $set: {},
+      };
+
+      if (password) updateQuery.$set.password = password;
+      if (contactNumber) updateQuery.$set.contact = contactNumber;
+      if (panNo) updateQuery.$set.panNo = panNo;
+      if (companyId) updateQuery.$set.compayId = companyId;
+      if (userType) {
+        updateQuery.$addToSet = { userType: userType };
+      }
+
+      // Update user      
+      const updatedUser = await eventUserSchema.findByIdAndUpdate(
+        existingUser._id,
+        updateQuery,
+        { new: true }
+      );
+      const templateData = {
+        email: email,
+        password: password,
+        name: `${formData.formData[EventFormData.map_array["first_name"]]} ${
+          formData.formData[EventFormData?.map_array["last_name"]]
+        }`,
+        websites: `https://${compayDetails?.subdomain}.${env.FRONTEND_DOMAIN}`,
+      };
+
+      await sendNotification(
+        formData.ticketId,
+        "approve",
+        formData.email,
+        templateData,
+        "email"
+      );
+      return { success: true, user: updatedUser, isNew: false };
+    } else {
+      const newUser = new eventUserSchema({
+        email: email,
+        password: generateStrongPassword(8),
+        contact: contactNumber,
+        panNo: panNo,
+        userType: userType ? [userType] : [],
+        compayId: companyId,
+      });
+      const savedUser = await newUser.save();
+      const templateData = {
+        email: email,
+        password: password,
+        name: `${formData.formData[EventFormData.map_array["first_name"]]} ${
+          formData.formData[EventFormData?.map_array["last_name"]]
+        }`,
+        websites: `https://${compayDetails?.subdomain}.${env.FRONTEND_DOMAIN}`,
+      };
+
+      await sendNotification(
+        formData.ticketId,
+        "approve",
+        formData.email,
+        templateData,
+        "email"
+      );
+      return { success: true, user: savedUser, isNew: true };
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function generateStrongPassword(length: number = 8): string {
+  const chars = {
+    upper: "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+    lower: "abcdefghijklmnopqrstuvwxyz",
+    numbers: "0123456789",
+    symbols: "!@#$%^&*",
+  };
+
+  const all = Object.values(chars).join("");
+  let password = "";
+
+  // Guarantee one of each type
+  password += chars.upper[Math.floor(Math.random() * chars.upper.length)];
+  password += chars.lower[Math.floor(Math.random() * chars.lower.length)];
+  password += chars.numbers[Math.floor(Math.random() * chars.numbers.length)];
+  password += chars.symbols[Math.floor(Math.random() * chars.symbols.length)];
+
+  // Fill remaining length
+  for (let i = 4; i < length; i++) {
+    password += all[Math.floor(Math.random() * all.length)];
+  }
+
+  // Shuffle
+  return password
+    .split("")
+    .sort(() => Math.random() - 0.5)
+    .join("");
 }

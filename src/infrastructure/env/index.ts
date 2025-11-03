@@ -34,6 +34,7 @@ export const env = {
     AWS_BUCKET_NAME: process.env.AWS_BUCKET_NAME,
     AWS_REKOGNITION_COLLECTION: process.env.AWS_REKOGNITION_COLLECTION,
     AWS_API_VERSION: process.env.AWS_API_VERSION,
+    FRONTEND_DOMAIN : process.env.FRONTEND_DOMAIN
     // SITE_TITLE: process.env.SITE_TITLE,
     // APP_URL: process.env.APP_URL,
 

@@ -68,24 +68,22 @@ export async function getNotificationTemplate(
  * Replace placeholders in template with actual data
  */
 export function compileTemplate(templateContent: string, data: any): string {
-  let compiledContent = templateContent;
-
-  const placeholders = {
-    '{{email}}': data.email || '',
-  };
-
-  Object.entries(placeholders).forEach(([placeholder, value]) => {
-    compiledContent = compiledContent.replace(new RegExp(placeholder, 'g'), value);
+  let compiledContent = templateContent;    
+  const placeholderRegex = /\{\{(\w+)\}\}/g;
+  const matches = [...templateContent.matchAll(placeholderRegex)];  
+  const uniquePlaceholders = new Set(matches.map(match => match[1]));  
+  uniquePlaceholders.forEach(key => {
+    let value = '';    
+    if (data[key] !== undefined && data[key] !== null) {
+      value = Array.isArray(data[key]) ? data[key].join(', ') : String(data[key]);
+    }     
+    else if (data.formData?.[key] !== undefined && data.formData[key] !== null) {
+      value = Array.isArray(data.formData[key]) ? data.formData[key].join(', ') : String(data.formData[key]);
+    }    
+    const pattern = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+    compiledContent = compiledContent.replace(pattern, value);
   });
-
-  if (data.formData) {
-    Object.entries(data.formData).forEach(([key, value]) => {
-      const placeholder = `{{${key}}}`;
-      const stringValue = Array.isArray(value) ? value.join(', ') : String(value || '');
-      compiledContent = compiledContent.replace(new RegExp(placeholder, 'g'), stringValue);
-    });
-  }
-
+  
   return compiledContent;
 }
 
@@ -100,20 +98,15 @@ export async function sendNotification(
   channel: 'email' | 'sms' | 'whatsapp' = 'email'
 ) {
   try {
-    const template = await getNotificationTemplate(ticketId, actionType, channel);
-
-    console.log(`📧 template>>>>>>>>>>>>>`, template);
-
+    const template = await getNotificationTemplate(ticketId, actionType, channel);    
     if (!template) {
       console.log(`No ${actionType} template found for ticket ${ticketId}`);
       return null;
     }
 
     if (channel === 'email') {
-      const compiledSubject = compileTemplate(template.subject || '', templateData);
-      console.log(`📧 compiledSubject>>>>>>>>>>>>>`, compiledSubject);
+      const compiledSubject = compileTemplate(template.subject || '', templateData);      
       const compiledContent = compileTemplate(template.content, templateData);
-
       const emailOptions: any = {
         to: recipientEmail,
         subject: compiledSubject,

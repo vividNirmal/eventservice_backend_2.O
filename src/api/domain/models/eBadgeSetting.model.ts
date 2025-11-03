@@ -111,6 +111,7 @@ export const updateEBadgeSettingPropertiesById = async (
   id: string,
   updateData: {
     templateId?: string;
+    fixedPosition?: boolean;
     fields?: any[];
     fieldProperties?: Record<string, any>;
   },
@@ -121,6 +122,9 @@ export const updateEBadgeSettingPropertiesById = async (
     const updateFields: any = {};
 
     if (updateData.templateId) updateFields.templateId = updateData.templateId;
+    if ("fixedPosition" in updateData) {
+      updateFields.fixedPosition = updateData.fixedPosition;
+    }
     if (updateData.fields) updateFields.fields = updateData.fields;
     if (updateData.fieldProperties)
       updateFields.fieldProperties = updateData.fieldProperties;

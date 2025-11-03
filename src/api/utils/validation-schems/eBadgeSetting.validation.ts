@@ -41,6 +41,7 @@ export const updateEBadgeSettingSchema = Joi.object({
 export const updateEBadgeSettingPropertiesSchema = Joi.object({
   id: Joi.string().optional(),
   templateId: Joi.string().optional().allow(''),
+  fixedPosition: Joi.boolean().optional(),
   fields: Joi.array().optional(),
   fieldProperties: Joi.object().optional(),
 });

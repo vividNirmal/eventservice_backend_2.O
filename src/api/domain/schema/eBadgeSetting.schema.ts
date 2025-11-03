@@ -4,7 +4,8 @@ export interface IEBadgeSetting extends Document {
   name: string;
   templateId?: mongoose.Types.ObjectId; // Reference to EBadgeTemplate
   ticketIds?: mongoose.Types.ObjectId[]; // References to Ticket/UserType
-  downloadOption: 'print' | 'print_and_download' | 'download' | 'none'; // From Image 2
+  downloadOption: 'print' | 'print_and_download' | 'download' | 'none';
+  fixedPosition: boolean;
   
   // Additional settings
   companyId?: mongoose.Types.ObjectId;
@@ -57,6 +58,7 @@ const eBadgeSettingSchema = new Schema<IEBadgeSetting>(
       enum: ['print', 'print_and_download', 'download', 'none'],
       default: 'download'
     },
+    fixedPosition: { type: Boolean, default: false },
     companyId: { type: Schema.Types.ObjectId, ref: "Company" },
     eventId: { 
       type: Schema.Types.ObjectId, 

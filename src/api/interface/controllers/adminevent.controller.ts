@@ -275,8 +275,7 @@ export const generateUniqueURL = async (req:Request, res:Response) => {
 
 export const getDeviceUrl = async (req: Request, res: Response) => {
     try {
-        const { id: event_id, type: device_type } = req.body; // or req.query depending on how you call it
-        console.log("Received event_id:", req.body);
+        const { id: event_id, type: device_type } = req.body; // or req.query depending on how you call it        
 
         if (!event_id || device_type === undefined) {
             return res.status(400).json({ 
@@ -287,8 +286,7 @@ export const getDeviceUrl = async (req: Request, res: Response) => {
 
         // 1. Verify the event exists in eventHost schema
         const event = await eventHostSchema.findById(event_id);
-        if (!event) {
-            console.log("Event not found:", event_id);
+        if (!event) {            
             return res.status(404).json({
                 code: "NOT_FOUND",
                 message: "Event not found"
@@ -301,10 +299,7 @@ export const getDeviceUrl = async (req: Request, res: Response) => {
                 code: "INVALID_EVENT",
                 message: "Event has no company assigned."
             });
-        }
-
-        console.log("Company ID:", company_id);
-        console.log("Device Type:", device_type);
+        }        
 
         // 2. Find device for that company and device type
         const device = await scannerMachineSchema.findOne({
@@ -443,17 +438,12 @@ export const getTokeneventDetails = async (req:Request , res:Response) =>{
         // Remove 'token=' prefix if present
         if (token.startsWith('token=')) {
             token = token.substring(6);
-        }
+        }        
 
-        console.log('🎫 Extracted token:', token);
-
-        getEventTokenDetails(token, (error: any, result: any) => {
-            console.log('📞 Callback invoked with:', { error: !!error, result: !!result });
-            if (error) {
-                console.log('❌ Returning error response');
+        getEventTokenDetails(token, (error: any, result: any) => {         
+            if (error) {                
                 return ErrorResponse(res,error)
-            }
-            console.log('✅ Returning success response');
+            }            
             return successResponse(res, 'success', {
                 result,
             });
@@ -552,10 +542,7 @@ export const getPeopleList = async (req: Request, res: Response) => {
 };
 
 export const UpdateExtraEventDetails = async (req: Request, res: Response) => {
-    try {
-            
-        console.log(req.body)
-        const { creason_for_visiting,company_activity,sort_des_about_event,event_id} = req.body;
+    try {                
         
         updateEventExtraDetails(req.body, (error:any, result:any) => {
             if (error) {
@@ -576,9 +563,8 @@ export const UpdateExtraEventDetails = async (req: Request, res: Response) => {
 
 export const GetExtraEventDetails = async (req: Request, res: Response) => {
     try {
-        console.log(req.body);
+
         const { id } = req.body;
-        console.log(id);
 
         if (!id) {
             return ErrorResponse(res, "Event ID is required");
@@ -641,20 +627,12 @@ export const getEventStatistics = async (req: Request, res: Response) => {
         const event = await eventHostSchema.findById(id);
         if (!event) {
             return ErrorResponse(res, "Event not found");
-        }
-
-        // Get all participants for this event
-        const participants = await formRegistrationSchema.find({ eventId: id }).populate("eventId").populate("ticketId");
-        console.log("Total participants found:", participants.length);
-        // Calculate statistics
+        }        
+        const participants = await formRegistrationSchema.find({ eventId: id }).populate("eventId").populate("ticketId");        
         const totalRegistered = participants.length;
         const totalCheckedIn = participants.filter(p => p.status === 'in').length;
-        const totalCapacity = event.participant_capacity || 1000; // Default capacity if not set
-        
-        // Get participants with face scan data (if applicable)
-        const faceScansCount = participants.filter(p => p.faceId && p.faceId.trim() !== '').length;
-        
-        // Daily check-ins for chart data (last 7 days)
+        const totalCapacity = event.participant_capacity || 1000; 
+        const faceScansCount = participants.filter(p => p.faceId && p.faceId.trim() !== '').length;        
         const now = new Date();
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         
@@ -700,8 +678,7 @@ export const getEventStatistics = async (req: Request, res: Response) => {
 
 export const generateCleanDeviceUrl = async (req: Request, res: Response) => {
     try {
-        const { id: event_id, type: device_type } = req.body;
-        console.log("Received event_id for clean URL:", req.body);
+        const { id: event_id, type: device_type } = req.body;        
 
         if (!event_id || device_type === undefined) {
             return res.status(400).json({ 
@@ -712,8 +689,7 @@ export const generateCleanDeviceUrl = async (req: Request, res: Response) => {
 
         // 1. Verify the event exists in eventHost schema
         const event = await eventHostSchema.findById(event_id);
-        if (!event) {
-            console.log("Event not found:", event_id);
+        if (!event) {            
             return res.status(404).json({
                 code: "NOT_FOUND",
                 message: "Event not found"
@@ -726,10 +702,7 @@ export const generateCleanDeviceUrl = async (req: Request, res: Response) => {
                 code: "INVALID_EVENT",
                 message: "Event has no company assigned."
             });
-        }
-
-        console.log("Company ID:", company_id);
-        console.log("Device Type:", device_type);
+        }        
 
         // 2. Find device for that company and device type
         const device = await scannerMachineSchema.findOne({
@@ -761,8 +734,7 @@ export const generateCleanDeviceUrl = async (req: Request, res: Response) => {
             deviceKey: encodedData.encryptedText
         });
 
-        if (existingMapping) {
-            console.log("Existing mapping found, returning existing shortId:", existingMapping.shortId);
+        if (existingMapping) {            
             return successResponse(res, "Clean device URL retrieved (existing)", {
                 shortId: existingMapping.shortId
             });
@@ -796,9 +768,7 @@ export const generateCleanDeviceUrl = async (req: Request, res: Response) => {
             deviceKey: encodedData.encryptedText
         });
 
-        await deviceUrlMapping.save();
-
-        console.log("New mapping created with shortId:", shortId);
+        await deviceUrlMapping.save();        
         
         // 7. Send response with short ID
         return successResponse(res, "Clean device URL generated", {
@@ -890,8 +860,7 @@ export const generateCleanFormUrl = async (req: Request, res: Response) => {
             formId: form_id
         });
 
-        if (existingMapping) {
-            console.log("Existing form URL mapping found, returning event slug:", event.event_slug);
+        if (existingMapping) {            
             return successResponse(res, "Clean form URL retrieved (existing)", {
                 eventSlug: event.event_slug,
                 formId: form_id
@@ -903,8 +872,7 @@ export const generateCleanFormUrl = async (req: Request, res: Response) => {
             shortId: event.event_slug
         });
 
-        if (duplicateShortId) {
-            console.log("ShortId already exists:", event.event_slug, "for event:", duplicateShortId.eventId);
+        if (duplicateShortId) {            
             
             // If it's for a different event but same slug, we need to modify the shortId
             // But for now, let's just return the event slug since URLs should be based on event slug
@@ -923,9 +891,7 @@ export const generateCleanFormUrl = async (req: Request, res: Response) => {
             encryptedEventData: encryptedData.encryptedText
         });
 
-        await formUrlMapping.save();
-
-        console.log("New form URL mapping created with slug:", event.event_slug);
+        await formUrlMapping.save();        
         
         // 7. Send response with event slug
         return successResponse(res, "Clean form URL generated", {
@@ -967,8 +933,7 @@ export const resolveFormUrl = async (req: Request, res: Response) => {
                 code: "EVENT_NOT_FOUND",
                 message: "Event not found for the given slug."
             });
-        }
-        console.log('🎟️ Event found:', event);
+        }        
         // If event has ticketId, then get the ticket details from ticketSchema and select registrationFilterDate
         let ticket = null;
         if (event.ticketId) {
@@ -976,47 +941,22 @@ export const resolveFormUrl = async (req: Request, res: Response) => {
         }
         // If ticket has registrationFilterDate, then check if current date is within the range
         if (ticket && ticket.advancedSettings.registrationFilterDate) {
-            const now = new Date();
-            console.log('🎫 Checking registration filter date:', {
-                now: now.toISOString(),
-                registrationFilterDate: ticket.advancedSettings.registrationFilterDate.toISOString(),
-                isInFuture: ticket.advancedSettings.registrationFilterDate > now
-            });
-
-            // if the date is in the past and event end date is also over then registration is closed
-            // check if event has dateRanges and if current date is within any of the ranges end date
-            if (event.dateRanges && event.dateRanges.length > 0) {
-                console.log('📅 Checking date ranges:', {
-                    now: now.toISOString(),
-                    dateRanges: event.dateRanges
-                });
+            const now = new Date();                     
+            if (event.dateRanges && event.dateRanges.length > 0) {                
                 
                 const isWithinRange = event.dateRanges.some((range: any) => {
-                    const rangeEndDate = new Date(range.endDate);
-                    console.log('📊 Range check:', {
-                        rangeEndDate: rangeEndDate.toISOString(),
-                        isWithin: now <= rangeEndDate
-                    });
+                    const rangeEndDate = new Date(range.endDate);                    
                     return now <= rangeEndDate;
                 });
                 
-                if (!isWithinRange) {
-                    console.log('🔒 Registration closed - all date ranges expired');
+                if (!isWithinRange) {                    
                     return errorResponseWithData(res, "Registration closed. Event date is over.", {
                         eventEndDate: event.endDate,
                         dateRanges: event.dateRanges
                     });
                 }
-            } else {
-                // if no dateRanges then check with event end date
-                console.log('📅 Checking single end date:', {
-                    now: now.toISOString(),
-                    eventEndDate: event.endDate,
-                    isExpired: event.endDate && now > new Date(event.endDate)
-                });
-                
-                if (event.endDate && now > new Date(event.endDate)) {
-                    console.log('🔒 Registration closed - event end date passed');
+            } else {                
+                if (event.endDate && now > new Date(event.endDate)) {                    
                     return errorResponseWithData(res, "Registration closed. Event date is over.", {
                         eventEndDate: event.endDate
                     });
@@ -1025,15 +965,13 @@ export const resolveFormUrl = async (req: Request, res: Response) => {
             
             // if the date is in the future
             if (ticket.advancedSettings.registrationFilterDate > now) {
-                console.log('⏰ Registration not started yet');
                 return errorResponseWithData(res, "Registration not started yet.", {
                     registrationFilterDate: ticket.advancedSettings.registrationFilterDate
                 });
             }
         }
 
-        // Return the parameters for redirection
-        console.log('✅ Registration is open - URL resolved successfully');
+        // Return the parameters for redirection        
         return successResponse(res, "Form URL resolved", {
             encryptedEventData: mapping.encryptedEventData,
             formId: mapping.formId,

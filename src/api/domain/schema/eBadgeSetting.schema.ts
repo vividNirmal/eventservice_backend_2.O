@@ -13,8 +13,8 @@ export interface IEBadgeSetting extends Document {
   
   // Updated fields structure to support both single and combined fields
   fields?: Array<{
-    combinedId?: string; // For combined fields like "firstName_lastName"
-    id?: string; // For single fields
+    combined_id?: any; // For combined fields like "firstName_lastName"
+    id?: any; // For single fields
     field: Array<{
       id: string;
       name: string;
@@ -36,6 +36,7 @@ export interface IEBadgeSetting extends Document {
       textFormat?: string;
       height?: string;
       width?: string;
+      categoryId? : string;
     }
   >;
   createdAt: Date;

@@ -394,9 +394,8 @@ function generateFieldHtml(
  * Helper function to generate PDF
  */
 export const generateBadgePdf = async (
-  formRegistrationId: string,
-  returnBuffer: boolean = false
-): Promise<Buffer | string | null> => {
+  formRegistrationId: string
+): Promise<Buffer | null> => {
   try {
     const baseUrl = env.BASE_URL;
 
@@ -627,25 +626,19 @@ export const generateBadgePdf = async (
     const page = await browser.newPage();
     await page.setContent(finalHtml, { waitUntil: "networkidle0" });
 
-    if (returnBuffer) {
-      // Return PDF as buffer (for email attachment)
-      const pdfUint8 = await page.pdf({
-        format: "A4",
-        printBackground: true,
-      });
-      // Ensure we return a Node Buffer (convert from Uint8Array if necessary)
-      const pdfBuffer = Buffer.from(pdfUint8 as unknown as Uint8Array);
-      await browser.close();
-      return pdfBuffer as unknown as Buffer;
-    } else {
-      // Save to temp file and return path
-      const pdfFileName = `${(fieldDataMap.first_name || "badge").replace(/\s+/g, "_")}_${registration.badgeNo || Date.now()}.pdf`;
-      const tempFilePath = path.join(__dirname, pdfFileName);
-      await page.pdf({ path: tempFilePath, format: "A4", printBackground: true });
-      await browser.close();
-      return tempFilePath;
-    }
-  } catch (error: any) {
+    // Directly generate PDF buffer
+    const pdfUint8Array = await page.pdf({
+      format: "A4",
+      printBackground: true,
+    });
+
+    // Convert Uint8Array → Buffer for compatibility
+    const pdfBuffer = Buffer.from(pdfUint8Array);
+
+    await browser.close();
+    return pdfBuffer;
+
+  } catch (error) {
     console.error("❌ Error generating badge PDF:", error);
     throw error;
   }
@@ -663,31 +656,23 @@ export const generateFormRegistrationPdf = async (req: Request, res: Response) =
       return ErrorResponse(res, "formRegistrationId is required");
     }
 
-    // Generate PDF and get temp file path
-    const tempFilePath = await generateBadgePdf(formRegistrationId, false);
+    // Generate PDF buffer
+    const pdfBuffer = await generateBadgePdf(formRegistrationId);
 
-    if (!tempFilePath || typeof tempFilePath !== "string") {
-      return ErrorResponse(res, "Failed to generate PDF file");
+    if (!pdfBuffer) {
+      return ErrorResponse(res, "Failed to generate PDF");
     }
 
-    // Send PDF file
-    if (fs.existsSync(tempFilePath)) {
-      const fileName = path.basename(tempFilePath);
-      res.set({
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${fileName}"`,
-      });
-      const stream = fs.createReadStream(tempFilePath);
-      stream.pipe(res);
-      res.on("finish", () => {
-        // Clean up temp file after sending
-        if (fs.existsSync(tempFilePath)) {
-          fs.unlinkSync(tempFilePath);
-        }
-      });
-    } else {
-      ErrorResponse(res, "PDF file not found");
-    }
+    const fileName = `badge_${formRegistrationId}.pdf`;
+
+    // Send PDF directly as response
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `inline; filename="${fileName}"`,
+      "Content-Length": pdfBuffer.length,
+    });
+
+    res.send(pdfBuffer);
   } catch (error: any) {
     console.error("❌ Error generating form registration PDF:", error);
     return res.status(500).json({
@@ -715,7 +700,6 @@ const paperSizeConfig: Record<string, { width: string; height: string; format?: 
  */
 export const generatePaperBadgePdf = async (
   formRegistrationId: string,
-  returnBuffer: boolean = false
 ): Promise<Buffer | string | null> => {
   try {
     const baseUrl = env.BASE_URL;
@@ -1090,23 +1074,12 @@ export const generatePaperBadgePdf = async (
       pdfOptions.height = paperDimensions.height;
     }
 
-    console.log("Paper Badge PDF Options:", pdfOptions);
+    const pdfUint8 = await page.pdf(pdfOptions);
+    const pdfBuffer = Buffer.from(pdfUint8);
 
-    if (returnBuffer) {
-      // Return PDF as buffer (for email attachment)
-      const pdfUint8 = await page.pdf(pdfOptions);
-      const pdfBuffer = Buffer.from(pdfUint8);
-      await browser.close();
-      return pdfBuffer;
-    } else {
-      // Save to temp file and return path
-      const firstName = fieldDataMap.first_name || "badge";
-      const pdfFileName = `paper_badge_${firstName.replace(/\s+/g, "_")}_${registration.badgeNo || Date.now()}.pdf`;
-      const tempFilePath = path.join(__dirname, pdfFileName);
-      await page.pdf({ ...pdfOptions, path: tempFilePath });
-      await browser.close();
-      return tempFilePath;
-    }
+    await browser.close();
+
+    return pdfBuffer;
   } catch (error: any) {
     console.error("❌ Error generating paper badge PDF:", error);
     throw error;
@@ -1124,31 +1097,19 @@ export const generatePaperBadgePdfEndpoint = async (req: Request, res: Response)
       return ErrorResponse(res, "formRegistrationId is required");
     }
 
-    // Generate PDF and get temp file path
-    const tempFilePath = await generatePaperBadgePdf(formRegistrationId, false);
+    const pdfBuffer = await generatePaperBadgePdf(formRegistrationId);
 
-    if (!tempFilePath || typeof tempFilePath !== "string") {
-      return ErrorResponse(res, "Failed to generate PDF file");
+    if (!pdfBuffer) {
+      return ErrorResponse(res, "Failed to generate PDF");
     }
 
-    // Send PDF file
-    if (fs.existsSync(tempFilePath)) {
-      const fileName = path.basename(tempFilePath);
-      res.set({
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${fileName}"`,
-      });
-      const stream = fs.createReadStream(tempFilePath);
-      stream.pipe(res);
-      res.on("finish", () => {
-        // Clean up temp file after sending
-        if (fs.existsSync(tempFilePath)) {
-          fs.unlinkSync(tempFilePath);
-        }
-      });
-    } else {
-      ErrorResponse(res, "PDF file not found");
-    }
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `inline; filename="paper_badge_${Date.now()}.pdf"`,
+    });
+
+    // Send PDF directly in response
+    res.send(pdfBuffer);
   } catch (error: any) {
     console.error("❌ Error generating paper badge PDF:", error);
     return res.status(500).json({

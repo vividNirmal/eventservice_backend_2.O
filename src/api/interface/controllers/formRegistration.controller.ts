@@ -409,38 +409,68 @@ export const generateBadgePdf = async (
 
     // Get form data
     const formData = registration.formData || {};
-    
+
+    console.log("formData>>>>", formData);
+    console.log("map_array>>>>", map_array);
+
     // Helper function to get field value using map_array
     const getFieldValue = (fieldKey: string): string => {
-      // If map_array has a mapping for this field, use it
+      // Special handling for specific field types
+      if (fieldKey === "qrCode") {
+        return qrCodeBase64;
+      }
+      
+      if (fieldKey === "date") {
+        return formatDateTime(event.startDate);
+      }
+      
+      if (fieldKey === "badgeCategory") {
+        return registration.businessData?.category || ticket.ticketCategory || "";
+      }
+      
+      if (fieldKey === "badgeNo") {
+        return registration.badgeNo || "";
+      }
+      
+      if (fieldKey === "email") {
+        return registration.email || formData.email || "";
+      }
+
+      // For dynamic form fields: Use map_array mapping
       const mappedFieldName = map_array[fieldKey];
       
       if (mappedFieldName && formData[mappedFieldName]) {
         return formData[mappedFieldName];
       }
-      const possibleFields = [fieldKey];
-      
-      for (const field of possibleFields) {
-        if (formData[field]) {
-          return formData[field];
-        }
+
+      // Fallback: Try direct field access
+      if (formData[fieldKey]) {
+        return formData[fieldKey];
       }
 
       return "";
     };
 
-    // Map field IDs to actual data using map_array
-    const fieldDataMap: Record<string, string> = {
-      first_name: getFieldValue("first_name"),
-      last_name: getFieldValue("last_name"),
-      email: registration.email || getFieldValue("email"),
-      contact_no: getFieldValue("contact_no"),
-      company_name: getFieldValue("company_name"),
-      qrCode: qrCodeBase64,
-      date: formatDateTime(event.startDate),
-      badgeCategory: registration.businessData?.category || ticket.ticketCategory || "",
-      badgeNo: registration.badgeNo || "",
-    };
+    // ✨ Dynamically build fieldDataMap based on e-badge setting fields
+    const fieldDataMap: Record<string, string> = {};
+    
+    // Collect all unique field IDs from e-badge settings
+    const allFieldIds = new Set<string>();
+    
+    for (const fieldGroup of eBadgeSetting.fields || []) {
+      if (fieldGroup.field && Array.isArray(fieldGroup.field)) {
+        fieldGroup.field.forEach((field: any) => {
+          if (field.id) {
+            allFieldIds.add(field.id);
+          }
+        });
+      }
+    }
+
+    // Build fieldDataMap for all fields used in e-badge
+    allFieldIds.forEach((fieldId) => {
+      fieldDataMap[fieldId] = getFieldValue(fieldId);
+    });
 
     console.log("fieldDataMap>>>>", fieldDataMap);
 
@@ -560,7 +590,8 @@ function generateFieldHtml(
   fixedPosition: boolean,
   categoryTextColor: string
 ): string {
-  const fieldValue = fieldDataMap[field.id] || field.name;
+  const fieldValue = fieldDataMap[field.id] || "";
+  // const fieldValue = fieldDataMap[field.id] || field.name || "";
   const position = fixedPosition ? "absolute" : "relative";
   const marginStyles = fixedPosition
     ? `left: ${props.marginLeft || "0mm"}; top: ${props.marginTop || "0mm"};`

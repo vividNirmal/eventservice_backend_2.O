@@ -331,7 +331,7 @@ export const getRegistrationController = async (
 /**
  * Helper function to calculate field width in mm
  */
-function getFieldWidth(field: any, props: any, fieldDataMap: Record<string, string>): number {
+function getFieldWidth(field: any, props: any, fieldDataMap: Record<string, string>, isPreview: boolean = false): number{
   if (field.type === "image") {
     return parseFloat(props.width) || 30;
   }
@@ -340,16 +340,22 @@ function getFieldWidth(field: any, props: any, fieldDataMap: Record<string, stri
     return parseFloat(props.width) || 20;
   }
 
-  // Use actual field value for text-based width
+  // For text fields, estimate based on font size and content length
   const fontSize = parseFloat(props.fontSize) || 12;
-  const textValue = fieldDataMap[field.id] || ""; // Actual content
-  const textLength = textValue.length || 1;
-
-  // Approximate average character width in mm
-  const charWidthMm = fontSize * 0.35 * 0.6; // (pt→mm) * average width factor
-
-  return textLength * charWidthMm;
-}
+  const charWidth = fontSize * 0.6;
+  
+  let textLength = 0;
+  if (isPreview) {
+    // In preview mode, use field name or placeholder text for width calculation
+    textLength = field.name?.length || field.id?.length || 10;
+  } else {
+    // In actual mode, use actual data from fieldDataMap
+    const text = fieldDataMap[field.id] || '';
+    textLength = text.length;
+  }
+  
+  return (textLength * charWidth) / 3.78; // Convert pixels to mm (1mm ≈ 3.78px at 96dpi)
+};
 
 
 /**
@@ -762,53 +768,70 @@ const paperSizeConfig: Record<string, { width: string; height: string; format?: 
  * Common function to generate Paper Badge PDF
  */
 export const generatePaperBadgePdf = async (
-  formRegistrationId: string,
+  identifier: string, // Can be formRegistrationId or paperBadgeSettingId
+  isPreview: boolean = false
 ): Promise<Buffer | string | null> => {
   try {
     const baseUrl = env.BASE_URL;
 
-    // Fetch form registration with populated references
-    const registration = await FormRegistration.findById(formRegistrationId)
-      .populate({
-        path: "ticketId",
-        populate: { path: "registrationFormId" }
-      })
-      .populate("eventId")
-      .lean();
+    let registration: any = null;
+    let event: any = null;
+    let ticket: any = null;
+    let paperBadgeSetting: any = null;
+    let map_array: Record<string, string> = {};
 
-    if (!registration) {
-      throw new Error("Form registration not found");
-    }
+    if (isPreview) {
+      // Preview mode - fetch paper badge setting directly
+      paperBadgeSetting = await PaperBadgeSetting.findById(identifier)
+        .populate("templateId");
 
-    const ticket = registration.ticketId as any;
-    const event = registration.eventId as any;
+      if (!paperBadgeSetting) {
+        throw new Error("Paper Badge setting not found");
+      }
+      
+    } else {
+      // Fetch form registration with populated references for actual data
+      registration = await FormRegistration.findById(identifier)
+        .populate({
+          path: "ticketId",
+          populate: { path: "registrationFormId" }
+        })
+        .populate("eventId")
+        .lean();
 
-    if (!ticket || !event) {
-      throw new Error("Ticket or Event not found");
-    }
+      if (!registration) {
+        throw new Error("Form registration not found");
+      }
 
-    // Build map_array from ticket's registration form
-    const map_array: Record<string, string> = {};
-    const registrationForm = ticket.registrationFormId;
-    
-    if (registrationForm?.pages) {
-      registrationForm.pages.forEach((page: any) => {
-        page.elements?.forEach((element: any) => {
-          if (element.mapField && element.fieldName) {
-            map_array[element.mapField] = element.fieldName;
-          }
+      ticket = registration.ticketId as any;
+      event = registration.eventId as any;
+
+      if (!ticket || !event) {
+        throw new Error("Ticket or Event not found");
+      }
+
+      // Build map_array from ticket's registration form
+      const registrationForm = ticket.registrationFormId;
+      
+      if (registrationForm?.pages) {
+        registrationForm.pages.forEach((page: any) => {
+          page.elements?.forEach((element: any) => {
+            if (element.mapField && element.fieldName) {
+              map_array[element.mapField] = element.fieldName;
+            }
+          });
         });
-      });
-    }
+      }
 
-    // Find paper badge setting for this ticket
-    const paperBadgeSetting = await PaperBadgeSetting.findOne({
-      ticketIds: ticket._id,
-      eventId: event._id,
-    }).populate("templateId");
+      // Find paper badge setting for this ticket
+      paperBadgeSetting = await PaperBadgeSetting.findOne({
+        ticketIds: ticket._id,
+        eventId: event._id,
+      }).populate("templateId");
+    }
 
     if (!paperBadgeSetting) {
-      throw new Error("Paper Badge setting not found for this ticket");
+      throw new Error("Paper Badge setting not found");
     }
 
     // Get paper size configuration
@@ -819,17 +842,23 @@ export const generatePaperBadgePdf = async (
     const template = paperBadgeSetting.templateId as any;
     const hasTemplate = !!template;
 
-    // Generate QR Code
-    let qrCodeBase64 = registration.qrImage
-      ? `${baseUrl}/uploads/${registration.qrImage}`
-      : await QRCode.toDataURL(
-          JSON.stringify({
-            event_id: event._id,
-            event_slug: event.event_slug,
-            formRegistration_id: registration._id,
-          }),
-          { width: 200, margin: 1 }
-        );
+    // Generate or get QR Code based on mode
+    let qrCodeBase64 = "";
+    if (isPreview) {
+      qrCodeBase64 = await QRCode.toDataURL("Sample QR Data", { width: 200, margin: 1 });
+    } else {
+      // Preview mode - generate sample QR code
+      qrCodeBase64 = registration.qrImage
+        ? `${baseUrl}/uploads/${registration.qrImage}`
+        : await QRCode.toDataURL(
+            JSON.stringify({
+              event_id: event._id,
+              event_slug: event.event_slug,
+              formRegistration_id: registration._id,
+            }),
+            { width: 200, margin: 1 }
+          );
+    }
 
     // Helper function to format dates
     const formatDateTime = (date?: Date | string): string => {
@@ -846,11 +875,29 @@ export const generatePaperBadgePdf = async (
       return `${day} ${month} ${year} - ${time}`;
     };
 
-    // Get form data
-    const formData = registration.formData || {};
+    // Get form data (only for actual mode)
+    const formData = isPreview ? {} : (registration.formData || {});
 
-    // Helper function to get field value using map_array
+    // Helper function to get field value based on mode
     const getFieldValue = (fieldKey: string): string => {
+      if (isPreview) {
+        // Preview mode - return placeholder data
+        const previewData: Record<string, string> = {
+          faceImage: "", // Will show placeholder
+          first_name: "First Name",
+          last_name: "Last Name",
+          email: "Email",
+          contact_no: "Contact Number",
+          company_name: "Company Name",
+          qrCode: qrCodeBase64,
+          date: "Select Date",
+          badgeCategory: "Badge Category",
+          badgeNo: "12345",
+        };
+        return previewData[fieldKey] || fieldKey;
+      }
+
+      // Actual mode - use real data
       // Special handling for specific field types
       if (fieldKey === "qrCode") {
         return qrCodeBase64;
@@ -992,7 +1039,7 @@ export const generatePaperBadgePdf = async (
         
         for (let i = 0; i < fieldGroup.field.length; i++) {
           const field = fieldGroup.field[i];
-          const fieldWidth = getFieldWidth(field, props, fieldDataMap);
+          const fieldWidth = getFieldWidth(field, props, fieldDataMap, isPreview);
           
           dynamicContent += generateFieldHtml(field, props, fieldDataMap, true, categoryTextColor, false, i, totalFields, cumulativeWidth);
           
@@ -1172,7 +1219,7 @@ export const generatePaperBadgePdfEndpoint = async (req: Request, res: Response)
       return ErrorResponse(res, "formRegistrationId is required");
     }
 
-    const pdfBuffer = await generatePaperBadgePdf(formRegistrationId);
+    const pdfBuffer = await generatePaperBadgePdf(formRegistrationId, false);
 
     if (!pdfBuffer) {
       return ErrorResponse(res, "Failed to generate PDF");
@@ -1192,6 +1239,35 @@ export const generatePaperBadgePdfEndpoint = async (req: Request, res: Response)
       message: "Error generating PDF",
       error: error.message,
     });
+  }
+};
+
+/**
+ * API endpoint for Paper Badge Preview PDF
+ */
+export const getPaperBadgePreviewPdf = async (req: Request, res: Response) => {
+  try {
+    const { id: settingId } = req.params;
+
+    if (!settingId) {
+      return ErrorResponse(res, "Setting ID is required");
+    }
+
+    const pdfBuffer = await generatePaperBadgePdf(settingId, true);
+
+    if (!pdfBuffer) {
+      return ErrorResponse(res, "Failed to generate preview PDF");
+    }
+
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `inline; filename="paper_badge_preview_${Date.now()}.pdf"`,
+    });
+
+    res.send(pdfBuffer);
+  } catch (error: any) {
+    console.error("Error:", error);
+    return ErrorResponse(res, error.message || "Error generating preview PDF");
   }
 };
 

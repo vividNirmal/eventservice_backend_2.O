@@ -95,7 +95,8 @@ export async function sendNotification(
   actionType: string,
   recipientEmail: string,
   templateData: any,
-  channel: 'email' | 'sms' | 'whatsapp' = 'email'
+  channel: 'email' | 'sms' | 'whatsapp' = 'email',
+  additionalAttachments: any[] = []
 ) {
   try {
     const template = await getNotificationTemplate(ticketId, actionType, channel);    
@@ -111,6 +112,7 @@ export async function sendNotification(
         to: recipientEmail,
         subject: compiledSubject,
         htmlContent: compiledContent,
+        attachments: []
       };
 
       if ('defaultOption' in template) {
@@ -120,13 +122,19 @@ export async function sendNotification(
           emailOptions.bcc = userTemplate.defaultOption.bcc;
         }
 
+        // Add template attachments
         if (userTemplate.attachments?.length > 0) {
-          emailOptions.attachments = userTemplate.attachments.map((att: any) => ({
+          emailOptions.attachments.push(...userTemplate.attachments.map((att: any) => ({
             filename: att.originalName || att.filename,
             path: `${process.env.BASE_URL}/uploads/${att.path}`,
             contentType: att.mimetype,
-          }));
+          })));
         }
+      }
+
+      // Add additional attachments (like the PDF badge)
+      if (additionalAttachments.length > 0) {
+        emailOptions.attachments.push(...additionalAttachments);
       }
 
       return await EmailServiceNew.sendEmail(emailOptions);

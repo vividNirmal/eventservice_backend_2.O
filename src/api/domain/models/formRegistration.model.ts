@@ -24,6 +24,7 @@ import eventHostSchema from "../schema/eventHost.schema";
 import ticketSchema from "../schema/ticket.schema";
 import eventUserSchema from "../schema/eventUser.schema";
 import companySchema from "../schema/company.schema";
+import { generateBadgePdf } from "../../interface/controllers/formRegistration.controller";
 
 const addImageUrls = (ticket: any) => {
   const baseUrl = env.BASE_URL;
@@ -487,9 +488,22 @@ export const storeFormRegistrationModel = async (
       registration.qrImage = `${qrFileName}`;
       await registration.save();
     }
+    // Generate PDF badge after registration is saved
+    let pdfBuffer: Buffer | null = null;
+    try {
+      pdfBuffer = await generateBadgePdf(registration.id.toString());
+      console.log('✅ PDF badge generated successfully');
+    } catch (pdfError) {
+      console.error('Failed to generate PDF badge:', pdfError);
+      // Continue without PDF - don't block registration
+    }
 
     // Send welcome email if template exists (non-blocking)
-    sendWelcomeEmailAfterRegistration(ticketId, registration).catch((error) => {
+    sendWelcomeEmailAfterRegistration(
+      ticketId, 
+      registration,
+      pdfBuffer // Pass the PDF buffer
+    ).catch((error) => {
       console.error("Failed to send welcome email:", error);
     });
 
@@ -671,7 +685,8 @@ function saveQrImage(base64String: string, fileName: string): string {
 
 async function sendWelcomeEmailAfterRegistration(
   ticketId: mongoose.Types.ObjectId,
-  registration: any
+  registration: any,
+  pdfBuffer: Buffer | null = null
 ) {
   try {
     const templateData = {
@@ -687,10 +702,15 @@ async function sendWelcomeEmailAfterRegistration(
       "welcome",
       registration.email,
       templateData,
-      "email"
+      "email",
+      pdfBuffer ? [{
+        filename: `badge_${registration.badgeNo || registration._id}.pdf`,
+        content: pdfBuffer,
+        contentType: 'application/pdf'
+      }] : []
     );
 
-    console.log(`✅ Welcome email sent to ${registration.email}`);
+    console.log(`✅ Welcome email sent to ${registration.email} with PDF badge`);
   } catch (error) {
     console.error("Error in sendWelcomeEmailAfterRegistration:", error);
     // Don't throw error to avoid affecting registration flow

@@ -47,7 +47,7 @@ import { createUserTypeSchema, updateUserTypeSchema } from "../../utils/validati
 import { createUserTypeController, deleteUserTypeByIdController, getAllUserTypesController, getUserTypeByIdController, updateUserTypeByIdController } from "../controllers/userType.controller";
 import { createUserTypeMapController, deleteUserTypeMapByIdController, getAllUserTypeMapsController, getUserTypeMapByIdController, updateUserTypeMapByIdController } from "../controllers/userTypeMap.controller";
 import { createUserTypeMapSchema, updateUserTypeMapSchema } from "../../utils/validation-schems/userTypeMap.validation";
-import { generateFormRegistrationPdf, getFormRegistrationListController, getRegistrationController, resolveEmailController, resolveFormUrlController, submitRegistrationController, updateFormRegistrationController, updateFormRegistrationStatusController } from "../controllers/formRegistration.controller";
+import { generateFormRegistrationPdf, generatePaperBadgePdfEndpoint, getFormRegistrationListController, getRegistrationController, resolveEmailController, resolveFormUrlController, submitRegistrationController, updateFormRegistrationController, updateFormRegistrationStatusController } from "../controllers/formRegistration.controller";
 import { formRegistrationStatusValidation, generatePdfValidation, resolveEmailValidation, resolveFormUrlValidation, submitRegistrationValidation, updateRegistrationValidation } from "../../utils/validation-schems/formRegistration.validation";
 import { createEBadgeTemplateSchema, updateEBadgeTemplateSchema } from "../../utils/validation-schems/eBadgeTemplate.validation";
 import { createEBadgeTemplateController, deleteEBadgeTemplateByIdController, getAllEBadgeTemplatesController, getEBadgeTemplateByEventIdController, getEBadgeTemplateByIdController, updateEBadgeTemplateByIdController } from "../controllers/eBadgeTemplate.controller";
@@ -305,6 +305,7 @@ export const upload = multer({ storage: storage });
             route.post("/resolve-email", validateRequest(resolveEmailValidation), resolveEmailController);
             route.post("/store-register-form", uploadImagesFile, validateRequest(submitRegistrationValidation), submitRegistrationController);
             route.post("/generate-pdf-scanner", validateRequest(generatePdfValidation), generateFormRegistrationPdf);
+            route.post("/generate-paper-pdf-scanner", validateRequest(generatePdfValidation), generatePaperBadgePdfEndpoint);
             route.get("/form-registration-list", protectedRoute, getFormRegistrationListController);
             route.get("/get-form-registration/:id", protectedRoute, getRegistrationController);
             route.put("/form-registration-status-change/:id", protectedRoute, validateRequest(formRegistrationStatusValidation), updateFormRegistrationStatusController);

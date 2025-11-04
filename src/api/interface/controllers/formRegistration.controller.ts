@@ -29,6 +29,7 @@ import EventHost from "../../domain/schema/eventHost.schema";
 import QRCode from "qrcode";
 import puppeteer from "puppeteer";
 import EBadgeSetting from "../../domain/schema/eBadgeSetting.schema";
+import PaperBadgeSetting from "../../domain/schema/paperBadgeSetting.schema";
 
 // Helper to append BASE_URL for file/image fields
 const appendBaseUrlToFiles = (registration: any) => {
@@ -327,6 +328,71 @@ export const getRegistrationController = async (
 //   }
 // };
 
+/**
+ * Helper function to generate HTML for a single field
+ */
+function generateFieldHtml(
+  field: any,
+  props: any,
+  fieldDataMap: Record<string, string>,
+  fixedPosition: boolean,
+  categoryTextColor: string
+): string {
+  const fieldValue = fieldDataMap[field.id] || "";
+  // const fieldValue = fieldDataMap[field.id] || field.name || "";
+  const position = fixedPosition ? "absolute" : "relative";
+  const marginStyles = fixedPosition
+    ? `left: ${props.marginLeft || "0mm"}; top: ${props.marginTop || "0mm"};`
+    : `margin-left: ${props.marginLeft || "0mm"}; margin-top: ${props.marginTop || "0mm"};`;
+
+  // Handle Face Image
+  if (field.type === "image") {
+    const imageUrl = fieldValue || "";
+    const imageHtml = imageUrl
+      ? `<img src="${imageUrl}" alt="Face Image" style="width: 100%; height: 100%; object-fit: ${props.objectFit || "cover"};" />`
+      : `<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; color: #999; font-size: 10px;">
+           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+             <circle cx="12" cy="7" r="4"></circle>
+           </svg>
+           <span style="margin-top: 8px;">No Image</span>
+         </div>`;
+
+    return `<div style="position: ${position}; ${marginStyles} display: flex; justify-content: ${
+      props.position === "left" ? "flex-start" : props.position === "center" ? "center" : "flex-end"
+    };">
+      <div style="width: ${props.width || "30mm"}; height: ${props.height || "40mm"}; border-radius: ${props.borderRadius || "0px"}; overflow: hidden; background-color: #f0f0f0; display: flex; align-items: center; justify-content: center; border: 1px solid #ddd;">
+        ${imageHtml}
+      </div>
+    </div>`;
+  }
+
+  if (field.type === "qrcode") {
+    return `<div style="position: ${position}; ${marginStyles} display: flex; justify-content: ${
+      props.position === "left" ? "flex-start" : props.position === "center" ? "center" : "flex-end"
+    };">
+      <img src="${fieldValue}" alt="QR Code" style="width: ${props.width || "20mm"}; height: ${props.height || "20mm"};" />
+    </div>`;
+  }
+
+  return `<div style="position: ${position}; ${marginStyles} text-align: ${props.position || "left"}; font-family: ${
+    props.fontFamily || "Arial"
+  }; font-size: ${props.fontSize || "12pt"}; color: ${categoryTextColor || props.fontColor || "#000"}; font-weight: ${
+    props.fontStyle === "bold" ? "bold" : "normal"
+  }; text-transform: ${
+    props.textFormat === "uppercase"
+      ? "uppercase"
+      : props.textFormat === "lowercase"
+      ? "lowercase"
+      : props.textFormat === "capitalize"
+      ? "capitalize"
+      : "none"
+  };">${fieldValue}</div>`;
+}
+
+/**
+ * Helper function to generate PDF
+ */
 export const generateBadgePdf = async (
   formRegistrationId: string,
   returnBuffer: boolean = false
@@ -434,6 +500,12 @@ export const generateBadgePdf = async (
       
       if (fieldKey === "email") {
         return registration.email || formData.email || "";
+      }
+
+      if (fieldKey === "faceImage") {
+        return registration.faceImageUrl 
+          ? `${baseUrl}/uploads/participants/${registration.faceImageUrl}`
+          : "";
       }
 
       // For dynamic form fields: Use map_array mapping
@@ -581,46 +653,6 @@ export const generateBadgePdf = async (
 
 
 /**
- * Helper function to generate HTML for a single field
- */
-function generateFieldHtml(
-  field: any,
-  props: any,
-  fieldDataMap: Record<string, string>,
-  fixedPosition: boolean,
-  categoryTextColor: string
-): string {
-  const fieldValue = fieldDataMap[field.id] || "";
-  // const fieldValue = fieldDataMap[field.id] || field.name || "";
-  const position = fixedPosition ? "absolute" : "relative";
-  const marginStyles = fixedPosition
-    ? `left: ${props.marginLeft || "0mm"}; top: ${props.marginTop || "0mm"};`
-    : `margin-left: ${props.marginLeft || "0mm"}; margin-top: ${props.marginTop || "0mm"};`;
-
-  if (field.type === "qrcode") {
-    return `<div style="position: ${position}; ${marginStyles} display: flex; justify-content: ${
-      props.position === "left" ? "flex-start" : props.position === "center" ? "center" : "flex-end"
-    };">
-      <img src="${fieldValue}" alt="QR Code" style="width: ${props.width || "20mm"}; height: ${props.height || "20mm"};" />
-    </div>`;
-  }
-
-  return `<div style="position: ${position}; ${marginStyles} text-align: ${props.position || "left"}; font-family: ${
-    props.fontFamily || "Arial"
-  }; font-size: ${props.fontSize || "12pt"}; color: ${categoryTextColor || props.fontColor || "#000"}; font-weight: ${
-    props.fontStyle === "bold" ? "bold" : "normal"
-  }; text-transform: ${
-    props.textFormat === "uppercase"
-      ? "uppercase"
-      : props.textFormat === "lowercase"
-      ? "lowercase"
-      : props.textFormat === "capitalize"
-      ? "capitalize"
-      : "none"
-  };">${fieldValue}</div>`;
-}
-
-/**
  * API endpoint to generate and download PDF
  */
 export const generateFormRegistrationPdf = async (req: Request, res: Response) => {
@@ -658,6 +690,467 @@ export const generateFormRegistrationPdf = async (req: Request, res: Response) =
     }
   } catch (error: any) {
     console.error("❌ Error generating form registration PDF:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Error generating PDF",
+      error: error.message,
+    });
+  }
+};
+
+
+//////////////////////////////////
+
+// Paper size configurations
+const paperSizeConfig: Record<string, { width: string; height: string; format?: any }> = {
+  a4: { width: "210mm", height: "297mm", format: "A4" },
+  a5: { width: "148mm", height: "210mm", format: "A5" },
+  letter: { width: "215.9mm", height: "279.4mm", format: "Letter" },
+  legal: { width: "215.9mm", height: "355.6mm", format: "Legal" },
+  normal: { width: "93.5mm", height: "122mm" }, // Custom size
+};
+
+/**
+ * Common function to generate Paper Badge PDF
+ */
+export const generatePaperBadgePdf = async (
+  formRegistrationId: string,
+  returnBuffer: boolean = false
+): Promise<Buffer | string | null> => {
+  try {
+    const baseUrl = env.BASE_URL;
+
+    // Fetch form registration with populated references
+    const registration = await FormRegistration.findById(formRegistrationId)
+      .populate({
+        path: "ticketId",
+        populate: { path: "registrationFormId" }
+      })
+      .populate("eventId")
+      .lean();
+
+    if (!registration) {
+      throw new Error("Form registration not found");
+    }
+
+    const ticket = registration.ticketId as any;
+    const event = registration.eventId as any;
+
+    if (!ticket || !event) {
+      throw new Error("Ticket or Event not found");
+    }
+
+    // Build map_array from ticket's registration form
+    const map_array: Record<string, string> = {};
+    const registrationForm = ticket.registrationFormId;
+    
+    if (registrationForm?.pages) {
+      registrationForm.pages.forEach((page: any) => {
+        page.elements?.forEach((element: any) => {
+          if (element.mapField && element.fieldName) {
+            map_array[element.mapField] = element.fieldName;
+          }
+        });
+      });
+    }
+
+    // Find paper badge setting for this ticket
+    const paperBadgeSetting = await PaperBadgeSetting.findOne({
+      ticketIds: ticket._id,
+      eventId: event._id,
+    }).populate("templateId");
+
+    if (!paperBadgeSetting) {
+      throw new Error("Paper Badge setting not found for this ticket");
+    }
+
+    // Get paper size configuration
+    const paperSize = paperBadgeSetting.paperSize || "a4";
+    const paperDimensions = paperSizeConfig[paperSize];
+
+    // Get template if using "withDesign" mode
+    const template = paperBadgeSetting.templateId as any;
+    const hasTemplate = !!template;
+
+    // Generate QR Code
+    let qrCodeBase64 = registration.qrImage
+      ? `${baseUrl}/uploads/${registration.qrImage}`
+      : await QRCode.toDataURL(
+          JSON.stringify({
+            event_id: event._id,
+            event_slug: event.event_slug,
+            formRegistration_id: registration._id,
+          }),
+          { width: 200, margin: 1 }
+        );
+
+    // Helper function to format dates
+    const formatDateTime = (date?: Date | string): string => {
+      if (!date) return "N/A";
+      const d = new Date(date);
+      const day = d.getDate();
+      const month = d.toLocaleString("default", { month: "long" });
+      const year = d.getFullYear();
+      const time = d.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+      return `${day} ${month} ${year} - ${time}`;
+    };
+
+    // Get form data
+    const formData = registration.formData || {};
+
+    // Helper function to get field value using map_array
+    const getFieldValue = (fieldKey: string): string => {
+      // Special handling for specific field types
+      if (fieldKey === "qrCode") {
+        return qrCodeBase64;
+      }
+      
+      if (fieldKey === "date") {
+        return formatDateTime(event.startDate);
+      }
+      
+      if (fieldKey === "badgeCategory") {
+        return registration.businessData?.category || ticket.ticketCategory || "";
+      }
+      
+      if (fieldKey === "badgeNo") {
+        return registration.badgeNo || "";
+      }
+      
+      if (fieldKey === "email") {
+        return registration.email || formData.email || "";
+      }
+
+      if (fieldKey === "faceImage") {
+        return registration.faceImageUrl 
+          ? `${baseUrl}/uploads/participants/${registration.faceImageUrl}`
+          : "";
+      }
+
+      // For dynamic form fields: Use map_array mapping
+      const mappedFieldName = map_array[fieldKey];
+      
+      if (mappedFieldName && formData[mappedFieldName]) {
+        return formData[mappedFieldName];
+      }
+
+      // Fallback: Try direct field access
+      if (formData[fieldKey]) {
+        return formData[fieldKey];
+      }
+
+      return "";
+    };
+
+    // ✨ Dynamically build fieldDataMap based on paper badge setting fields
+    const fieldDataMap: Record<string, string> = {};
+    
+    // Collect all unique field IDs from paper badge settings
+    const allFieldIds = new Set<string>();
+    
+    for (const fieldGroup of paperBadgeSetting.fields || []) {
+      if (fieldGroup.field && Array.isArray(fieldGroup.field)) {
+        fieldGroup.field.forEach((field: any) => {
+          if (field.id) {
+            allFieldIds.add(field.id);
+          }
+        });
+      }
+    }
+
+    // Build fieldDataMap for all fields used in paper badge
+    allFieldIds.forEach((fieldId) => {
+      fieldDataMap[fieldId] = getFieldValue(fieldId);
+    });
+
+    // Find badge category if selected (paper badges don't have category color support in schema, but keeping for consistency)
+    const badgeCategoryGroup = paperBadgeSetting.fields?.find((f: any) =>
+      f.field?.some((field: any) => field.id === "badgeCategory")
+    );
+
+    // Safely compute the key to use for indexing fieldProperties to avoid using `undefined` as an index
+    const selectedCategoryId = (() => {
+      if (!badgeCategoryGroup) return null;
+      // support both possible property names used across code (combinedId or combined_id) and fallback to id
+      const key = badgeCategoryGroup.combined_id ?? badgeCategoryGroup.combined_id ?? badgeCategoryGroup.id;
+      if (!key) return null;
+      return paperBadgeSetting.fieldProperties?.[key]?.categoryId ?? null;
+    })();
+
+    // Apply badge category colors if selected
+    let categoryBackgroundColor = "";
+    let categoryTextColor = "";
+    
+    if (selectedCategoryId) {
+      const BadgeCategory = require("../../domain/schema/badgeCategory.schema").default;
+      const category = await BadgeCategory.findById(selectedCategoryId);
+      if (category) {
+        categoryBackgroundColor = category.backgroundColor;
+        categoryTextColor = category.textColor;
+      }
+    }
+
+    // Build HTML based on design type (with or without template)
+    let htmlTemplate = "";
+    
+    if (hasTemplate) {
+      // With Design - use template
+      htmlTemplate = `
+        <div style="width: ${paperDimensions.width}; height: ${paperDimensions.height}; margin: 0 auto; background: white; position: relative; overflow: hidden;">
+          ${template.htmlContent}
+        </div>
+      `;
+    } else {
+      // Without Design - blank canvas
+      htmlTemplate = `
+        <div style="width: ${paperDimensions.width}; height: ${paperDimensions.height}; margin: 0 auto; background: white; position: relative; overflow: hidden;">
+          <div id="badgeContent" style="position: relative; width: 100%; height: 100%; padding: 5mm;"></div>
+        </div>
+      `;
+    }
+
+    // Build dynamic content based on paper badge settings
+    let dynamicContent = "";
+    const fixedPosition = paperBadgeSetting.fixedPosition || false;
+
+    for (const fieldGroup of paperBadgeSetting.fields || []) {
+      const groupId = fieldGroup.combined_id || fieldGroup.id || '';
+      const props = groupId ? (paperBadgeSetting.fieldProperties?.[groupId] || {}) : {};
+
+      // Skip badge category field - it only applies colors
+      if (fieldGroup.field?.some((f: any) => f.id === "badgeCategory")) {
+        continue;
+      }
+
+      if (fieldGroup.combined_id && !fixedPosition) {
+        // Combined fields - render in a flex container
+        let combinedHtml = `<div style="display: flex; gap: 8px; align-items: center; margin-top: ${props.marginTop || "0mm"}; margin-left: ${props.marginLeft || "0mm"}; justify-content: ${
+          props.position === "left" ? "flex-start" : props.position === "center" ? "center" : "flex-end"
+        };">`;
+
+        for (const field of fieldGroup.field) {
+          combinedHtml += generateFieldHtml(field, props, fieldDataMap, false, categoryTextColor);
+        }
+
+        combinedHtml += "</div>";
+        dynamicContent += combinedHtml;
+      } else if (fieldGroup.combined_id && fixedPosition) {
+        // Fixed position - render combined fields individually
+        for (const field of fieldGroup.field) {
+          dynamicContent += generateFieldHtml(field, props, fieldDataMap, true, categoryTextColor);
+        }
+      } else {
+        // Single field
+        const field = fieldGroup.field?.[0];
+        if (field) {
+          dynamicContent += generateFieldHtml(field, props, fieldDataMap, fixedPosition, categoryTextColor);
+        }
+      }
+    }
+
+    // Replace placeholder in template with dynamic content
+    let finalHtml = htmlTemplate.replace(
+      /<div[^>]*id="badgeContent"[^>]*>.*?<\/div>/,
+      `<div id="badgeContent" style="visibility: visible; position: relative; width: 100%; height: 100%; padding: 5mm;${
+        categoryBackgroundColor ? ` background-color: ${categoryBackgroundColor};` : ""
+      }${categoryTextColor ? ` color: ${categoryTextColor};` : ""}">${dynamicContent}</div>`
+    );
+
+    // If template exists but has no badgeContent div, append dynamic content
+    if (hasTemplate && !htmlTemplate.includes('id="badgeContent"')) {
+      finalHtml = htmlTemplate.replace(
+        /<\/div>\s*$/,
+        `<div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 5mm;">${dynamicContent}</div></div>`
+      );
+    }
+
+    // Wrap in complete HTML document with print-optimized styles
+    finalHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Print Badge - ${paperDimensions.width} x ${paperDimensions.height}</title>
+        <style>
+          @page {
+            size: ${paperDimensions.width} ${paperDimensions.height};
+            margin: 0;
+          }
+          
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            color-adjust: exact;
+          }
+          
+          html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial, sans-serif;
+          }
+          
+          .print-container {
+            width: ${paperDimensions.width};
+            height: ${paperDimensions.height};
+            position: relative;
+            page-break-after: always;
+          }
+          
+          /* Ensure images print correctly */
+          img {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            max-width: 100%;
+            height: auto;
+          }
+          
+          /* Ensure backgrounds print */
+          div, span, section, article {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          
+          @media print {
+            html, body {
+              margin: 0;
+              padding: 0;
+              width: 100%;
+              height: 100%;
+            }
+            
+            .print-container {
+              margin: 0;
+              padding: 0;
+              border: none !important;
+              box-shadow: none !important;
+            }
+            
+            /* Hide any border that might show in preview */
+            * {
+              box-shadow: none !important;
+            }
+          }
+          
+          @media screen {
+            body {
+              background: #f5f5f5;
+            }
+            
+            .print-container {
+              box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="print-container">
+          ${finalHtml}
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Launch puppeteer and generate PDF
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    });
+    const page = await browser.newPage();
+    await page.setContent(finalHtml, { waitUntil: "networkidle0" });
+
+    // PDF options with paper size
+    const pdfOptions: any = {
+      printBackground: true,
+      margin: {
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0
+      }
+    };
+
+    // Use format if available, otherwise use custom dimensions
+    if (paperDimensions.format) {
+      pdfOptions.format = paperDimensions.format;
+    } else {
+      pdfOptions.width = paperDimensions.width;
+      pdfOptions.height = paperDimensions.height;
+    }
+
+    console.log("Paper Badge PDF Options:", pdfOptions);
+
+    if (returnBuffer) {
+      // Return PDF as buffer (for email attachment)
+      const pdfUint8 = await page.pdf(pdfOptions);
+      const pdfBuffer = Buffer.from(pdfUint8);
+      await browser.close();
+      return pdfBuffer;
+    } else {
+      // Save to temp file and return path
+      const firstName = fieldDataMap.first_name || "badge";
+      const pdfFileName = `paper_badge_${firstName.replace(/\s+/g, "_")}_${registration.badgeNo || Date.now()}.pdf`;
+      const tempFilePath = path.join(__dirname, pdfFileName);
+      await page.pdf({ ...pdfOptions, path: tempFilePath });
+      await browser.close();
+      return tempFilePath;
+    }
+  } catch (error: any) {
+    console.error("❌ Error generating paper badge PDF:", error);
+    throw error;
+  }
+};
+
+/**
+ * API endpoint to generate and download Paper Badge PDF
+ */
+export const generatePaperBadgePdfEndpoint = async (req: Request, res: Response) => {
+  try {
+    const { formRegistrationId } = req.body;
+
+    if (!formRegistrationId) {
+      return ErrorResponse(res, "formRegistrationId is required");
+    }
+
+    // Generate PDF and get temp file path
+    const tempFilePath = await generatePaperBadgePdf(formRegistrationId, false);
+
+    if (!tempFilePath || typeof tempFilePath !== "string") {
+      return ErrorResponse(res, "Failed to generate PDF file");
+    }
+
+    // Send PDF file
+    if (fs.existsSync(tempFilePath)) {
+      const fileName = path.basename(tempFilePath);
+      res.set({
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${fileName}"`,
+      });
+      const stream = fs.createReadStream(tempFilePath);
+      stream.pipe(res);
+      res.on("finish", () => {
+        // Clean up temp file after sending
+        if (fs.existsSync(tempFilePath)) {
+          fs.unlinkSync(tempFilePath);
+        }
+      });
+    } else {
+      ErrorResponse(res, "PDF file not found");
+    }
+  } catch (error: any) {
+    console.error("❌ Error generating paper badge PDF:", error);
     return res.status(500).json({
       status: "error",
       message: "Error generating PDF",

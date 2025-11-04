@@ -12,7 +12,7 @@ export interface IPaperBadgeSetting extends Document {
   paperSize?: "a4" | "a5" | "letter" | "legal" | "normal"; // paper size
   // Updated fields structure to support both single and combined fields
   fields?: Array<{
-    combinedId?: string; // For combined fields like "firstName_lastName"
+    combined_id?: string; // For combined fields like "firstName_lastName"
     id?: string; // For single fields
     field: Array<{
       id: string;
@@ -35,6 +35,7 @@ export interface IPaperBadgeSetting extends Document {
       textFormat?: string;
       height?: string;
       width?: string;
+      categoryId?: string;
     }
   >;
   createdAt: Date;

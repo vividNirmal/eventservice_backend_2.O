@@ -329,28 +329,67 @@ export const getRegistrationController = async (
 // };
 
 /**
+ * Helper function to calculate field width in mm
+ */
+function getFieldWidth(field: any, props: any, fieldDataMap: Record<string, string>): number {
+  if (field.type === "image") {
+    return parseFloat(props.width) || 30;
+  }
+
+  if (field.type === "qrcode") {
+    return parseFloat(props.width) || 20;
+  }
+
+  // Use actual field value for text-based width
+  const fontSize = parseFloat(props.fontSize) || 12;
+  const textValue = fieldDataMap[field.id] || ""; // Actual content
+  const textLength = textValue.length || 1;
+
+  // Approximate average character width in mm
+  const charWidthMm = fontSize * 0.35 * 0.6; // (pt→mm) * average width factor
+
+  return textLength * charWidthMm;
+}
+
+
+/**
  * Helper function to generate HTML for a single field
+ * Updated with previousFieldsWidth parameter for proper spacing
  */
 function generateFieldHtml(
   field: any,
   props: any,
   fieldDataMap: Record<string, string>,
   fixedPosition: boolean,
-  categoryTextColor: string
+  categoryTextColor: string,
+  isInCombinedGroup: boolean = false,
+  fieldIndex: number = 0,
+  totalFields: number = 1,
+  previousFieldsWidth: number = 0
 ): string {
   const fieldValue = fieldDataMap[field.id] || "";
-  // const fieldValue = fieldDataMap[field.id] || field.name || "";
   const position = fixedPosition ? "absolute" : "relative";
-  const marginStyles = fixedPosition
-    ? `left: ${props.marginLeft || "0mm"}; top: ${props.marginTop || "0mm"};`
-    : `margin-left: ${props.marginLeft || "0mm"}; margin-top: ${props.marginTop || "0mm"};`;
+  
+  // Handle margins based on positioning mode
+  let marginStyles = "";
+  if (fixedPosition) {
+    // For combined fields in fixed position, calculate position based on actual widths
+    const baseLeft = parseFloat(props.marginLeft) || 0;
+    const spacing = 2; // 2mm spacing between combined fields
+    const offsetLeft = baseLeft + previousFieldsWidth + (fieldIndex * spacing);
+    
+    marginStyles = `left: ${offsetLeft}mm; top: ${props.marginTop || "0mm"};`;
+  } else if (!isInCombinedGroup) {
+    // Only apply margins for non-combined fields
+    marginStyles = `margin-left: ${props.marginLeft || "0mm"}; margin-top: ${props.marginTop || "0mm"};`;
+  }
 
   // Handle Face Image
   if (field.type === "image") {
     const imageUrl = fieldValue || "";
     const imageHtml = imageUrl
-      ? `<img src="${imageUrl}" alt="Face Image" style="width: 100%; height: 100%; object-fit: ${props.objectFit || "cover"};" />`
-      : `<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; color: #999; font-size: 10px;">
+      ? `<img src="${imageUrl}" alt="Face Image" style="width: 100%; height: 100%; object-fit: ${props.objectFit || "cover"}; display: block;" />`
+      : `<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; color: #999; font-size: 10px; height: 100%;">
            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
              <circle cx="12" cy="7" r="4"></circle>
@@ -360,21 +399,29 @@ function generateFieldHtml(
 
     return `<div style="position: ${position}; ${marginStyles} display: flex; justify-content: ${
       props.position === "left" ? "flex-start" : props.position === "center" ? "center" : "flex-end"
-    };">
-      <div style="width: ${props.width || "30mm"}; height: ${props.height || "40mm"}; border-radius: ${props.borderRadius || "0px"}; overflow: hidden; background-color: #f0f0f0; display: flex; align-items: center; justify-content: center; border: 1px solid #ddd;">
+    }; line-height: 0;">
+      <div style="width: ${props.width || "30mm"}; height: ${props.height || "40mm"}; border-radius: ${
+        props.borderRadius || "0px"
+      }; overflow: hidden; background-color: #f0f0f0; display: flex; align-items: center; justify-content: center; border: 1px solid #ddd;">
         ${imageHtml}
       </div>
     </div>`;
   }
 
+  // Handle QR Code
   if (field.type === "qrcode") {
     return `<div style="position: ${position}; ${marginStyles} display: flex; justify-content: ${
       props.position === "left" ? "flex-start" : props.position === "center" ? "center" : "flex-end"
-    };">
-      <img src="${fieldValue}" alt="QR Code" style="width: ${props.width || "20mm"}; height: ${props.height || "20mm"};" />
+    }; line-height: 0;">
+      <img src="${fieldValue}" alt="QR Code" style="width: ${props.width || "20mm"}; height: ${
+        props.height || "20mm"
+      }; display: block;" />
     </div>`;
   }
 
+  // Handle Text Fields
+  const displayStyle = isInCombinedGroup ? "inline-block" : "block";
+  
   return `<div style="position: ${position}; ${marginStyles} text-align: ${props.position || "left"}; font-family: ${
     props.fontFamily || "Arial"
   }; font-size: ${props.fontSize || "12pt"}; color: ${categoryTextColor || props.fontColor || "#000"}; font-weight: ${
@@ -387,7 +434,7 @@ function generateFieldHtml(
       : props.textFormat === "capitalize"
       ? "capitalize"
       : "none"
-  };">${fieldValue}</div>`;
+  }; display: ${displayStyle}; line-height: 1.2; margin: ${isInCombinedGroup ? '0' : ''}; white-space: nowrap;">${fieldValue}</div>`;
 }
 
 /**
@@ -585,27 +632,35 @@ export const generateBadgePdf = async (
       }
 
       if (fieldGroup.combined_id && !fixedPosition) {
-        // Combined fields - render in a flex container
+        // Combined fields - render in a flex container (when NOT using fixed position)
         let combinedHtml = `<div style="display: flex; gap: 8px; align-items: center; margin-top: ${props.marginTop || "0mm"}; margin-left: ${props.marginLeft || "0mm"}; justify-content: ${
           props.position === "left" ? "flex-start" : props.position === "center" ? "center" : "flex-end"
-        };">`;
+        }; line-height: 1; font-size: 0;">`;
 
         for (const field of fieldGroup.field) {
-          combinedHtml += generateFieldHtml(field, props, fieldDataMap, false, categoryTextColor);
+          combinedHtml += generateFieldHtml(field, props, fieldDataMap, false, categoryTextColor, true, 0, 1, 0);
         }
 
         combinedHtml += "</div>";
         dynamicContent += combinedHtml;
       } else if (fieldGroup.combined_id && fixedPosition) {
-        // Fixed position - render combined fields individually
-        for (const field of fieldGroup.field) {
-          dynamicContent += generateFieldHtml(field, props, fieldDataMap, true, categoryTextColor);
+        // Fixed position - render combined fields individually with proper width-based spacing
+        const totalFields = fieldGroup.field.length;
+        let cumulativeWidth = 0;
+        
+        for (let i = 0; i < fieldGroup.field.length; i++) {
+          const field = fieldGroup.field[i];
+          const fieldWidth = getFieldWidth(field, props, fieldDataMap);
+          
+          dynamicContent += generateFieldHtml(field, props, fieldDataMap, true, categoryTextColor, false, i, totalFields, cumulativeWidth);
+          
+          cumulativeWidth += fieldWidth;
         }
       } else {
         // Single field
         const field = fieldGroup.field?.[0];
         if (field) {
-          dynamicContent += generateFieldHtml(field, props, fieldDataMap, fixedPosition, categoryTextColor);
+          dynamicContent += generateFieldHtml(field, props, fieldDataMap, fixedPosition, categoryTextColor, false, 0, 1, 0);
         }
       }
     }
@@ -613,7 +668,7 @@ export const generateBadgePdf = async (
     // Replace placeholder in template with dynamic content
     finalHtml = finalHtml.replace(
       /<div[^>]*id="badgeContent"[^>]*>.*?<\/div>/,
-      `<div id="badgeContent" style="visibility: visible; position: relative; width: 100%; height: 100%;${
+      `<div id="badgeContent" style="visibility: visible; position: relative; width: 100%; height: 100%; box-sizing: border-box; padding: 0; margin: 0;${
         categoryBackgroundColor ? ` background-color: ${categoryBackgroundColor};` : ""
       }${categoryTextColor ? ` color: ${categoryTextColor};` : ""}">${dynamicContent}</div>`
     );
@@ -632,6 +687,12 @@ export const generateBadgePdf = async (
     const pdfUint8Array = await page.pdf({
       format: "A4",
       printBackground: true,
+      margin: {
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0
+      }
     });
 
     // Convert Uint8Array → Buffer for compatibility
@@ -894,7 +955,7 @@ export const generatePaperBadgePdf = async (
       // Without Design - blank canvas
       htmlTemplate = `
         <div style="width: ${paperDimensions.width}; height: ${paperDimensions.height}; margin: 0 auto; background: white; position: relative; overflow: hidden;">
-          <div id="badgeContent" style="position: relative; width: 100%; height: 100%; padding: 5mm;"></div>
+          <div id="badgeContent" style="position: relative; width: 100%; height: 100%;"></div>
         </div>
       `;
     }
@@ -913,35 +974,45 @@ export const generatePaperBadgePdf = async (
       }
 
       if (fieldGroup.combined_id && !fixedPosition) {
-        // Combined fields - render in a flex container
+        // Combined fields - render in a flex container (when NOT using fixed position)
         let combinedHtml = `<div style="display: flex; gap: 8px; align-items: center; margin-top: ${props.marginTop || "0mm"}; margin-left: ${props.marginLeft || "0mm"}; justify-content: ${
           props.position === "left" ? "flex-start" : props.position === "center" ? "center" : "flex-end"
-        };">`;
+        }; line-height: 1; font-size: 0;">`;
 
         for (const field of fieldGroup.field) {
-          combinedHtml += generateFieldHtml(field, props, fieldDataMap, false, categoryTextColor);
+          combinedHtml += generateFieldHtml(field, props, fieldDataMap, false, categoryTextColor, true, 0, 1, 0);
         }
 
         combinedHtml += "</div>";
         dynamicContent += combinedHtml;
       } else if (fieldGroup.combined_id && fixedPosition) {
-        // Fixed position - render combined fields individually
-        for (const field of fieldGroup.field) {
-          dynamicContent += generateFieldHtml(field, props, fieldDataMap, true, categoryTextColor);
+        // Fixed position - render combined fields individually with proper width-based spacing
+        const totalFields = fieldGroup.field.length;
+        let cumulativeWidth = 0;
+        
+        for (let i = 0; i < fieldGroup.field.length; i++) {
+          const field = fieldGroup.field[i];
+          const fieldWidth = getFieldWidth(field, props, fieldDataMap);
+          
+          dynamicContent += generateFieldHtml(field, props, fieldDataMap, true, categoryTextColor, false, i, totalFields, cumulativeWidth);
+          
+          cumulativeWidth += fieldWidth;
         }
       } else {
         // Single field
         const field = fieldGroup.field?.[0];
         if (field) {
-          dynamicContent += generateFieldHtml(field, props, fieldDataMap, fixedPosition, categoryTextColor);
+          dynamicContent += generateFieldHtml(field, props, fieldDataMap, fixedPosition, categoryTextColor, false, 0, 1, 0);
         }
       }
     }
 
+    let finalHtml = htmlTemplate;
+
     // Replace placeholder in template with dynamic content
-    let finalHtml = htmlTemplate.replace(
+    finalHtml = finalHtml.replace(
       /<div[^>]*id="badgeContent"[^>]*>.*?<\/div>/,
-      `<div id="badgeContent" style="visibility: visible; position: relative; width: 100%; height: 100%; padding: 5mm;${
+      `<div id="badgeContent" style="visibility: visible; position: relative; width: 100%; height: 100%; box-sizing: border-box; padding: 0; margin: 0;${
         categoryBackgroundColor ? ` background-color: ${categoryBackgroundColor};` : ""
       }${categoryTextColor ? ` color: ${categoryTextColor};` : ""}">${dynamicContent}</div>`
     );

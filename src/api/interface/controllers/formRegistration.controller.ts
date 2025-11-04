@@ -521,7 +521,8 @@ export const generateBadgePdf = async (
 
       return "";
     };
-
+    
+    
     // ✨ Dynamically build fieldDataMap based on e-badge setting fields
     const fieldDataMap: Record<string, string> = {};
     
@@ -541,10 +542,9 @@ export const generateBadgePdf = async (
     // Build fieldDataMap for all fields used in e-badge
     allFieldIds.forEach((fieldId) => {
       fieldDataMap[fieldId] = getFieldValue(fieldId);
-    });
-
-    console.log("fieldDataMap>>>>", fieldDataMap);
-
+    });    
+    console.log("fieldDataMap>>>>", fieldDataMap,allFieldIds);
+    console.log("fieldGroup>>>>", eBadgeSetting.fields,eBadgeSetting);
     // Parse HTML template
     const htmlTemplate = template.htmlContent;
     let finalHtml = htmlTemplate;
@@ -621,7 +621,9 @@ export const generateBadgePdf = async (
     // Launch puppeteer and generate PDF
     const browser = await puppeteer.launch({
       headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      args: [ '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage'],
     });
     const page = await browser.newPage();
     await page.setContent(finalHtml, { waitUntil: "networkidle0" });
@@ -1050,7 +1052,9 @@ export const generatePaperBadgePdf = async (
     // Launch puppeteer and generate PDF
     const browser = await puppeteer.launch({
       headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      args: [ '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage'],
     });
     const page = await browser.newPage();
     await page.setContent(finalHtml, { waitUntil: "networkidle0" });

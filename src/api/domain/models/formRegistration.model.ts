@@ -563,9 +563,9 @@ export const storeFormRegistrationModel = async (
 async function processFaceImage(
   file: Express.Multer.File
 ): Promise<{ faceId: string; imageKey: string; imageBuffer: Buffer }> {
-  const allowedMimeTypes = ["image/png", "image/jpeg", "image/jpg"];
+  const allowedMimeTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/x-webp", "application/octet-stream"];
   if (!allowedMimeTypes.includes(file.mimetype)) {
-    throw new Error("Only PNG and JPG files are allowed");
+    throw new Error("Only PNG, JPG and WEBP files are allowed");
   }
 
   const maxSize = 5 * 1024 * 1024;

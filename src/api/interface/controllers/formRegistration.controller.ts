@@ -429,7 +429,7 @@ function generateFieldHtml(
   const displayStyle = isInCombinedGroup ? "inline-block" : "block";
   
   return `<div style="position: ${position}; ${marginStyles} text-align: ${props.position || "left"}; font-family: ${
-    props.fontFamily || "Arial"
+    props.fontFamily || "Roboto"
   }; font-size: ${props.fontSize || "12pt"}; color: ${categoryTextColor || props.fontColor || "#000"}; font-weight: ${
     props.fontStyle === "bold" ? "bold" : "normal"
   }; text-transform: ${
@@ -1103,7 +1103,7 @@ export const generatePaperBadgePdf = async (
             display: flex;
             justify-content: center;
             align-items: center;
-            font-family: Arial, sans-serif;
+            font-family: Roboto, sans-serif;
           }
           
           .print-container {

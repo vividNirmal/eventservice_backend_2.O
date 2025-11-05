@@ -14,7 +14,7 @@ import { getAdminUser,storeAdminUser,getSingleAdminUser,updateAdminUser,checkEma
 import { registerUserSchema,loginUserSchema,updateUserSchema,forgetPasswordSchema,setPasswordSchema,updateStatusUserSchema,deleteUsersSchema,changePasswordSchema,scannerPageLoginUserSchema} from "../../utils/validation-schems/user.validation";
 import { EventParticipantUsers, DynamicEventParticipantUsers, sendOtpValidation, UpdateParticipantUsers, verifyOtpValidation } from "../../utils/validation-schems/event_participant_users.validation";
 import { adminEventSchema , adminUpdateEventSchema,deleteEventSchema,extraEventDetails,getDeviceUrlSchema,updateExtraEventDetails, verifyDeviceAndLoginSchema, verifyDeviceDirectAccessSchema, generateFormUrlSchema} from "../../utils/validation-schems/adminevent.validation";
-import { uploadImagesFile, uploadTemplateAttachments } from "../../helper/helper";
+import { processAndSaveImages, uploadEventImagesFile, uploadImagesFile, uploadTemplateAttachments } from "../../helper/helper";
 import { settingSchema } from "../../utils/validation-schems/setting.validation";
 import { updateCompanySchema , registerCompanySchema,deleteCompanySchema ,updateStatusCompanySchema, updateCompanyLogoSchema} from "../../utils/validation-schems/company.validation";
 import { getParticipantDetailsSchema, toggleParticipantBlockStatusSchema } from "../../utils/validation-schems/participantDetails.validation";
@@ -345,8 +345,8 @@ export const upload = multer({ storage: storage });
 
             route.get("/get-event-images", protectedRoute, getAllEventImagesController);
             route.get("/get-event-images-byId/:id", protectedRoute, getEventImageByIdController);
-            route.post("/create-event-image", protectedRoute, uploadImagesFile, validateRequest(createEventImageSchema), createEventImageController);
-            route.put("/update-event-image/:id", protectedRoute, uploadImagesFile, validateRequest(updateEventImageSchema), updateEventImageController);
+            route.post("/create-event-image", protectedRoute, uploadEventImagesFile, processAndSaveImages, validateRequest(createEventImageSchema), createEventImageController);
+            route.put("/update-event-image/:id", protectedRoute, uploadEventImagesFile, processAndSaveImages, validateRequest(updateEventImageSchema), updateEventImageController);
             route.delete("/delete-event-image/:id", protectedRoute, deleteEventImageByIdController);
 
             route.post('/send-otp',verifyScannerToken,validateRequest(sendOtpValidation),OtpGenerate);

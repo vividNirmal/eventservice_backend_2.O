@@ -691,6 +691,30 @@ export const generateBadgePdf = async (
       }${categoryTextColor ? ` color: ${categoryTextColor};` : ""}">${dynamicContent}</div>`
     );
 
+    // Inject Google Fonts link for Puppeteer rendering compatibility
+    const fontLink = `<link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">`;
+
+    // Ensure the HTML has <head> section, and insert the font link properly
+    if (finalHtml.includes("<head>")) {
+      finalHtml = finalHtml.replace(
+        /<head>/i,
+        `<head>\n${fontLink}\n<style>body { font-family: 'Roboto', sans-serif; }</style>\n`
+      );
+    } else {
+      // If no head tag exists, prepend it manually
+      finalHtml = `
+        <html>
+          <head>
+            ${fontLink}
+            <style>body { font-family: 'Roboto', sans-serif; }</style>
+          </head>
+          <body>
+            ${finalHtml}
+          </body>
+        </html>
+      `;
+    }
+
     // Launch puppeteer and generate PDF
     const browser = await puppeteer.launch({      
       args: ["--no-sandbox",]
@@ -1236,6 +1260,30 @@ export const generatePaperBadgePdf = async (
       </body>
       </html>
     `;
+
+    // Inject Google Fonts link for Puppeteer rendering
+    const fontLink = `<link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">`;
+
+    // If the <head> already exists, add the font link there
+    if (finalHtml.includes("<head>")) {
+      finalHtml = finalHtml.replace(
+        /<head>/i,
+        `<head>\n${fontLink}\n<style>body { font-family: 'Roboto', sans-serif; }</style>\n`
+      );
+    } else {
+      // Otherwise, wrap the content in a proper HTML structure
+      finalHtml = `
+        <html>
+          <head>
+            ${fontLink}
+            <style>body { font-family: 'Roboto', sans-serif; }</style>
+          </head>
+          <body>
+            ${finalHtml}
+          </body>
+        </html>
+      `;
+    }
 
     // Launch puppeteer and generate PDF
    const browser = await puppeteer.launch({

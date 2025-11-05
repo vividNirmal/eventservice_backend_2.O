@@ -837,8 +837,7 @@ export const getFormRegistrationListModel = async (
     // 🧩 Step 2: Fetch form registrations with populated data
     const registrations = await FormRegistration.find(filter)
       .populate({
-        path: "ticketId",
-        // select: "ticketName userType registrationFormId",
+        path: "ticketId",        
         populate: { path: "userType", select: "typeName" },
       })
       .populate("eventId", "event_title event_slug")
@@ -1196,14 +1195,14 @@ async function deleteFaceFromRekognition(faceId: string) {
   }
 }
 
-export async function StoreEventuser(formData: any) {
+export async function StoreEventuser(formData: any) {  
   try {
     const email = formData.email;
     let companyId;
     let userType;
     let EventFormData: any = {};
     let contactNumber;
-    let password = "123456";
+    let password ;
     let panNo;
     if (formData?.eventId) {
       const eventId: any = await eventHostSchema.findById(formData?.eventId);
@@ -1251,12 +1250,7 @@ export async function StoreEventuser(formData: any) {
     if (existingUser) {
       const updateQuery: any = {
         $set: {},
-      };
-
-      if (password) updateQuery.$set.password = password;
-      if (contactNumber) updateQuery.$set.contact = contactNumber;
-      if (panNo) updateQuery.$set.panNo = panNo;
-      if (companyId) updateQuery.$set.compayId = companyId;
+      };      
       if (userType) {
         updateQuery.$addToSet = { userType: userType };
       }
@@ -1269,10 +1263,8 @@ export async function StoreEventuser(formData: any) {
       );
       const templateData = {
         email: email,
-        password: password,
-        name: `${formData.formData[EventFormData.map_array["first_name"]]} ${
-          formData.formData[EventFormData?.map_array["last_name"]]
-        }`,
+        password: existingUser.password,
+        name: existingUser.name,
         websites: `https://${compayDetails?.subdomain}.${env.FRONTEND_DOMAIN}`,
       };
 
@@ -1285,11 +1277,13 @@ export async function StoreEventuser(formData: any) {
       );
       return { success: true, user: updatedUser, isNew: false };
     } else {
+      password = generateStrongPassword(8)
       const newUser = new eventUserSchema({
         email: email,
-        password: generateStrongPassword(8),
+        password: password,
         contact: contactNumber,
         panNo: panNo,
+        name:`${formData.formData[EventFormData.map_array["first_name"]]} ${formData.formData[EventFormData?.map_array["last_name"]]}`,
         userType: userType ? [userType] : [],
         compayId: companyId,
       });

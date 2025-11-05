@@ -59,6 +59,7 @@ import { createPaperBadgeSettingController, deletePaperBadgeSettingByIdControlle
 import { createPaperBadgeSettingSchema, updatePaperBadgeSettingPropertiesSchema, updatePaperBadgeSettingSchema } from "../../utils/validation-schems/paperBadgeSetting.validation";
 import { createBadgeCategorySchema, updateBadgeCategorySchema } from "../../utils/validation-schems/badgeCategory.validation";
 import { createBadgeCategoryController, deleteBadgeCategoryByIdController, getAllBadgeCategoriesController, getBadgeCategoryByEventIdController, getBadgeCategoryByIdController, updateBadgeCategoryByIdController } from "../controllers/badgeCategory.controller";
+import { EventuserEvents } from "../controllers/eventuser.controller";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -343,7 +344,8 @@ export const upload = multer({ storage: storage });
             route.post('/send-otp',verifyScannerToken,validateRequest(sendOtpValidation),OtpGenerate);
             route.post('/verify-otp',validateRequest(verifyOtpValidation),OtpVerify);
 
-
+            // Event user Login
+            route.get("/eventuser-events", protectedRoute, EventuserEvents);
         } catch (error) {
             // Log any errors that occur during route definition
             console.log(error, 'warn')

@@ -87,7 +87,8 @@ export const userLogin = async (
     const user = await userSchema.findOne({
       email: { $regex: new RegExp(`^${userData.email}$`, "i") },
     });
-    const registeruser: any = await eventUserSchema
+    const baseUrl = env.BASE_URL;
+    let registeruser: any = await eventUserSchema
       .findOne({
         email: userData.email,
       })
@@ -100,7 +101,8 @@ export const userLogin = async (
       const error = new Error("User not found with this email.");
       return callback(error, null);
     }
-
+    if (registeruser.compayId && registeruser.compayId.logo) {
+      registeruser.compayId.logo = `${baseUrl}/${registeruser.compayId.logo}`    }
     if (registeruser) {
       const subdomain = userData.subdomain;
       const company_details: any = await companySchema.findOne({ subdomain });

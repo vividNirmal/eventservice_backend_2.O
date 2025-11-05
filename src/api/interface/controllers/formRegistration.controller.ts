@@ -20,7 +20,7 @@ import {
   resolveFormUrlModel,
   storeFormRegistrationModel,
   updateFormRegistrationStatusModel,
-  updateFormRegistrationModel
+  updateFormRegistrationModel,
 } from "../../domain/models/formRegistration.model";
 import mongoose from "mongoose";
 import FormRegistration from "../../domain/schema/formRegistration.schema";
@@ -50,14 +50,18 @@ const appendBaseUrlToFiles = (registration: any) => {
       const value = registration.formData[key];
 
       // Case 1: single file name string (e.g., "image1.png")
-      if (typeof value === "string" && /\.(jpg|jpeg|png|gif|pdf|docx?)$/i.test(value)) {
+      if (
+        typeof value === "string" &&
+        /\.(jpg|jpeg|png|gif|pdf|docx?)$/i.test(value)
+      ) {
         registration.formData[key] = `${baseUrl}/uploads/${value}`;
       }
 
       // Case 2: array of files (e.g., ["img1.png", "img2.jpg"])
       else if (Array.isArray(value)) {
         registration.formData[key] = value.map((file) =>
-          typeof file === "string" && /\.(jpg|jpeg|png|gif|pdf|docx?)$/i.test(file)
+          typeof file === "string" &&
+          /\.(jpg|jpeg|png|gif|pdf|docx?)$/i.test(file)
             ? `${baseUrl}/uploads/${file}`
             : file
         );
@@ -137,8 +141,6 @@ export const submitRegistrationController = async (
   res: Response
 ) => {
   try {
-
-
     storeFormRegistrationModel(
       req.body,
       req.files as Express.Multer.File[],
@@ -653,13 +655,23 @@ export const generateBadgePdf = async (
         // Fixed position - render combined fields individually with proper width-based spacing
         const totalFields = fieldGroup.field.length;
         let cumulativeWidth = 0;
-        
+
         for (let i = 0; i < fieldGroup.field.length; i++) {
           const field = fieldGroup.field[i];
           const fieldWidth = getFieldWidth(field, props, fieldDataMap);
-          
-          dynamicContent += generateFieldHtml(field, props, fieldDataMap, true, categoryTextColor, false, i, totalFields, cumulativeWidth);
-          
+
+          dynamicContent += generateFieldHtml(
+            field,
+            props,
+            fieldDataMap,
+            true,
+            categoryTextColor,
+            false,
+            i,
+            totalFields,
+            cumulativeWidth
+          );
+
           cumulativeWidth += fieldWidth;
         }
       } else {
@@ -680,19 +692,19 @@ export const generateBadgePdf = async (
     );
 
     // Launch puppeteer and generate PDF
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: [ '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage'],
+    const browser = await puppeteer.launch({      
+      args: ["--no-sandbox",]
     });
     const page = await browser.newPage();
+    await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 2 });
     await page.setContent(finalHtml, { waitUntil: "networkidle0" });
+    await page.evaluateHandle("document.fonts.ready");
 
     // Directly generate PDF buffer
     const pdfUint8Array = await page.pdf({
       format: "A4",
       printBackground: true,
+      preferCSSPageSize: false,
       margin: {
         top: 0,
         right: 0,
@@ -782,19 +794,19 @@ export const generatePaperBadgePdf = async (
 
     if (isPreview) {
       // Preview mode - fetch paper badge setting directly
-      paperBadgeSetting = await PaperBadgeSetting.findById(identifier)
-        .populate("templateId");
+      paperBadgeSetting = await PaperBadgeSetting.findById(identifier).populate(
+        "templateId"
+      );
 
       if (!paperBadgeSetting) {
         throw new Error("Paper Badge setting not found");
       }
-      
     } else {
       // Fetch form registration with populated references for actual data
       registration = await FormRegistration.findById(identifier)
         .populate({
           path: "ticketId",
-          populate: { path: "registrationFormId" }
+          populate: { path: "registrationFormId" },
         })
         .populate("eventId")
         .lean();
@@ -812,7 +824,7 @@ export const generatePaperBadgePdf = async (
 
       // Build map_array from ticket's registration form
       const registrationForm = ticket.registrationFormId;
-      
+
       if (registrationForm?.pages) {
         registrationForm.pages.forEach((page: any) => {
           page.elements?.forEach((element: any) => {
@@ -845,7 +857,10 @@ export const generatePaperBadgePdf = async (
     // Generate or get QR Code based on mode
     let qrCodeBase64 = "";
     if (isPreview) {
-      qrCodeBase64 = await QRCode.toDataURL("Sample QR Data", { width: 200, margin: 1 });
+      qrCodeBase64 = await QRCode.toDataURL("Sample QR Data", {
+        width: 200,
+        margin: 1,
+      });
     } else {
       // Preview mode - generate sample QR code
       qrCodeBase64 = registration.qrImage
@@ -876,7 +891,7 @@ export const generatePaperBadgePdf = async (
     };
 
     // Get form data (only for actual mode)
-    const formData = isPreview ? {} : (registration.formData || {});
+    const formData = isPreview ? {} : registration.formData || {};
 
     // Helper function to get field value based on mode
     const getFieldValue = (fieldKey: string): string => {
@@ -902,32 +917,34 @@ export const generatePaperBadgePdf = async (
       if (fieldKey === "qrCode") {
         return qrCodeBase64;
       }
-      
+
       if (fieldKey === "date") {
         return formatDateTime(event.startDate);
       }
-      
+
       if (fieldKey === "badgeCategory") {
-        return registration.businessData?.category || ticket.ticketCategory || "";
+        return (
+          registration.businessData?.category || ticket.ticketCategory || ""
+        );
       }
-      
+
       if (fieldKey === "badgeNo") {
         return registration.badgeNo || "";
       }
-      
+
       if (fieldKey === "email") {
         return registration.email || formData.email || "";
       }
 
       if (fieldKey === "faceImage") {
-        return registration.faceImageUrl 
+        return registration.faceImageUrl
           ? `${baseUrl}/uploads/participants/${registration.faceImageUrl}`
           : "";
       }
 
       // For dynamic form fields: Use map_array mapping
       const mappedFieldName = map_array[fieldKey];
-      
+
       if (mappedFieldName && formData[mappedFieldName]) {
         return formData[mappedFieldName];
       }
@@ -942,10 +959,10 @@ export const generatePaperBadgePdf = async (
 
     // ✨ Dynamically build fieldDataMap based on paper badge setting fields
     const fieldDataMap: Record<string, string> = {};
-    
+
     // Collect all unique field IDs from paper badge settings
     const allFieldIds = new Set<string>();
-    
+
     for (const fieldGroup of paperBadgeSetting.fields || []) {
       if (fieldGroup.field && Array.isArray(fieldGroup.field)) {
         fieldGroup.field.forEach((field: any) => {
@@ -970,7 +987,10 @@ export const generatePaperBadgePdf = async (
     const selectedCategoryId = (() => {
       if (!badgeCategoryGroup) return null;
       // support both possible property names used across code (combinedId or combined_id) and fallback to id
-      const key = badgeCategoryGroup.combined_id ?? badgeCategoryGroup.combined_id ?? badgeCategoryGroup.id;
+      const key =
+        badgeCategoryGroup.combined_id ??
+        badgeCategoryGroup.combined_id ??
+        badgeCategoryGroup.id;
       if (!key) return null;
       return paperBadgeSetting.fieldProperties?.[key]?.categoryId ?? null;
     })();
@@ -978,9 +998,10 @@ export const generatePaperBadgePdf = async (
     // Apply badge category colors if selected
     let categoryBackgroundColor = "";
     let categoryTextColor = "";
-    
+
     if (selectedCategoryId) {
-      const BadgeCategory = require("../../domain/schema/badgeCategory.schema").default;
+      const BadgeCategory =
+        require("../../domain/schema/badgeCategory.schema").default;
       const category = await BadgeCategory.findById(selectedCategoryId);
       if (category) {
         categoryBackgroundColor = category.backgroundColor;
@@ -990,7 +1011,7 @@ export const generatePaperBadgePdf = async (
 
     // Build HTML based on design type (with or without template)
     let htmlTemplate = "";
-    
+
     if (hasTemplate) {
       // With Design - use template
       htmlTemplate = `
@@ -1012,8 +1033,10 @@ export const generatePaperBadgePdf = async (
     const fixedPosition = paperBadgeSetting.fixedPosition || false;
 
     for (const fieldGroup of paperBadgeSetting.fields || []) {
-      const groupId = fieldGroup.combined_id || fieldGroup.id || '';
-      const props = groupId ? (paperBadgeSetting.fieldProperties?.[groupId] || {}) : {};
+      const groupId = fieldGroup.combined_id || fieldGroup.id || "";
+      const props = groupId
+        ? paperBadgeSetting.fieldProperties?.[groupId] || {}
+        : {};
 
       // Skip badge category field - it only applies colors
       if (fieldGroup.field?.some((f: any) => f.id === "badgeCategory")) {
@@ -1022,12 +1045,28 @@ export const generatePaperBadgePdf = async (
 
       if (fieldGroup.combined_id && !fixedPosition) {
         // Combined fields - render in a flex container (when NOT using fixed position)
-        let combinedHtml = `<div style="display: flex; gap: 8px; align-items: center; margin-top: ${props.marginTop || "0mm"}; margin-left: ${props.marginLeft || "0mm"}; justify-content: ${
-          props.position === "left" ? "flex-start" : props.position === "center" ? "center" : "flex-end"
+        let combinedHtml = `<div style="display: flex; gap: 8px; align-items: center; margin-top: ${
+          props.marginTop || "0mm"
+        }; margin-left: ${props.marginLeft || "0mm"}; justify-content: ${
+          props.position === "left"
+            ? "flex-start"
+            : props.position === "center"
+            ? "center"
+            : "flex-end"
         }; line-height: 1; font-size: 0;">`;
 
         for (const field of fieldGroup.field) {
-          combinedHtml += generateFieldHtml(field, props, fieldDataMap, false, categoryTextColor, true, 0, 1, 0);
+          combinedHtml += generateFieldHtml(
+            field,
+            props,
+            fieldDataMap,
+            false,
+            categoryTextColor,
+            true,
+            0,
+            1,
+            0
+          );
         }
 
         combinedHtml += "</div>";
@@ -1036,20 +1075,45 @@ export const generatePaperBadgePdf = async (
         // Fixed position - render combined fields individually with proper width-based spacing
         const totalFields = fieldGroup.field.length;
         let cumulativeWidth = 0;
-        
+
         for (let i = 0; i < fieldGroup.field.length; i++) {
           const field = fieldGroup.field[i];
-          const fieldWidth = getFieldWidth(field, props, fieldDataMap, isPreview);
-          
-          dynamicContent += generateFieldHtml(field, props, fieldDataMap, true, categoryTextColor, false, i, totalFields, cumulativeWidth);
-          
+          const fieldWidth = getFieldWidth(
+            field,
+            props,
+            fieldDataMap,
+            isPreview
+          );
+
+          dynamicContent += generateFieldHtml(
+            field,
+            props,
+            fieldDataMap,
+            true,
+            categoryTextColor,
+            false,
+            i,
+            totalFields,
+            cumulativeWidth
+          );
+
           cumulativeWidth += fieldWidth;
         }
       } else {
         // Single field
         const field = fieldGroup.field?.[0];
         if (field) {
-          dynamicContent += generateFieldHtml(field, props, fieldDataMap, fixedPosition, categoryTextColor, false, 0, 1, 0);
+          dynamicContent += generateFieldHtml(
+            field,
+            props,
+            fieldDataMap,
+            fixedPosition,
+            categoryTextColor,
+            false,
+            0,
+            1,
+            0
+          );
         }
       }
     }
@@ -1060,8 +1124,12 @@ export const generatePaperBadgePdf = async (
     finalHtml = finalHtml.replace(
       /<div[^>]*id="badgeContent"[^>]*>.*?<\/div>/,
       `<div id="badgeContent" style="visibility: visible; position: relative; width: 100%; height: 100%; box-sizing: border-box; padding: 0; margin: 0;${
-        categoryBackgroundColor ? ` background-color: ${categoryBackgroundColor};` : ""
-      }${categoryTextColor ? ` color: ${categoryTextColor};` : ""}">${dynamicContent}</div>`
+        categoryBackgroundColor
+          ? ` background-color: ${categoryBackgroundColor};`
+          : ""
+      }${
+        categoryTextColor ? ` color: ${categoryTextColor};` : ""
+      }">${dynamicContent}</div>`
     );
 
     // If template exists but has no badgeContent div, append dynamic content
@@ -1079,6 +1147,7 @@ export const generatePaperBadgePdf = async (
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet"> 
         <title>Print Badge - ${paperDimensions.width} x ${paperDimensions.height}</title>
         <style>
           @page {
@@ -1161,6 +1230,7 @@ export const generatePaperBadgePdf = async (
       </head>
       <body>
         <div class="print-container">
+
           ${finalHtml}
         </div>
       </body>
@@ -1168,38 +1238,37 @@ export const generatePaperBadgePdf = async (
     `;
 
     // Launch puppeteer and generate PDF
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: [ '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage'],
-    });
-    const page = await browser.newPage();
-    await page.setContent(finalHtml, { waitUntil: "networkidle0" });
+   const browser = await puppeteer.launch({
+  args: ["--no-sandbox", ]
+});
 
-    // PDF options with paper size
-    const pdfOptions: any = {
-      printBackground: true,
-      margin: {
-        top: 0,
-        right: 0,
-        bottom: 0,
-        left: 0
-      }
-    };
+const page = await browser.newPage();
+await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 2 });
+await page.setContent(finalHtml, { waitUntil: "networkidle0" });
+await page.evaluateHandle("document.fonts.ready");
+const pdfOptions: any = {
+  printBackground: true,
+  preferCSSPageSize: false,
+  margin: {
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+  },
+};
 
-    // Use format if available, otherwise use custom dimensions
-    if (paperDimensions.format) {
-      pdfOptions.format = paperDimensions.format;
-    } else {
-      pdfOptions.width = paperDimensions.width;
-      pdfOptions.height = paperDimensions.height;
-    }
+// Use format if available, otherwise use custom dimensions
+if (paperDimensions.format) {
+  pdfOptions.format = paperDimensions.format;
+} else {
+  pdfOptions.width = paperDimensions.width;
+  pdfOptions.height = paperDimensions.height;
+}
 
-    const pdfUint8 = await page.pdf(pdfOptions);
-    const pdfBuffer = Buffer.from(pdfUint8);
+const pdfUint8 = await page.pdf(pdfOptions);
+const pdfBuffer = Buffer.from(pdfUint8);
 
-    await browser.close();
+await browser.close();
 
     return pdfBuffer;
   } catch (error: any) {
@@ -1211,7 +1280,10 @@ export const generatePaperBadgePdf = async (
 /**
  * API endpoint to generate and download Paper Badge PDF
  */
-export const generatePaperBadgePdfEndpoint = async (req: Request, res: Response) => {
+export const generatePaperBadgePdfEndpoint = async (
+  req: Request,
+  res: Response
+) => {
   try {
     const { formRegistrationId } = req.body;
 
@@ -1271,18 +1343,21 @@ export const getPaperBadgePreviewPdf = async (req: Request, res: Response) => {
   }
 };
 
-export const getFormRegistrationListController = async (req: Request, res: Response) => {
+export const getFormRegistrationListController = async (
+  req: Request,
+  res: Response
+) => {
   try {
-    const { 
-      page = 1, 
-      limit = 10, 
-      search = "", 
-      eventId = "", 
-      approved = "", 
+    const {
+      page = 1,
+      limit = 10,
+      search = "",
+      eventId = "",
+      approved = "",
       userTypeId = "",
       ticketId = "", // Add this line
       startDate = "", // Add this line
-      endDate = "",   // Add this line
+      endDate = "", // Add this line
     } = req.query;
 
     getFormRegistrationListModel(
@@ -1294,7 +1369,7 @@ export const getFormRegistrationListController = async (req: Request, res: Respo
       userTypeId as string,
       ticketId as string, // Add this line
       startDate as string, // Add this line
-      endDate as string,   // Add this line
+      endDate as string, // Add this line
 
       (error, result) => {
         if (error) {
@@ -1302,30 +1377,49 @@ export const getFormRegistrationListController = async (req: Request, res: Respo
         }
         // Append BASE_URL to all image/file fields
         if (result?.registrations?.length) {
-          result.data = result.registrations.map((r: any) => appendBaseUrlToFiles(r));
+          result.data = result.registrations.map((r: any) =>
+            appendBaseUrlToFiles(r)
+          );
         }
 
-        return successResponse(res, "Form registrations retrieved successfully", result);
+        return successResponse(
+          res,
+          "Form registrations retrieved successfully",
+          result
+        );
       }
     );
   } catch (error) {
     console.error(error);
-    return ErrorResponse(res, "An error occurred while fetching form registrations.");
+    return ErrorResponse(
+      res,
+      "An error occurred while fetching form registrations."
+    );
   }
 };
 
-export const updateFormRegistrationStatusController = async (req: Request, res: Response) => {
+export const updateFormRegistrationStatusController = async (
+  req: Request,
+  res: Response
+) => {
   try {
     const { id } = req.params;
     const { approved } = req.body;
 
     if (typeof approved !== "boolean") {
-      return ErrorResponse(res, "Approved status must be boolean (true/false).");
+      return ErrorResponse(
+        res,
+        "Approved status must be boolean (true/false)."
+      );
     }
 
     updateFormRegistrationStatusModel(id, approved, (error, result) => {
       if (error) return ErrorResponse(res, error.message);
-      return successResponse(res, "Registration status updated successfully", result);
+      return successResponse(
+        res,
+        "Registration status updated successfully",
+        result
+      );
     });
   } catch (error) {
     return ErrorResponse(res, "Error updating registration status.");
@@ -1338,7 +1432,7 @@ export const updateFormRegistrationController = async (
 ) => {
   try {
     const { id } = req.params;
-    
+
     if (!id) {
       return ErrorResponse(res, "Registration ID is required");
     }
@@ -1364,8 +1458,12 @@ export const updateFormRegistrationController = async (
       }
     );
   } catch (error) {
-    return ErrorResponse(res, "An error occurred while updating registration.", {
-      errorType: "INTERNAL_SERVER_ERROR",
-    });
+    return ErrorResponse(
+      res,
+      "An error occurred while updating registration.",
+      {
+        errorType: "INTERNAL_SERVER_ERROR",
+      }
+    );
   }
 };

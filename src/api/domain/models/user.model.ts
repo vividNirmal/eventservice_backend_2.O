@@ -101,7 +101,7 @@ export const userLogin = async (
       const error = new Error("User not found with this email.");
       return callback(error, null);
     }
-    if (registeruser.compayId && registeruser.compayId.logo) {
+    if (registeruser?.compayId && registeruser?.compayId.logo) {
       registeruser.compayId.logo = `${baseUrl}/${registeruser.compayId.logo}`    }
     if (registeruser) {
       const subdomain = userData.subdomain;

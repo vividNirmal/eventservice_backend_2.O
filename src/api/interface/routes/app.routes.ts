@@ -60,6 +60,8 @@ import { createPaperBadgeSettingSchema, updatePaperBadgeSettingPropertiesSchema,
 import { createBadgeCategorySchema, updateBadgeCategorySchema } from "../../utils/validation-schems/badgeCategory.validation";
 import { createBadgeCategoryController, deleteBadgeCategoryByIdController, getAllBadgeCategoriesController, getBadgeCategoryByEventIdController, getBadgeCategoryByIdController, updateBadgeCategoryByIdController } from "../controllers/badgeCategory.controller";
 import { EventuserEvents } from "../controllers/eventuser.controller";
+import { createEventImageController, deleteEventImageByIdController, getAllEventImagesController, getEventImageByIdController, updateEventImageController } from "../controllers/eventImages.controller";
+import { createEventImageSchema, updateEventImageSchema } from "../../utils/validation-schems/eventImagesSchema.validation";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -340,6 +342,12 @@ export const upload = multer({ storage: storage });
             route.put("/update-badge-category/:id", protectedRoute, validateRequest(updateBadgeCategorySchema), updateBadgeCategoryByIdController);
             route.delete("/delete-badge-category/:id", protectedRoute, deleteBadgeCategoryByIdController);
             route.get("/get-badge-category-by-eventId/:eventid", protectedRoute, getBadgeCategoryByEventIdController);
+
+            route.get("/get-event-images", protectedRoute, getAllEventImagesController);
+            route.get("/get-event-images-byId/:id", protectedRoute, getEventImageByIdController);
+            route.post("/create-event-image", protectedRoute, uploadImagesFile, validateRequest(createEventImageSchema), createEventImageController);
+            route.put("/update-event-image/:id", protectedRoute, uploadImagesFile, validateRequest(updateEventImageSchema), updateEventImageController);
+            route.delete("/delete-event-image/:id", protectedRoute, deleteEventImageByIdController);
 
             route.post('/send-otp',verifyScannerToken,validateRequest(sendOtpValidation),OtpGenerate);
             route.post('/verify-otp',validateRequest(verifyOtpValidation),OtpVerify);

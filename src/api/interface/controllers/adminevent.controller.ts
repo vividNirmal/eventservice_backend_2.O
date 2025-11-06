@@ -285,7 +285,7 @@ export const getDeviceUrl = async (req: Request, res: Response) => {
         }
 
         // 1. Verify the event exists in eventHost schema
-        const event = await eventHostSchema.findById(event_id);
+        const event = await eventHostSchema.findById(event_id).populate('event_category');
         if (!event) {            
             return res.status(404).json({
                 code: "NOT_FOUND",
@@ -554,7 +554,7 @@ export const getEventStatistics = async (req: Request, res: Response) => {
         }
 
         // Find the event
-        const event = await eventHostSchema.findById(id);
+        const event = await eventHostSchema.findById(id).populate('event_category');
         if (!event) {
             return ErrorResponse(res, "Event not found");
         }        
@@ -618,7 +618,7 @@ export const generateCleanDeviceUrl = async (req: Request, res: Response) => {
         }
 
         // 1. Verify the event exists in eventHost schema
-        const event = await eventHostSchema.findById(event_id);
+        const event = await eventHostSchema.findById(event_id).populate('event_category');
         if (!event) {            
             return res.status(404).json({
                 code: "NOT_FOUND",
@@ -756,7 +756,7 @@ export const generateCleanFormUrl = async (req: Request, res: Response) => {
         }
 
         // 1. Verify event exists
-        const event = await eventHostSchema.findById(event_id);
+        const event = await eventHostSchema.findById(event_id).populate('event_category');
         if (!event) {
             return res.status(404).json({
                 code: "EVENT_NOT_FOUND",
@@ -857,7 +857,7 @@ export const resolveFormUrl = async (req: Request, res: Response) => {
         }
 
         // by event slug get the event host details and select ticketId
-        const event = await eventHostSchema.findOne({ event_slug: eventSlug });
+        const event = await eventHostSchema.findOne({ event_slug: eventSlug }).populate('event_category');
         if (!event) {
             return res.status(404).json({
                 code: "EVENT_NOT_FOUND",

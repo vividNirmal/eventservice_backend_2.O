@@ -104,7 +104,8 @@ export const eventHostSchema = Joi.object({
   event_status: Joi.string().valid('draft', 'published', 'cancelled', 'completed').optional(),
   selected_form_id: Joi.string().optional(),
   ticketId: Joi.string().optional(),
-  company_id : Joi.string().optional()
+  company_id : Joi.string().optional(),
+  event_category :Joi.optional()
 }).custom((obj, helpers) => {
   // Ensure either legacy date fields or dateRanges are provided
   const hasLegacyDates = obj.startDate && obj.startTime && obj.endDate && obj.endTime;
@@ -224,7 +225,8 @@ export const eventHostUpdateSchema = Joi.object({
   event_tags: Joi.array().items(Joi.string()).optional(),
   event_status: Joi.string().valid('draft', 'published', 'cancelled', 'completed').optional(),
   ticketId: Joi.string().optional(),
-  company_id: Joi.string().optional()
+  company_id: Joi.string().optional(),
+  event_category : Joi.string().optional()
 }).custom((obj, helpers) => {
   // Ensure either legacy date fields or dateRanges are provided
   const hasLegacyDates = obj.startDate && obj.startTime && obj.endDate && obj.endTime;

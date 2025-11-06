@@ -77,7 +77,7 @@ export const getAdminEventHostDetails = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    const eventHost = await eventHostSchema.findById(id).select('+event_logo +event_image');
+    const eventHost = await eventHostSchema.findById(id).select('+event_logo +event_image').populate('event_category');
 
     if (!eventHost) {
       return ErrorResponse(res, "Event not found");
@@ -116,63 +116,47 @@ export const getAdminEventHostDetails = async (req: Request, res: Response) => {
 
 export const storeAdminEventHost = async (req: Request, res: Response) => {
   try {
-    console.log("=== DEBUG: storeAdminEventHost controller called ===");
-    console.log("Request body:", req.body);
-    console.log("Request files:", req.files);
-    console.log("Request user:", req.user);
+  
 
     // Process uploaded files and add them to the request body
     if (req.files && typeof req.files === 'object' && !Array.isArray(req.files)) {
       const files = req.files as { [fieldname: string]: Express.Multer.File[] };
       
       if (files.event_image && files.event_image[0]) {
-        req.body.event_image = files.event_image[0].filename;
-        console.log("Event image processed:", req.body.event_image);
+        req.body.event_image = files.event_image[0].filename;        
       }
       
       if (files.event_logo && files.event_logo[0]) {
-        req.body.event_logo = files.event_logo[0].filename;
-        console.log("Event logo processed:", req.body.event_logo);
+        req.body.event_logo = files.event_logo[0].filename;        
       }
       
       if (files.show_location_image && files.show_location_image[0]) {
-        req.body.show_location_image = files.show_location_image[0].filename;
-        console.log("Show location image processed:", req.body.show_location_image);
+        req.body.show_location_image = files.show_location_image[0].filename;        
       }
       
       if (files.event_sponsor && files.event_sponsor[0]) {
         req.body.event_sponsor = files.event_sponsor[0].filename;
-        console.log("Event sponsor processed:", req.body.event_sponsor);
       }
     }
 
     // Process dateRanges if sent as JSON string
     if (req.body.dateRanges && typeof req.body.dateRanges === 'string') {
       try {
-        req.body.dateRanges = JSON.parse(req.body.dateRanges);
-        console.log("Parsed dateRanges:", req.body.dateRanges);
+        req.body.dateRanges = JSON.parse(req.body.dateRanges);        
       } catch (error) {
         console.log("Error parsing dateRanges JSON:", error);
         req.body.dateRanges = [];
       }
-    }
-
-    console.log("Request body after file processing:", req.body);
+    }    
 
     storeEventHost(req.user, req.body, (error: any, result: any) => {
       if (error) {
-        console.log("=== DEBUG: Error in controller callback ===");
-        console.log("Error:", error);
+       
         return ErrorResponse(res, error.message);
-      }
-
-      console.log("=== DEBUG: Success in controller callback ===");
-      console.log("Result:", result);
+      }      
       return successResponse(res, "Event host succesfully", { result });
     });
-  } catch (error) {
-    console.log("=== DEBUG: Catch block in controller ===");
-    console.log("Error:", error);
+  } catch (error) {    
     return ErrorResponse(res, "An error occurred during event retrieval.");
   }
 };
@@ -245,7 +229,7 @@ export const linkTicketToEventHost = async (req: Request, res: Response) => {
     }
 
     // Check if event host exists
-    const eventHost = await eventHostSchema.findById(eventHostId);
+    const eventHost = await eventHostSchema.findById(eventHostId).populate('event_category');
     if (!eventHost) {
       return ErrorResponse(res, "Event Host not found");
     }
@@ -384,6 +368,7 @@ export const copyAdminEventHost = async (req: Request, res: Response) => {
       organizer_email: eventHostObject.organizer_email,
       organizer_phone: eventHostObject.organizer_phone,
       with_face_scanner: eventHostObject.with_face_scanner,
+      event_category : eventHostObject.event_category
       // Don't copy selected_form_id and ticketId to avoid association conflicts
     };
     

@@ -45,7 +45,8 @@ export const eventuserEvent = async (
         },
         {
           path: "eventId",
-          select: "event_title event_slug event_description event_logo event_image ",
+          populate: { path: "event_category" },
+          select: "event_title event_slug event_description event_logo event_image event_category",          
         },
       ]);
     const groupedData = userTypes.map((userType) => {

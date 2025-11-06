@@ -1205,7 +1205,7 @@ export async function StoreEventuser(formData: any) {
     let password ;
     let panNo;
     if (formData?.eventId) {
-      const eventId: any = await eventHostSchema.findById(formData?.eventId);
+      const eventId: any = await eventHostSchema.findById(formData?.eventId).populate('event_category');
       companyId = eventId.company_id;
     }
     const compayDetails = await companySchema.findById(companyId);

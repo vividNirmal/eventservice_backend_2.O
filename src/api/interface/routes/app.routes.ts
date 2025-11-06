@@ -64,6 +64,7 @@ import { createEventImageController, deleteEventImageByIdController, getAllEvent
 import { createEventImageSchema, updateEventImageSchema } from "../../utils/validation-schems/eventImagesSchema.validation";
 import { createEventCompanyTeamController, deleteEventCompanyTeamByIdController, getAllEventCompanyTeamController, getEventCompanyTeamByIdController, getTeamMembersCountController, updateEventCompanyTeamController } from "../controllers/eventCompanyTeam.controller";
 import { createEventCompanyTeamSchema, getEventCompanyTeamQuerySchema, updateEventCompanyTeamSchema } from "../../utils/validation-schems/eventCompanyTeam.validation";
+import { createEventCategoryController, deleteEventCategoryByIdController, getAllEventCategoriesController, getEventCategoryByIdController, updateEventCategoryByIdController } from "../controllers/eventcategory.controller";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -364,6 +365,14 @@ export const upload = multer({ storage: storage });
 
             // Event user Login
             route.get("/eventuser-events", protectedRoute, EventuserEvents);
+
+
+            // Event category 
+            route.post('/store-event-category',protectedRoute,createEventCategoryController);
+            route.get ('/get-event-category',protectedRoute,getAllEventCategoriesController);
+            route.get('/get-event-category/:id',protectedRoute,getEventCategoryByIdController);
+            route.put('/update-event-category/:id',protectedRoute,updateEventCategoryByIdController);
+            route.delete('/delete-event-category/:id',protectedRoute,deleteEventCategoryByIdController)
         } catch (error) {
             // Log any errors that occur during route definition
             console.log(error, 'warn')

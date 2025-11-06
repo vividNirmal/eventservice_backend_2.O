@@ -195,7 +195,7 @@ export const storeParticipantUser = async (
       // Get event details to find linked ticket
       let event_details_for_registration = await eventHostSchema.findById(
         participantUserData.event_id
-      );
+      ).populate('event_category');
       if (!event_details_for_registration) {
         // Fallback to event schema if not found in eventHost
         event_details_for_registration = await eventSchema.findById(
@@ -811,7 +811,7 @@ export const verifyOtpModel = async (
     // ✅ First, get event and tickets to determine all possible field mappings
     const eventId = await eventHostSchema.findOne({
       event_slug: userData.event_slug,
-    });
+    }).populate('event_category');
 
     if (!eventId) {
       return callback(new Error("Event not found!"), null);
@@ -869,7 +869,7 @@ export const verifyOtpModel = async (
     const event_details = await eventHostSchema
       .findOne({
         event_slug: userData?.event_slug,
-      })
+      }).populate('event_category')
       .lean();
 
     if (!event_details) {

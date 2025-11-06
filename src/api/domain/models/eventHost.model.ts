@@ -43,6 +43,7 @@ interface EventHostData {
     selected_form_id?: string;
     ticketId?: string;
     event_id?: any;
+    event_category :any;
 }
 
 interface LoginUserData {
@@ -57,25 +58,6 @@ export const storeEventHost = async (
     callback: (error: any, result: any) => void
 ) => {
     try {
-        console.log("=== DEBUG: storeEventHost called ===");
-        console.log("Login User Data:", loginUserData);
-        console.log("Event Data received:", eventData);
-        console.log("Event Data keys:", Object.keys(eventData));
-        console.log("Company ID from login user:", loginUserData.company_id);
-        
-        // Log specific additional event detail fields
-        console.log("Additional Event Details:");
-        console.log("- company_id will be set to:", loginUserData.company_id);
-        console.log("- company_name:", eventData.company_name);
-        console.log("- event_title:", eventData.event_title);
-        console.log("- event_slug:", eventData.event_slug);
-        console.log("- event_description:", eventData.event_description);
-        console.log("- organizer_name:", eventData.organizer_name);
-        console.log("- organizer_email:", eventData.organizer_email);
-        console.log("- organizer_phone:", eventData.organizer_phone);
-        console.log("- selected_form_id:", eventData.selected_form_id);
-        console.log("- with_face_scanner:", eventData.with_face_scanner);
-
         // Handle dateRanges - use either new dateRanges field or legacy single date/time
         let dateRanges = eventData.dateRanges || [];
         
@@ -122,17 +104,9 @@ export const storeEventHost = async (
             with_face_scanner: eventData.with_face_scanner || 0,
             selected_form_id: eventData.selected_form_id || null,
             ticketId: eventData.ticketId || null,
+            event_category: eventData.event_category || null
         });
-
-        console.log("=== DEBUG: Event object before save ===");
-        console.log("Event object:", newEventHost.toObject());
-
-        const savedEvent = await newEventHost.save();
-        
-        console.log("=== DEBUG: Event saved successfully ===");
-        console.log("Saved Event ID:", savedEvent._id);
-        console.log("Saved Event:", savedEvent.toObject());
-        
+        const savedEvent = await newEventHost.save();                
         return callback(null, { eventId: savedEvent._id });
     } catch (error) {
         console.log("=== DEBUG: Error in storeEventHost ===");
@@ -217,7 +191,8 @@ export const updateEventHost = async (
         }
         if (eventData.event_sponsor) {
             updateFields.event_sponsor = `${baseUrl}/uploads/${eventData.event_sponsor}`;            
-        }        
+        }      
+        if(eventData.event_category) updateFields.event_category = eventData.event_category 
 
         const updatedEvent = await eventHostSchema.findByIdAndUpdate(
             eventId,
@@ -265,11 +240,9 @@ export const adminEventHostList = async (
 
         const events = await eventHostSchema.find(searchFilter)
             .skip(skip)
-            .limit(size);
+            .limit(size).populate('event_category');
 
-        const totalEvents = await eventHostSchema.countDocuments(searchFilter);
-
-        console.log("event")
+        const totalEvents = await eventHostSchema.countDocuments(searchFilter);        
 
         const result = {
             currentPage,
@@ -312,7 +285,7 @@ export const getAdminEventHostListByCompany = async (
 
         const events = await eventHostSchema.find(searchFilter)
             .skip(skip)
-            .limit(size);
+            .limit(size).populate('event_category');
 
         const totalEvents = await eventHostSchema.countDocuments(searchFilter);
 

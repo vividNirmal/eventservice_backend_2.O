@@ -17,8 +17,8 @@ export interface IEventHost extends Document {
   endTime: string;   // HH:mm format (kept for backward compatibility)
   dateRanges: IDateRange[]; // New field for multiple date ranges
   eventCategory: string[];
-  location: string;
-  // Additional event details fields
+  event_category : mongoose.Types.ObjectId,
+  location: string;  
   company_id?: string;
   company_name?: string;
   event_title?: string;
@@ -85,6 +85,7 @@ const eventHostSchema: Schema = new Schema<IEventHost>(
     selected_form_id: { type: String },
     ticketId: { type: String },
     participant_capacity: { type: Number, default: 1000 },
+    event_category : {type : Schema.Types.ObjectId , ref:'EventCategory'}
   },
   {
     timestamps: true, // Automatically handles createdAt and updatedAt

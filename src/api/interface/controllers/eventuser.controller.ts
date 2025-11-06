@@ -32,3 +32,27 @@ export const EventuserEvents: RequestHandler = async (req, res, next) => {
     return ErrorResponse(res, error.message);
   }
 };
+
+export const storeEventUserCompanyTeam : RequestHandler = async (req, res, next) => {
+  try {
+    
+    eventuserEvent(
+      (error: any, result: any) => {
+        if (error) {
+          loggerMsg(
+            "error",
+            `Error in getAllFieldConstantsController: ${error.message}`
+          );
+          return ErrorResponse(res, error.message);
+        }
+
+        loggerMsg("info", "Fetched Events successfully");
+        return successResponse(res, "Fetched all Events successfully", result);
+      },
+      req.body
+    );
+  } catch (error: any) {
+    loggerMsg("error", `Error in StoreEventuserCopanyteams: ${error.message}`);
+    return ErrorResponse(res, error.message);
+  }
+};

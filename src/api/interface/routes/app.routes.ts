@@ -62,6 +62,8 @@ import { createBadgeCategoryController, deleteBadgeCategoryByIdController, getAl
 import { EventuserEvents } from "../controllers/eventuser.controller";
 import { createEventImageController, deleteEventImageByIdController, getAllEventImagesController, getEventImageByIdController, updateEventImageController } from "../controllers/eventImages.controller";
 import { createEventImageSchema, updateEventImageSchema } from "../../utils/validation-schems/eventImagesSchema.validation";
+import { createEventCompanyTeamController, deleteEventCompanyTeamByIdController, getAllEventCompanyTeamController, getEventCompanyTeamByIdController, getTeamMembersCountController, updateEventCompanyTeamController } from "../controllers/eventCompanyTeam.controller";
+import { createEventCompanyTeamSchema, getEventCompanyTeamQuerySchema, updateEventCompanyTeamSchema } from "../../utils/validation-schems/eventCompanyTeam.validation";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -348,6 +350,14 @@ export const upload = multer({ storage: storage });
             route.post("/create-event-image", protectedRoute, uploadEventImagesFile, processAndSaveImages, validateRequest(createEventImageSchema), createEventImageController);
             route.put("/update-event-image/:id", protectedRoute, uploadEventImagesFile, processAndSaveImages, validateRequest(updateEventImageSchema), updateEventImageController);
             route.delete("/delete-event-image/:id", protectedRoute, deleteEventImageByIdController);
+
+            // Routes for Exhibitor comapny team
+            route.get("/event-company-teams", protectedRoute, validateRequest(getEventCompanyTeamQuerySchema), getAllEventCompanyTeamController);
+            route.get("/event-company-teams/:id", protectedRoute, getEventCompanyTeamByIdController);
+            route.get("/event-company-teams/count", protectedRoute, getTeamMembersCountController);
+            route.post("/event-company-teams", protectedRoute, uploadImagesFile, validateRequest(createEventCompanyTeamSchema), createEventCompanyTeamController);
+            route.put("/event-company-teams/:id", protectedRoute, uploadImagesFile, validateRequest(updateEventCompanyTeamSchema), updateEventCompanyTeamController);
+            route.delete("/event-company-teams/:id", protectedRoute, deleteEventCompanyTeamByIdController);
 
             route.post('/send-otp',verifyScannerToken,validateRequest(sendOtpValidation),OtpGenerate);
             route.post('/verify-otp',validateRequest(verifyOtpValidation),OtpVerify);

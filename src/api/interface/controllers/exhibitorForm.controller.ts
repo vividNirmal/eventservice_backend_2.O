@@ -7,6 +7,7 @@ import {
   deleteExhibitorForm,
   getExhibitorFormsCountByStatus,
   bulkDeleteExhibitorForms,
+  updateExhibitorFormStatusModel,
 } from "../../domain/models/exhibitorForm.model";
 import { ErrorResponse, successResponse } from "../../helper/apiResponse";
 import { loggerMsg } from "../../lib/logger";
@@ -115,6 +116,111 @@ export const createExhibitorFormController = async (
 };
 
 
+// export const updateExhibitorFormController = async (
+//   req: Request,
+//   res: Response
+// ) => {
+//   try {
+//     const { id } = req.params;
+//     const updateData = req.body;
+//     const files = req.files as Express.Multer.File[];
+
+//     // Validate IDs
+//     if (!mongoose.Types.ObjectId.isValid(id)) {
+//       return res.status(400).json({
+//         status: 0,
+//         message: "Invalid exhibitor form ID",
+//       });
+//     }
+
+//     // Remove system fields that shouldn't be updated
+//     delete updateData._id;
+//     delete updateData.createdAt;
+//     delete updateData.updatedAt;
+//     delete updateData.__v;
+//     delete updateData.companyId; // Prevent changing the company
+//     delete updateData.eventId; // Prevent changing the event
+
+//     // Handle uploaded files
+//     if (files && Array.isArray(files)) {
+//       files.forEach((file) => {
+//         if (file.fieldname === "important_instructions_image") {
+//           updateData.mediaInfo = updateData.mediaInfo || {};
+//           updateData.mediaInfo.important_instructions_image = `${
+//             (file as any).uploadFolder
+//           }/${file.filename}`;
+//         } else if (file.fieldname.startsWith("supporting_documents")) {
+//           updateData.mediaInfo = updateData.mediaInfo || {};
+//           updateData.mediaInfo.supporting_documents =
+//             updateData.mediaInfo.supporting_documents || [];
+
+//           const match = file.fieldname.match(
+//             /supporting_documents\[(\d+)\]\[file\]/
+//           );
+//           if (match) {
+//             const index = parseInt(match[1]);
+//             while (updateData.mediaInfo.supporting_documents.length <= index) {
+//               updateData.mediaInfo.supporting_documents.push({});
+//             }
+//             updateData.mediaInfo.supporting_documents[index].path = `${
+//               (file as any).uploadFolder
+//             }/${file.filename}`;
+//           }
+//         }
+//       });
+//     }
+
+
+//     // Handle supporting document names directly from form-data fields
+//     if (updateData.supporting_documents && Array.isArray(updateData.supporting_documents)) {
+//       updateData.mediaInfo = updateData.mediaInfo || {};
+//       updateData.mediaInfo.supporting_documents =
+//         updateData.mediaInfo.supporting_documents || [];
+
+//       updateData.supporting_documents.forEach((doc: any, index: number) => {
+//         while (updateData.mediaInfo.supporting_documents.length <= index) {
+//           updateData.mediaInfo.supporting_documents.push({});
+//         }
+//         updateData.mediaInfo.supporting_documents[index].name = doc.name;
+//       });
+
+//       delete updateData.supporting_documents;
+//     }
+
+
+//     const result = await updateExhibitorForm(
+//       new mongoose.Types.ObjectId(id),
+//       updateData
+//     );
+
+//     if (result.success) {
+//       return res.status(200).json({
+//         status: 1,
+//         message: result.message,
+//         data: result.data,
+//       });
+//     } else {
+//       const statusCode =
+//         result.message === "Exhibitor form not found or access denied"
+//           ? 404
+//           : 400;
+//       return res.status(statusCode).json({
+//         status: 0,
+//         message: result.message || "Failed to update exhibitor form",
+//       });
+//     }
+//   } catch (error: any) {
+//     loggerMsg(
+//       "error",
+//       `Error in updateExhibitorFormController: ${error.message}`
+//     );
+//     return res.status(500).json({
+//       status: 0,
+//       message: "Internal server error",
+//     });
+//   }
+// };
+
 export const updateExhibitorFormController = async (
   req: Request,
   res: Response
@@ -124,6 +230,10 @@ export const updateExhibitorFormController = async (
     const updateData = req.body;
     const files = req.files as Express.Multer.File[];
 
+    console.log("=== UPDATE DEBUG START ===");
+    console.log("Raw updateData received:", JSON.stringify(updateData, null, 2));
+    console.log("Files received:", files?.map(f => ({ fieldname: f.fieldname, filename: f.filename })));
+
     // Validate IDs
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
@@ -132,60 +242,129 @@ export const updateExhibitorFormController = async (
       });
     }
 
+    // Get the existing form first to preserve existing data
+    const existingForm = await exhibitorFormSchema.findById(id);
+    if (!existingForm) {
+      return res.status(404).json({
+        status: 0,
+        message: "Exhibitor form not found",
+      });
+    }
+
+    console.log("Existing form mediaInfo:", JSON.stringify(existingForm.mediaInfo, null, 2));
+
     // Remove system fields that shouldn't be updated
     delete updateData._id;
     delete updateData.createdAt;
     delete updateData.updatedAt;
     delete updateData.__v;
-    delete updateData.companyId; // Prevent changing the company
-    delete updateData.eventId; // Prevent changing the event
+    delete updateData.companyId;
+    delete updateData.eventId;
+
+    // Initialize mediaInfo with existing data
+    updateData.mediaInfo = {
+      ...existingForm.mediaInfo,
+      ...updateData.mediaInfo
+    };
+
+    console.log("After merging with existing:", JSON.stringify(updateData.mediaInfo, null, 2));
 
     // Handle uploaded files
     if (files && Array.isArray(files)) {
       files.forEach((file) => {
         if (file.fieldname === "important_instructions_image") {
-          updateData.mediaInfo = updateData.mediaInfo || {};
+          console.log("Processing new image file:", file.filename);
           updateData.mediaInfo.important_instructions_image = `${
             (file as any).uploadFolder
           }/${file.filename}`;
         } else if (file.fieldname.startsWith("supporting_documents")) {
-          updateData.mediaInfo = updateData.mediaInfo || {};
-          updateData.mediaInfo.supporting_documents =
-            updateData.mediaInfo.supporting_documents || [];
-
           const match = file.fieldname.match(
             /supporting_documents\[(\d+)\]\[file\]/
           );
           if (match) {
             const index = parseInt(match[1]);
-            while (updateData.mediaInfo.supporting_documents.length <= index) {
-              updateData.mediaInfo.supporting_documents.push({});
+            const nameField = `supporting_documents[${index}][name]`;
+            const documentName = updateData[nameField] || file.originalname;
+            
+            if (updateData.mediaInfo.supporting_documents[index]) {
+              updateData.mediaInfo.supporting_documents[index] = {
+                name: documentName,
+                path: `${(file as any).uploadFolder}/${file.filename}`
+              };
+            } else {
+              updateData.mediaInfo.supporting_documents.push({
+                name: documentName,
+                path: `${(file as any).uploadFolder}/${file.filename}`
+              });
             }
-            updateData.mediaInfo.supporting_documents[index].path = `${
-              (file as any).uploadFolder
-            }/${file.filename}`;
+            
+            delete updateData[nameField];
           }
         }
       });
     }
 
+    // Check if important_instructions_image was sent as a separate field
+    console.log("important_instructions_image field in updateData:", updateData.important_instructions_image);
+    console.log("Type of important_instructions_image:", typeof updateData.important_instructions_image);
 
-    // Handle supporting document names directly from form-data fields
-    if (updateData.supporting_documents && Array.isArray(updateData.supporting_documents)) {
-      updateData.mediaInfo = updateData.mediaInfo || {};
-      updateData.mediaInfo.supporting_documents =
-        updateData.mediaInfo.supporting_documents || [];
-
-      updateData.supporting_documents.forEach((doc: any, index: number) => {
-        while (updateData.mediaInfo.supporting_documents.length <= index) {
-          updateData.mediaInfo.supporting_documents.push({});
-        }
-        updateData.mediaInfo.supporting_documents[index].name = doc.name;
-      });
-
-      delete updateData.supporting_documents;
+    if (updateData.important_instructions_image) {
+      console.log("Found important_instructions_image in updateData, processing...");
+      if (typeof updateData.important_instructions_image === 'string') {
+        console.log("Setting image from string path:", updateData.important_instructions_image);
+        updateData.mediaInfo.important_instructions_image = updateData.important_instructions_image;
+      }
+      delete updateData.important_instructions_image;
     }
 
+    console.log("After image processing:", JSON.stringify(updateData.mediaInfo, null, 2));
+
+    // Handle document deletions and other processing...
+    const deletedIndices: number[] = [];
+    for (const key in updateData) {
+      const deleteMatch = key.match(/supporting_documents\[(\d+)\]\[deleted\]/);
+      if (deleteMatch && updateData[key] === 'true') {
+        const index = parseInt(deleteMatch[1]);
+        deletedIndices.push(index);
+        delete updateData[key];
+      }
+    }
+
+    if (deletedIndices.length > 0) {
+      deletedIndices.sort((a, b) => b - a).forEach(index => {
+        if (updateData.mediaInfo.supporting_documents[index]) {
+          updateData.mediaInfo.supporting_documents.splice(index, 1);
+        }
+      });
+    }
+
+    for (const key in updateData) {
+      const nameMatch = key.match(/supporting_documents\[(\d+)\]\[name\]/);
+      if (nameMatch) {
+        const index = parseInt(nameMatch[1]);
+        const name = updateData[key];
+        
+        if (updateData.mediaInfo.supporting_documents[index] && 
+            !files?.some(f => f.fieldname === `supporting_documents[${index}][file]`)) {
+          updateData.mediaInfo.supporting_documents[index].name = name;
+        }
+        
+        delete updateData[key];
+      }
+    }
+
+    updateData.mediaInfo.supporting_documents = (updateData.mediaInfo.supporting_documents || []).filter(
+      (doc: any) => doc && doc.name && doc.path
+    );
+
+    console.log("Final updateData before saving:", JSON.stringify({
+      mediaInfo: updateData.mediaInfo,
+      basicInfo: updateData.basicInfo ? '...' : 'none',
+      otherInfo: updateData.otherInfo ? '...' : 'none',
+      notifications: updateData.notifications ? '...' : 'none'
+    }, null, 2));
+
+    console.log("=== UPDATE DEBUG END ===");
 
     const result = await updateExhibitorForm(
       new mongoose.Types.ObjectId(id),
@@ -209,6 +388,7 @@ export const updateExhibitorFormController = async (
       });
     }
   } catch (error: any) {
+    console.error("Error in updateExhibitorFormController:", error);
     loggerMsg(
       "error",
       `Error in updateExhibitorFormController: ${error.message}`
@@ -450,5 +630,32 @@ export const getExhibitorFormsCountController = async (
       `Error in getExhibitorFormsCountController: ${error.message}`
     );
     return ErrorResponse(res, error.message);
+  }
+};
+
+
+export const updateExhibitorFormtatusController = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // Validate status
+    if (!['published', 'unpublished'].includes(status)) {
+      return res.status(400).json({ status: 0, message: 'Invalid status value' });
+    }
+
+    updateExhibitorFormStatusModel(id, status, (error, result) => {
+      if (error) return ErrorResponse(res, error.message);
+      return successResponse(
+        res,
+        "Exhibitor form status updated successfully",
+        result
+      );
+    });
+  } catch (error) {
+    return ErrorResponse(res, "Error updating exhibitor form status.");
   }
 };

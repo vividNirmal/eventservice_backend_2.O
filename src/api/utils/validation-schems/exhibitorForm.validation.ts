@@ -95,7 +95,7 @@ export const createExhibitorFormSchema = Joi.object({
   ).default({}),
 
   // System fields
-  status: Joi.string().valid('active', 'inactive', 'expired').default('active'),
+  status: Joi.string().valid('published', 'unpublished').default('unpublished'),
   companyId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required(),
   eventId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required(),
 }).unknown(true); // Allow unknown to accommodate files in FormData
@@ -127,7 +127,7 @@ export const updateExhibitorFormBodySchema = Joi.object({
   ).optional(),
 
   // System fields
-  status: Joi.string().valid('active', 'inactive', 'expired').optional(),
+  status: Joi.string().valid('published', 'unpublished').optional(),
   companyId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
   eventId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
 }).unknown(true);
@@ -169,4 +169,10 @@ export const bulkDeleteExhibitorFormsSchema = Joi.object({
   body: Joi.object({
     formIds: Joi.array().items(Joi.string().pattern(/^[0-9a-fA-F]{24}$/)).min(1).required(),
   }),
+});
+
+
+export const updateExhibitorFormStatusSchema = Joi.object({
+    id: Joi.string().optional(),
+    status: Joi.string().valid('published', 'unpublished').required(),
 });

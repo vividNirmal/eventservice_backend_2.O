@@ -464,3 +464,32 @@ export const bulkDeleteExhibitorForms = async (
     };
   }
 };
+
+
+export const updateExhibitorFormStatusModel = async (
+  formId: string,
+  status: 'published' | 'unpublished',
+  callback: (error: any, result: any) => void
+) => {
+  try {
+    const form = await ExhibitorFormSchema.findById(formId);
+
+    if (!form) {
+      return callback({ message: "Exhibitor form not found." }, null);
+    }
+
+    form.status = status;
+
+    await form.save();
+
+    return callback(null, {
+      formId: form._id,
+      status: form.status,
+      message: form.status
+        ? "Exhibitor form published."
+        : "Exhibitor form unpublished.",
+    });
+  } catch (error) {
+    return callback(error, null);
+  }
+};

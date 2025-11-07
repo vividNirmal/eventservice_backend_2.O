@@ -77,7 +77,7 @@ export interface IExhibitorForm extends Document {
     notifications: INotifications; // Notifications
 
     // System fields
-    status: 'active' | 'inactive' | 'expired';
+    status: 'published' | 'unpublished';
     createdAt: Date;
     updatedAt: Date;
     companyId?: mongoose.Types.ObjectId;
@@ -187,8 +187,8 @@ const exhibitorFormSchema = new Schema<IExhibitorForm>({
 
     status: { 
         type: String, 
-        enum: ['active', 'inactive', 'expired'], 
-        default: 'active' 
+        enum: ['published', 'unpublished'], 
+        default: 'unpublished' 
     },
     companyId: { type: Schema.Types.ObjectId, ref: "Company" },
     eventId: { type: Schema.Types.ObjectId, ref: "EventHost" },

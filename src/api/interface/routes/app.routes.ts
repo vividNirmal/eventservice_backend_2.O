@@ -67,6 +67,7 @@ import { createEventCompanyTeamSchema, getEventCompanyTeamQuerySchema, updateEve
 import { createEventCategoryController, deleteEventCategoryByIdController, getAllEventCategoriesController, getEventCategoryByIdController, updateEventCategoryByIdController } from "../controllers/eventcategory.controller";
 import { createExhibitorFormController, deleteExhibitorFormByIdController, getAllExhibitorFormsController, getExhibitorFormByIdController, getExhibitorFormsCountController, updateExhibitorFormController } from "../controllers/exhibitorForm.controller";
 import { createExhibitorFormSchema, getExhibitorFormsQuerySchema, updateExhibitorFormSchema } from "../../utils/validation-schems/exhibitorForm.validation";
+import { createEventPackageController, deleteEventPackagesController, eventandCategoryAttendes, getAllEventPackagesController, getEventPackageByIdController, updateEventPackageController } from "../controllers/eventPackage.controller";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -383,6 +384,14 @@ export const upload = multer({ storage: storage });
             route.get('/get-event-category/:id',protectedRoute,getEventCategoryByIdController);
             route.put('/update-event-category/:id',protectedRoute,updateEventCategoryByIdController);
             route.delete('/delete-event-category/:id',protectedRoute,deleteEventCategoryByIdController)
+
+            // Event Package 
+            route.post ('/store-package',protectedRoute,createEventPackageController)
+            route.put('/update-package/:id',protectedRoute,updateEventPackageController)
+            route.get ('/get-package',protectedRoute,getAllEventPackagesController)
+            route.get('/get-package/:id',protectedRoute,getEventPackageByIdController)
+            route.post('/detele-package',protectedRoute,deleteEventPackagesController)
+            route.get('/get-event-attendas',protectedRoute,eventandCategoryAttendes)
         } catch (error) {
             // Log any errors that occur during route definition
             console.log(error, 'warn')

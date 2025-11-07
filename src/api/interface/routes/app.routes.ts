@@ -65,6 +65,8 @@ import { createEventImageSchema, updateEventImageSchema } from "../../utils/vali
 import { createEventCompanyTeamController, deleteEventCompanyTeamByIdController, getAllEventCompanyTeamController, getEventCompanyTeamByIdController, getTeamMembersCountController, updateEventCompanyTeamController } from "../controllers/eventCompanyTeam.controller";
 import { createEventCompanyTeamSchema, getEventCompanyTeamQuerySchema, updateEventCompanyTeamSchema } from "../../utils/validation-schems/eventCompanyTeam.validation";
 import { createEventCategoryController, deleteEventCategoryByIdController, getAllEventCategoriesController, getEventCategoryByIdController, updateEventCategoryByIdController } from "../controllers/eventcategory.controller";
+import { createExhibitorFormController, deleteExhibitorFormByIdController, getAllExhibitorFormsController, getExhibitorFormByIdController, getExhibitorFormsCountController, updateExhibitorFormController } from "../controllers/exhibitorForm.controller";
+import { createExhibitorFormSchema, getExhibitorFormsQuerySchema, updateExhibitorFormSchema } from "../../utils/validation-schems/exhibitorForm.validation";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -359,6 +361,14 @@ export const upload = multer({ storage: storage });
             route.post("/event-company-teams", protectedRoute, uploadImagesFile, validateRequest(createEventCompanyTeamSchema), createEventCompanyTeamController);
             route.put("/event-company-teams/:id", protectedRoute, uploadImagesFile, validateRequest(updateEventCompanyTeamSchema), updateEventCompanyTeamController);
             route.delete("/event-company-teams/:id", protectedRoute, deleteEventCompanyTeamByIdController);
+
+
+            route.get("/exhibitor-forms", protectedRoute,  getAllExhibitorFormsController);
+            route.get("/exhibitor-forms/:id", protectedRoute, getExhibitorFormByIdController);
+            route.get("/exhibitor-forms/count", protectedRoute, getExhibitorFormsCountController);
+            route.post("/exhibitor-forms", protectedRoute, uploadImagesFile, validateRequest(createExhibitorFormSchema), createExhibitorFormController);
+            route.put("/exhibitor-forms/:id", protectedRoute, uploadImagesFile, updateExhibitorFormController);
+            route.delete("/exhibitor-forms/:id", protectedRoute, deleteExhibitorFormByIdController);
 
             route.post('/send-otp',verifyScannerToken,validateRequest(sendOtpValidation),OtpGenerate);
             route.post('/verify-otp',validateRequest(verifyOtpValidation),OtpVerify);

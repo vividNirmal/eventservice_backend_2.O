@@ -683,16 +683,81 @@ export const generateBadgePdf = async (
       }
     }
 
-    // Replace placeholder in template with dynamic content
-    finalHtml = finalHtml.replace(
-      /<div[^>]*id="badgeContent"[^>]*>.*?<\/div>/,
-      `<div id="badgeContent" style="visibility: visible; position: relative; width: 100%; height: 100%; box-sizing: border-box; padding: 0; margin: 0;${
-        categoryBackgroundColor ? ` background-color: ${categoryBackgroundColor};` : ""
-      }${categoryTextColor ? ` color: ${categoryTextColor};` : ""}">${dynamicContent}</div>`
+    // ✅ NEW CODE: Extract and preserve COMPLETE original badgeContent div styles
+    const badgeContentMatch = finalHtml.match(
+      /<div[^>]*id="badgeContent"[^>]*>([\s\S]*?)<\/div>/
     );
 
+    if (badgeContentMatch) {
+      const fullBadgeDiv = badgeContentMatch[0]; // Complete div with all attributes
+      const originalContent = badgeContentMatch[1]; // Inner content (may be empty)
+      
+      // Extract the full style attribute
+      const styleMatch = fullBadgeDiv.match(/style="([^"]*)"/);
+      const originalStyles = styleMatch ? styleMatch[1] : '';
+
+      // Parse original styles into a Map
+      const styleMap = new Map<string, string>();
+
+      if (originalStyles) {
+        originalStyles.split(';').forEach((style: any) => {
+          // Use indexOf to avoid breaking URLs with ://
+          const colonIndex = style.indexOf(':');
+          if (colonIndex === -1) return;
+          
+          const key = style.substring(0, colonIndex).trim();
+          const value = style.substring(colonIndex + 1).trim();
+          
+          if (key && value) {
+            styleMap.set(key, value);
+          }
+        });
+      }
+
+      // Add/override ONLY the necessary positioning styles
+      // DO NOT override background-image or other visual styles
+      styleMap.set('visibility', 'visible');
+      styleMap.set('position', 'relative');
+      styleMap.set('width', '100%');
+      styleMap.set('box-sizing', 'border-box');
+      styleMap.set('padding', '0');
+      styleMap.set('margin', '0');
+
+      // Only set height if not already present (preserve template height)
+      if (!styleMap.has('height')) {
+        styleMap.set('height', '100%');
+      }
+
+      // Apply category colors if selected (these should override template colors)
+      if (categoryBackgroundColor) {
+        styleMap.set('background-color', categoryBackgroundColor);
+      }
+      if (categoryTextColor) {
+        styleMap.set('color', categoryTextColor);
+      }
+
+      // Build final merged style string
+      const mergedStyles = Array.from(styleMap.entries())
+        .map(([key, value]) => `${key}: ${value}`)
+        .join('; ');
+
+      // Replace ONLY the badgeContent div, preserving ALL original styles + adding dynamic content
+      finalHtml = finalHtml.replace(
+        /<div[^>]*id="badgeContent"[^>]*>[\s\S]*?<\/div>/,
+        `<div id="badgeContent" style="${mergedStyles}">${dynamicContent}</div>`
+      );
+    } else {
+      // Fallback: If no badgeContent div found, create one with basic styles
+      finalHtml = finalHtml.replace(
+        /<div[^>]*id="badgeContent"[^>]*>[\s\S]*?<\/div>/,
+        `<div id="badgeContent" style="visibility: visible; position: relative; width: 100%; height: 100%; box-sizing: border-box; padding: 0; margin: 0;${
+          categoryBackgroundColor ? ` background-color: ${categoryBackgroundColor};` : ""
+        }${categoryTextColor ? ` color: ${categoryTextColor};` : ""}">${dynamicContent}</div>`
+      );
+    }
+
     // Inject Google Fonts link for Puppeteer rendering compatibility
-    const fontLink = `<link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">`;
+    const fontLink = `<link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Momo+Signature&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">`;
 
     // Ensure the HTML has <head> section, and insert the font link properly
     if (finalHtml.includes("<head>")) {
@@ -1144,17 +1209,76 @@ export const generatePaperBadgePdf = async (
 
     let finalHtml = htmlTemplate;
 
-    // Replace placeholder in template with dynamic content
-    finalHtml = finalHtml.replace(
-      /<div[^>]*id="badgeContent"[^>]*>.*?<\/div>/,
-      `<div id="badgeContent" style="visibility: visible; position: relative; width: 100%; height: 100%; box-sizing: border-box; padding: 0; margin: 0;${
-        categoryBackgroundColor
-          ? ` background-color: ${categoryBackgroundColor};`
-          : ""
-      }${
-        categoryTextColor ? ` color: ${categoryTextColor};` : ""
-      }">${dynamicContent}</div>`
+    // ✅ Extract and preserve COMPLETE original badgeContent div
+    const badgeContentMatch = finalHtml.match(
+      /<div[^>]*id="badgeContent"[^>]*>([\s\S]*?)<\/div>/
     );
+
+    if (badgeContentMatch) {
+      const fullBadgeDiv = badgeContentMatch[0]; // Complete div with all attributes
+      const originalContent = badgeContentMatch[1]; // Inner content (may be empty)
+      
+      // Extract the full style attribute
+      const styleMatch = fullBadgeDiv.match(/style="([^"]*)"/);
+      const originalStyles = styleMatch ? styleMatch[1] : '';
+
+      // Parse original styles into a Map
+      const styleMap = new Map<string, string>();
+
+      if (originalStyles) {
+        originalStyles.split(';').forEach(style => {
+          // Use indexOf to avoid breaking URLs with ://
+          const colonIndex = style.indexOf(':');
+          if (colonIndex === -1) return;
+          
+          const key = style.substring(0, colonIndex).trim();
+          const value = style.substring(colonIndex + 1).trim();
+          
+          if (key && value) {
+            styleMap.set(key, value);
+          }
+        });
+      }
+
+      // Add/override ONLY the necessary positioning styles
+      // DO NOT override background-image or other visual styles
+      styleMap.set('visibility', 'visible');
+      styleMap.set('position', 'relative');
+      styleMap.set('width', '100%');
+      styleMap.set('box-sizing', 'border-box');
+      styleMap.set('padding', '0');
+      styleMap.set('margin', '0');
+
+      // Only set height if not already present (preserve template height)
+      if (!styleMap.has('height')) {
+        styleMap.set('height', '100%');
+      }
+
+      // Apply category colors if selected (these should override template colors)
+      if (categoryBackgroundColor) {
+        styleMap.set('background-color', categoryBackgroundColor);
+      }
+      if (categoryTextColor) {
+        styleMap.set('color', categoryTextColor);
+      }
+
+      // Build final merged style string
+      const mergedStyles = Array.from(styleMap.entries())
+        .map(([key, value]) => `${key}: ${value}`)
+        .join('; ');
+
+      // Replace ONLY the badgeContent div, preserving ALL original styles + adding dynamic content
+      finalHtml = finalHtml.replace(
+        /<div[^>]*id="badgeContent"[^>]*>[\s\S]*?<\/div>/,
+        `<div id="badgeContent" style="${mergedStyles}">${dynamicContent}</div>`
+      );
+    } else if (hasTemplate) {
+      // If template exists but has no badgeContent div, append dynamic content
+      finalHtml = htmlTemplate.replace(
+        /<\/div>\s*$/,
+        `<div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; padding: 5mm;">${dynamicContent}</div></div>`
+      );
+    }
 
     // If template exists but has no badgeContent div, append dynamic content
     if (hasTemplate && !htmlTemplate.includes('id="badgeContent"')) {
@@ -1262,7 +1386,7 @@ export const generatePaperBadgePdf = async (
     `;
 
     // Inject Google Fonts link for Puppeteer rendering
-    const fontLink = `<link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">`;
+    const fontLink = `<link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&family=Momo+Signature&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">`;
 
     // If the <head> already exists, add the font link there
     if (finalHtml.includes("<head>")) {

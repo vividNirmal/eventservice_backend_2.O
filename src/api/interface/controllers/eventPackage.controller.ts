@@ -41,11 +41,7 @@ export const createEventPackageController: RequestHandler = async (
       }
 
       loggerMsg("info", "Event package created successfully");
-      return successResponse(
-        res,
-        "Event package created successfully",
-        result
-      );
+      return successResponse(res, "Event package created successfully", result);
     });
   } catch (error: any) {
     loggerMsg(
@@ -121,11 +117,7 @@ export const getEventPackageByIdController: RequestHandler = async (
       }
 
       loggerMsg("info", "Event package fetched successfully");
-      return successResponse(
-        res,
-        "Event package fetched successfully",
-        result
-      );
+      return successResponse(res, "Event package fetched successfully", result);
     });
   } catch (error: any) {
     loggerMsg(
@@ -160,11 +152,7 @@ export const updateEventPackageController: RequestHandler = async (
       }
 
       loggerMsg("info", "Event package updated successfully");
-      return successResponse(
-        res,
-        "Event package updated successfully",
-        result
-      );
+      return successResponse(res, "Event package updated successfully", result);
     });
   } catch (error: any) {
     loggerMsg(
@@ -182,8 +170,8 @@ export const deleteEventPackagesController: RequestHandler = async (
 ) => {
   try {
     const { package_ids } = req.body;
-    const token = req.headers.authorization;    
-    
+    const token = req.headers.authorization;
+
     deleteEventPackagesModule(package_ids, token, (error, result) => {
       if (error) {
         loggerMsg(
@@ -193,7 +181,10 @@ export const deleteEventPackagesController: RequestHandler = async (
         return ErrorResponse(res, error.message);
       }
 
-      loggerMsg("info", `Successfully deleted ${result.deletedCount} event package(s)`);
+      loggerMsg(
+        "info",
+        `Successfully deleted ${result.deletedCount} event package(s)`
+      );
       return successResponse(
         res,
         `Successfully deleted ${result.deletedCount} event package(s).`,
@@ -209,12 +200,14 @@ export const deleteEventPackagesController: RequestHandler = async (
   }
 };
 
-export const eventandCategoryAttendes : RequestHandler =async(req,
+export const eventandCategoryAttendes: RequestHandler = async (
+  req,
   res,
-  next) =>{
-    try{
-      const token = req.headers.authorization;
-      eventandCategoryAttendesModule( token, (error, result) => {
+  next
+) => {
+  try {
+    const token = req.headers.authorization;
+    eventandCategoryAttendesModule(token, (error, result) => {
       if (error) {
         loggerMsg(
           "error",
@@ -226,14 +219,15 @@ export const eventandCategoryAttendes : RequestHandler =async(req,
       loggerMsg("info", `Successfully Event Data get `);
       return successResponse(
         res,
-        `Successfully Event Data get  event package(s).` ,result       
+        `Successfully Event Data get  event package(s).`,
+        result
       );
     });
-    }catch (error :any){
-      loggerMsg(
+  } catch (error: any) {
+    loggerMsg(
       "error",
       `Error in deleteEventPackagesController: ${error.message}`
     );
     return ErrorResponse(res, "An error occurred during package deletion.");
-    }
   }
+};

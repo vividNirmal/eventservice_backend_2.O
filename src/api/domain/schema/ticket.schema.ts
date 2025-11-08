@@ -215,12 +215,8 @@ const ticketSchema: Schema = new Schema<ITicket>({
     },
     serialNoPrefix: { type: String, required: true, trim: true },
     startCount: { type: Number, required: true, default: 0, min: 0 },
-    description: { type: String, trim: true },
-
-    // Ticket Amount
-    ticketAmount: { type: ticketAmountSchema, required: true, default: () => ({ type: 'free' })},
-
-    // Ticket Settings
+    description: { type: String, trim: true },    
+    ticketAmount: { type: ticketAmountSchema, required: true, default: () => ({ type: 'free' })},    
     ticketPerUser: { type: Number, required: true, default: 1, min: 1 },
     ticketAccess: { 
         type: String, 
@@ -237,15 +233,9 @@ const ticketSchema: Schema = new Schema<ITicket>({
     ctaSettings: [{
         type: String,
         enum: ['Chat', 'Schedule']
-    }],
-
-    // Advanced Settings
-    advancedSettings: { type: advancedSettingsSchema, default: {} },
-
-    // Notifications
-    notifications: { type: notificationsSchema, default: {} },
-
-    // System fields
+    }],    
+    advancedSettings: { type: advancedSettingsSchema, default: {} },    
+    notifications: { type: notificationsSchema, default: {} },    
     status: { 
         type: String, 
         enum: ['active', 'inactive', 'expired'], 

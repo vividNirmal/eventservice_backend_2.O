@@ -25,6 +25,7 @@ import ticketSchema from "../schema/ticket.schema";
 import eventUserSchema from "../schema/eventUser.schema";
 import companySchema from "../schema/company.schema";
 import { generateBadgePdf } from "../../interface/controllers/formRegistration.controller";
+import { convertToWebP } from "../../helper/helper";
 
 const addImageUrls = (ticket: any) => {
   const baseUrl = env.BASE_URL;
@@ -439,16 +440,40 @@ export const storeFormRegistrationModel = async (
       // token: userToken,
     };
 
-    const savePath = path.join("uploads/participants", faceImageUrl);
+    // const savePath = path.join("uploads/participants", faceImageUrl);
 
-    // Ensure the directory exists before writing the file
-    const dir = path.dirname(savePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
+    // // Ensure the directory exists before writing the file
+    // const dir = path.dirname(savePath);
+    // if (!fs.existsSync(dir)) {
+    //   fs.mkdirSync(dir, { recursive: true });
+    // }
+    // if (uploadedImageBuffer) {
+    //   fs.writeFileSync(savePath, uploadedImageBuffer);
+    // }
+
+    ///////////////////////
+    // ✅ Convert uploaded image buffer to WebP before saving
     if (uploadedImageBuffer) {
-      fs.writeFileSync(savePath, uploadedImageBuffer);
+      const webpBuffer = await convertToWebP(uploadedImageBuffer, 90);
+
+      // Generate WebP filename
+      const webpFileName = faceImageUrl.replace(/\.(jpg|jpeg|png)$/i, '.webp');
+      const savePath = path.join("uploads/participants", webpFileName);
+
+      // Ensure the directory exists before writing the file
+      const dir = path.dirname(savePath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+
+      // Save as WebP
+      fs.writeFileSync(savePath, webpBuffer);
+
+      // Update the registration data to use .webp extension
+     faceImageUrl = webpFileName;
     }
+    //////////////////////////
+
     if (faceId) {
       registrationData.faceId = faceId;
     }
@@ -519,8 +544,12 @@ export const storeFormRegistrationModel = async (
       responseData.faceId = faceId;
     }
 
+    // if (faceImageUrl) {
+    //   responseData.faceImageUrl = `https://${AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${faceImageUrl}`;
+    // }
+
     if (faceImageUrl) {
-      responseData.faceImageUrl = `https://${AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${faceImageUrl}`;
+      responseData.faceImageUrl = `${baseUrl}/uploads/participants/${faceImageUrl}`;
     }
 
     if (parsedBusinessData) {
@@ -1044,6 +1073,7 @@ export const updateFormRegistrationModel = async (
     // Process face image update if provided
     let faceId = existingRegistration.faceId;
     let faceImageUrl = existingRegistration.faceImageUrl;
+    let uploadedImageBuffer: Buffer | null = null;
 
     const faceScanFile = files?.find(
       (file) => file.fieldname === "faceImage" || file.fieldname === "faceScan"
@@ -1057,10 +1087,51 @@ export const updateFormRegistrationModel = async (
           await deleteFaceFromRekognition(existingRegistration.faceId);
         }
 
-        // Process new face image
+        // // Process new face image
+        // const processedFaceData = await processFaceImage(faceScanFile);
+        // faceId = processedFaceData.faceId;
+        // faceImageUrl = processedFaceData.imageKey;
+
+        /////////////////////////////////
+        // Delete old WebP file from server if exists
+        if (existingRegistration.faceImageUrl) {
+          const oldFilePath = path.join("uploads/participants", existingRegistration.faceImageUrl);
+          if (fs.existsSync(oldFilePath)) {
+            fs.unlinkSync(oldFilePath);
+            console.log(`🗑️ Deleted old face image: ${oldFilePath}`);
+          } else {
+            console.log(`⚠️ Old face image not found for deletion: ${oldFilePath}`);
+          }
+        }
+
+        // Process new face image (uploads JPEG to AWS)
         const processedFaceData = await processFaceImage(faceScanFile);
         faceId = processedFaceData.faceId;
-        faceImageUrl = processedFaceData.imageKey;
+        faceImageUrl = processedFaceData.imageKey; // This is the AWS key (uuid.jpg)
+        uploadedImageBuffer = processedFaceData.imageBuffer; // JPEG buffer from AWS processing
+
+        // ✅ Convert to WebP and save on server
+        if (uploadedImageBuffer) {
+          const webpBuffer = await convertToWebP(uploadedImageBuffer, 90);
+
+          // Generate WebP filename
+          const webpFileName = faceImageUrl.replace(/\.(jpg|jpeg|png)$/i, '.webp');
+          const savePath = path.join("uploads/participants", webpFileName);
+
+          // Ensure the directory exists
+          const dir = path.dirname(savePath);
+          if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+          }
+
+          // Save as WebP on server
+          fs.writeFileSync(savePath, webpBuffer);
+          console.log(`✅ Saved WebP face image: ${savePath}`);
+
+          // Update to use .webp extension
+          faceImageUrl = webpFileName;
+        }
+        ///////////////////////////
 
         updateData.faceId = faceId;
         updateData.faceImageUrl = faceImageUrl;
@@ -1155,8 +1226,13 @@ export const updateFormRegistrationModel = async (
       formData: updatedRegistration.formData,
     };
 
+    // if (updatedRegistration.faceImageUrl) {
+    //   responseData.faceImageUrl = `https://${AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${updatedRegistration.faceImageUrl}`;
+    // }
+
     if (updatedRegistration.faceImageUrl) {
-      responseData.faceImageUrl = `https://${AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${updatedRegistration.faceImageUrl}`;
+      const baseUrl = process.env.BASE_URL;
+      responseData.faceImageUrl = `${baseUrl}/uploads/participants/${updatedRegistration.faceImageUrl}`;
     }
 
     if (updatedRegistration.businessData) {

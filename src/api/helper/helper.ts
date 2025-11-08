@@ -95,6 +95,23 @@ export const uploadImagesFile = multer({
 //     { name: "attachments", maxCount: 10 } // unified for attachment usage
 // ]);
 
+export async function convertToWebP(
+  imageBuffer: Buffer,
+  quality: number = 90
+): Promise<Buffer> {
+
+  try {
+    const webpBuffer = await sharp(imageBuffer)
+      .webp({ quality })
+      .toBuffer();
+
+    return webpBuffer;
+  } catch (error) {
+    console.error("Error converting image to WebP:", error);
+    throw new Error("Failed to convert image to WebP format");
+  }
+}
+
 export const uploadEventImagesFile = multer({
     storage: multer.memoryStorage(), // Use memory storage to process with Sharp
     fileFilter: (req, file, cb) => {

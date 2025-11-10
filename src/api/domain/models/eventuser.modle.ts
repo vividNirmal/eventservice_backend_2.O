@@ -76,8 +76,8 @@ export const eventuserEvent = async (
       .populate({
         path: "eventId",
         populate: "event_category",
-      });
-
+      });      
+      
     // Transform tickets data
     const transformedTickets = tickets.map((ticket: any) => {
       // Get ticket price based on type
@@ -98,11 +98,11 @@ export const eventuserEvent = async (
 
       return {
         _id: ticket._id,
-        title: ticket.ticketName || ticket.eventId?.event_title || "N/A",
+        title: ticket.eventId?.eventName || ticket.ticketName || "N/A",
         price: ticketPrice,
         description: ticket.description || ticket.eventId?.event_description || "No description available",
         type: "ticket",
-        eventTitle: ticket.eventId?.event_title,
+        eventTitle: ticket.eventId?.eventName,
         eventImage: ticket.eventId?.event_image,
         eventLogo: ticket.eventId?.event_logo,
         category: ticket.eventId?.event_category?.title,

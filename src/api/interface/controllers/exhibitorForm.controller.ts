@@ -21,10 +21,10 @@ export const createExhibitorFormController = async (
   req: Request,
   res: Response
 ) => {
-  console.log("here>>>>>>>>>");
   try {
     const companyId = req.body?.companyId;
     const eventId = req.body?.eventId;
+    const exhibitorFormConfigurationId = req.body?.ExhibitorFormConfiguration;
     const formData = req.body;
     const files = req.files as Express.Multer.File[];
 
@@ -32,6 +32,14 @@ export const createExhibitorFormController = async (
       return res.status(400).json({
         status: 0,
         message: "Valid Event ID is required",
+      });
+    }
+
+    // Validate configuration ID
+    if (!exhibitorFormConfigurationId || !mongoose.Types.ObjectId.isValid(exhibitorFormConfigurationId)) {
+      return res.status(400).json({
+        status: 0,
+        message: "Valid Exhibitor Form Configuration is required",
       });
     }
 
@@ -56,7 +64,6 @@ export const createExhibitorFormController = async (
         metadata = [];
       }
 
-      console.log("Supporting documents metadata:", metadata);
 
       // Get uploaded files
       const uploadedFiles = files?.filter(f => f.fieldname === 'supporting_documents_files') || [];
@@ -77,7 +84,6 @@ export const createExhibitorFormController = async (
             name: item.name || file.originalname.replace(/\.[^/.]+$/, ""), // Fallback to filename if no name
             path: `${(file as any).uploadFolder}/${file.filename}`
           });
-          console.log(`Added document #${fileIndex}: "${item.name}" at path: ${formData.mediaInfo.supporting_documents[fileIndex].path}`);
         } else {
           console.warn(`No file found at index ${fileIndex} for metadata item:`, item);
         }
@@ -88,11 +94,8 @@ export const createExhibitorFormController = async (
     } else {
       // Initialize empty array if no documents
       formData.mediaInfo.supporting_documents = [];
-      console.log("No supporting documents provided");
     }
 
-    console.log("Final mediaInfo:", JSON.stringify(formData.mediaInfo, null, 2));
-    console.log("=== CREATE EXHIBITOR FORM END ===");
 
     const result = await createExhibitorForm(
       formData,
@@ -241,10 +244,6 @@ export const updateExhibitorFormController = async (
     const updateData = req.body;
     const files = req.files as Express.Multer.File[];
 
-    console.log("=== UPDATE DEBUG START ===");
-    console.log("Raw updateData received:", Object.keys(updateData));
-    console.log("Files received:", files?.map(f => ({ fieldname: f.fieldname, filename: f.filename })));
-
     // Validate IDs
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
@@ -261,8 +260,6 @@ export const updateExhibitorFormController = async (
         message: "Exhibitor form not found",
       });
     }
-
-    console.log("Existing form mediaInfo:", JSON.stringify(existingForm.mediaInfo, null, 2));
 
     // Remove system fields that shouldn't be updated
     delete updateData._id;

@@ -1,7 +1,7 @@
 import { RequestHandler } from "express";
 import { loggerMsg } from "../../lib/logger";
 import { ErrorResponse, successResponse } from "../../helper/apiResponse";
-import { eventuserEvent } from "../../domain/models/eventuser.modle";
+import { eventuserEvent, EventuserRegisterDefferntEventmodle } from "../../domain/models/eventuser.modle";
 
 export const EventuserEvents: RequestHandler = async (req, res, next) => {
   try {
@@ -56,3 +56,29 @@ export const storeEventUserCompanyTeam : RequestHandler = async (req, res, next)
     return ErrorResponse(res, error.message);
   }
 };
+
+
+export const EventuserRegisterDefferntEvent : RequestHandler = async (req, res, next) =>{
+  try{
+    const token = req.headers.authorization;      
+      
+     EventuserRegisterDefferntEventmodle( req.body,token,  
+      (error: any, result: any) => {
+        if (error) {
+          loggerMsg(
+            "error",
+            `Error in getAllFieldConstantsController: ${error.message}`
+          );
+          return ErrorResponse(res, error.message);
+        }
+
+        loggerMsg("info", "successfully Register in Event");
+        return successResponse(res, "You are register successfully", result);
+      },    
+      
+    );
+  }catch (error :any){
+    loggerMsg("error", `Error in StoreEventuserCopanyteams: ${error.message}`);
+    return ErrorResponse(res, error.message);
+  }
+}

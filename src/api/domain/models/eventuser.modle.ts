@@ -4,7 +4,10 @@ import formRegistrationSchema from "../schema/formRegistration.schema";
 import userTypeSchema from "../schema/userType.schema";
 import EventPackageSchema from "../schema/packageofEvents.schema";
 import ticketSchema from "../schema/ticket.schema";
-
+import { generateBadgeNumber, saveQrImage } from "./formRegistration.model";
+import eventHostSchema from "../schema/eventHost.schema";
+import { v4 as uuidv4 } from "uuid";
+import QRCode from "qrcode";
 export const eventuserEvent = async (
   callback: (error: Error | null, result?: any) => void,
   page: number = 1,
@@ -26,7 +29,7 @@ export const eventuserEvent = async (
       loggerMsg("error", "JWT_SECRET_KEY is missing in environment");
       return callback(error, null);
     }
-    
+
     let loginUserData: any;
     try {
       const actualToken = token.startsWith("Bearer ") ? token.slice(7) : token;
@@ -76,8 +79,8 @@ export const eventuserEvent = async (
       .populate({
         path: "eventId",
         populate: "event_category",
-      });      
-      
+      });
+
     // Transform tickets data
     const transformedTickets = tickets.map((ticket: any) => {
       // Get ticket price based on type
@@ -100,7 +103,10 @@ export const eventuserEvent = async (
         _id: ticket._id,
         title: ticket.eventId?.eventName || ticket.ticketName || "N/A",
         price: ticketPrice,
-        description: ticket.description || ticket.eventId?.event_description || "No description available",
+        description:
+          ticket.description ||
+          ticket.eventId?.event_description ||
+          "No description available",
         type: "ticket",
         eventTitle: ticket.eventId?.eventName,
         eventImage: ticket.eventId?.event_image,
@@ -121,11 +127,12 @@ export const eventuserEvent = async (
         price: parseFloat(pkg.package_total_price || 0),
         description: pkg.description || "No description available",
         type: "package",
-        events: pkg.event_package?.map((evt: any) => ({
-          eventId: evt.event_Id?._id,
-          categoryTitle: evt.event_category?.title,
-          eventPrice: parseFloat(evt.event_price || 0),
-        })) || [],
+        events:
+          pkg.event_package?.map((evt: any) => ({
+            eventId: evt.event_Id?._id,
+            categoryTitle: evt.event_category?.title,
+            eventPrice: parseFloat(evt.event_price || 0),
+          })) || [],
         companyInfo: pkg.companyId,
         createdAt: pkg.createdAt,
         originalData: pkg, // Keep original data if needed
@@ -174,6 +181,315 @@ export const eventuserEvent = async (
     });
   } catch (error: any) {
     loggerMsg("error", `Error fetching user events: ${error.message}`);
+    callback(error, null);
+  }
+};
+
+export const EventuserRegisterDefferntEventmodle = async (
+  eventdata: any,
+  token: any,
+  callback: (error: Error | null, result?: any) => void
+) => {
+  try {
+    if (!token) {
+      const error = new Error("Authentication token is required");
+      loggerMsg("error", "User token is missing");
+      return callback(error, null);
+    }
+
+    // Validate JWT secret
+    if (!process.env.JWT_SECRET_KEY) {
+      const error = new Error("JWT secret key is not configured");
+      loggerMsg("error", "JWT_SECRET_KEY is missing in environment");
+      return callback(error, null);
+    }
+
+    let loginUserData: any;
+    try {
+      const actualToken = token.startsWith("Bearer ") ? token.slice(7) : token;
+      loginUserData = jwt.verify(actualToken, process.env.JWT_SECRET_KEY);
+    } catch (jwtError: any) {
+      const error = new Error("Invalid or expired token");
+      loggerMsg("error", `JWT verification failed: ${jwtError.message}`);
+      return callback(error, null);
+    }
+
+    if (!eventdata) {
+      const error = new Error("Event data not found");
+      loggerMsg("error", `Event Data not Found`);
+      return callback(error, null);
+    }
+
+    const Attendees: any = await userTypeSchema
+      .findOne({ typeName: "Event Attendees" })
+      .sort({ order: 1 })
+      .lean();
+
+    // Get existing exhibitor registration form
+    const exibitorRefisterForm = await formRegistrationSchema
+      .findOne({ email: loginUserData.email })
+      .lean();
+
+    if (!exibitorRefisterForm) {
+      const error = new Error("User registration form not found");
+      loggerMsg(
+        "error",
+        `Registration form not found for email: ${loginUserData.email}`
+      );
+      return callback(error, null);
+    }
+
+    let result;
+
+    // ============ PACKAGE TYPE LOGIC ============
+    if (eventdata.type === "package") {
+      const packageData: any = await EventPackageSchema.findById(eventdata.id)
+        .populate("event_package.event_Id", "title description price")
+        .populate("event_package.event_category", "title description")
+        .sort({ createdAt: -1 });
+
+      if (!packageData) {
+        const error = new Error("Package not found");
+        loggerMsg("error", `Package not found with ID: ${eventdata.id}`);
+        return callback(error, null);
+      }
+
+      const tickets: any = await ticketSchema.find({
+        userType: Attendees?._id,
+        companyId: loginUserData?.company_id,
+      });
+
+      if (!tickets || tickets.length === 0) {
+        const error = new Error("No tickets found for this user");
+        loggerMsg(
+          "error",
+          `No tickets found for company: ${loginUserData?.company_id}`
+        );
+        return callback(error, null);
+      }
+
+      // Auto-register user for each ticket
+      const registrations = [];
+
+      for (const ticket of tickets) {
+        const eventId = ticket.eventId;
+        const ticketId = ticket._id;
+
+        // Check if user already registered for this event with this ticket
+        const existingRegistration = await formRegistrationSchema.findOne({
+          email: loginUserData.email,
+          eventId: eventId,
+          ticketId: ticketId,
+        });
+
+        if (existingRegistration) {
+          registrations.push(existingRegistration);
+          continue;
+        }
+
+        // Check if ticket is active
+        if (ticket.status !== "active") {
+          continue;
+        }
+
+        // Generate badge number
+        const finalBadgeNo = await generateBadgeNumber(ticket);
+        
+        // Determine auto-approval from ticket settings
+        const isAutoApproved =
+          ticket.advancedSettings?.autoApprovedUser || false;
+
+        // Prepare registration data
+        const registrationData: any = {
+          email: loginUserData.email.toLowerCase(),
+          ticketId: ticketId,
+          eventId: eventId,
+          badgeNo: finalBadgeNo,
+          formData: exibitorRefisterForm.formData,
+          approved: isAutoApproved,
+        };
+
+        // Copy faceId and faceImageUrl from exhibitor registration
+        if (exibitorRefisterForm.faceId) {
+          registrationData.faceId = exibitorRefisterForm.faceId;
+        }
+
+        if (exibitorRefisterForm.faceImageUrl) {
+          registrationData.faceImageUrl = exibitorRefisterForm.faceImageUrl;
+        }
+
+        // Copy business data if exists
+        if (exibitorRefisterForm.businessData) {
+          registrationData.businessData = exibitorRefisterForm.businessData;
+        }
+
+        const registration = new formRegistrationSchema(registrationData);
+        await registration.save();
+        
+        // Generate user token for QR code
+        const userToken = uuidv4();
+        let qrCodeBase64 = null;
+        let qrFileName = null;
+        let eventDetails = await eventHostSchema.findById(eventId);
+        
+        if (eventDetails) {
+          // Generate QR code data
+          const qrData = JSON.stringify({
+            event_id: eventDetails._id,
+            event_slug: eventDetails.event_slug,
+            formRegistration_id: registration._id,
+          });
+
+          // Generate base64 QR code
+          qrCodeBase64 = await QRCode.toDataURL(qrData);
+          
+          // Save QR code as file
+          qrFileName = saveQrImage(qrCodeBase64, userToken);
+          registration.qrImage = `${qrFileName}`;
+          await registration.save();
+        }
+        
+        registrations.push(registration);
+      }
+
+      result = {
+        packageData,
+        tickets,
+        exibitorRefisterForm,
+        newRegistrations: registrations,
+        message: `Successfully registered for ${registrations.length} event(s)`,
+      };
+    }
+
+    // ============ TICKET TYPE LOGIC ============
+    else if (eventdata.type === "ticket") {
+      // Find the specific ticket by ID
+      const ticketData: any = await ticketSchema
+        .findById(eventdata.id)
+        .populate("eventId", "title description event_slug")
+        .populate("userType", "typeName")
+        .lean();
+
+      if (!ticketData) {
+        const error = new Error("Ticket not found");
+        loggerMsg("error", `Ticket not found with ID: ${eventdata.id}`);
+        return callback(error, null);
+      }
+
+      // Verify ticket belongs to the user's company
+      if (ticketData.companyId?.toString() !== loginUserData?.company_id?.toString()) {
+        const error = new Error("Ticket does not belong to your company");
+        loggerMsg("error", `Unauthorized ticket access attempt by ${loginUserData.email}`);
+        return callback(error, null);
+      }
+
+      const eventId = ticketData.eventId._id;
+      const ticketId = ticketData._id;
+
+      // Check if user already registered for this event with this ticket
+      const existingRegistration = await formRegistrationSchema.findOne({
+        email: loginUserData.email,
+        eventId: eventId,
+        ticketId: ticketId,
+      });
+
+      if (existingRegistration) {
+        result = {
+          ticketData,
+          registration: existingRegistration,
+          message: "You are already registered for this event with this ticket",
+          alreadyRegistered: true,
+        };
+      } else {
+        // Check if ticket is active
+        if (ticketData.status !== "active") {
+          const error = new Error("Ticket is not active");
+          loggerMsg("error", `Inactive ticket access attempt: ${ticketId}`);
+          return callback(error, null);
+        }
+
+        // Generate badge number
+        const finalBadgeNo = await generateBadgeNumber(ticketData);
+        
+        // Determine auto-approval from ticket settings
+        const isAutoApproved =
+          ticketData.advancedSettings?.autoApprovedUser || false;
+
+        // Prepare registration data
+        const registrationData: any = {
+          email: loginUserData.email.toLowerCase(),
+          ticketId: ticketId,
+          eventId: eventId,
+          badgeNo: finalBadgeNo,
+          formData: exibitorRefisterForm.formData,
+          approved: isAutoApproved,
+        };
+
+        // Copy faceId and faceImageUrl from exhibitor registration
+        if (exibitorRefisterForm.faceId) {
+          registrationData.faceId = exibitorRefisterForm.faceId;
+        }
+
+        if (exibitorRefisterForm.faceImageUrl) {
+          registrationData.faceImageUrl = exibitorRefisterForm.faceImageUrl;
+        }
+
+        // Copy business data if exists
+        if (exibitorRefisterForm.businessData) {
+          registrationData.businessData = exibitorRefisterForm.businessData;
+        }
+
+        // Create new registration
+        const registration = new formRegistrationSchema(registrationData);
+        await registration.save();
+        
+        // Generate user token for QR code
+        const userToken = uuidv4();
+        let qrCodeBase64 = null;
+        let qrFileName = null;
+        let eventDetails = await eventHostSchema.findById(eventId);
+        
+        if (eventDetails) {
+          // Generate QR code data
+          const qrData = JSON.stringify({
+            event_id: eventDetails._id,
+            event_slug: eventDetails.event_slug,
+            formRegistration_id: registration._id,
+          });
+
+          // Generate base64 QR code
+          qrCodeBase64 = await QRCode.toDataURL(qrData);
+          
+          // Save QR code as file
+          qrFileName = saveQrImage(qrCodeBase64, userToken);
+          registration.qrImage = `${qrFileName}`;
+          await registration.save();
+        }
+
+        result = {
+          ticketData,
+          registration,
+          exibitorRefisterForm,
+          message: "Successfully registered for the event",
+          alreadyRegistered: false,
+        };
+      }
+    }
+
+    // ============ INVALID TYPE ============
+    else {
+      const error = new Error("Invalid event data type. Must be 'package' or 'ticket'");
+      loggerMsg("error", `Invalid type received: ${eventdata.type}`);
+      return callback(error, null);
+    }
+
+    callback(null, { result });
+    
+  } catch (error: any) {
+    loggerMsg(
+      "error",
+      `Error in EventuserRegisterDefferntEventmodle: ${error.message}`
+    );
     callback(error, null);
   }
 };

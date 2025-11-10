@@ -348,8 +348,7 @@ export const storeFormRegistrationModel = async (
 
     // Check for face scan in files or base64
     const faceScanFile = files?.find((file) => file.fieldname === "faceScan");
-    if (faceScanFile) {
-      console.log("🔧 Processing face scan from file upload");
+    if (faceScanFile) {      
       try {
         const processedFaceData = await processFaceImage(faceScanFile);
         faceId = processedFaceData.faceId;
@@ -371,8 +370,7 @@ export const storeFormRegistrationModel = async (
       formData.faceScan &&
       typeof formData.faceScan === "string" &&
       formData.faceScan.startsWith("data:image/")
-    ) {
-      console.log("🔧 Processing face scan from base64");
+    ) {      
       try {
         const processedFaceData = await processFaceImageBase64(
           formData.faceScan
@@ -480,8 +478,7 @@ export const storeFormRegistrationModel = async (
       });
 
       // Generate base64 QR code
-      qrCodeBase64 = await QRCode.toDataURL(qrData);
-      console.log("🔧 QR code generated successfully");
+      qrCodeBase64 = await QRCode.toDataURL(qrData);      
 
       // Save QR code as file
       qrFileName = saveQrImage(qrCodeBase64, userToken);
@@ -491,8 +488,7 @@ export const storeFormRegistrationModel = async (
     // Generate PDF badge after registration is saved
     let pdfBuffer: Buffer | null = null;
     try {
-      pdfBuffer = await generateBadgePdf(registration.id.toString());
-      console.log('✅ PDF badge generated successfully');
+      pdfBuffer = await generateBadgePdf(registration.id.toString());      
     } catch (pdfError) {
       console.error('Failed to generate PDF badge:', pdfError);
       // Continue without PDF - don't block registration
@@ -676,7 +672,7 @@ async function uploadFaceToAWS(
 }
 
 // QR code saving function (reused from old code)
-function saveQrImage(base64String: string, fileName: string): string {
+export function saveQrImage(base64String: string, fileName: string): string {
   const base64Data = base64String.replace(/^data:image\/png;base64,/, "");
   const filePath = path.join(qrDirectory, `${fileName}.png`);
   fs.writeFileSync(filePath, base64Data, "base64");
@@ -708,16 +704,14 @@ async function sendWelcomeEmailAfterRegistration(
         content: pdfBuffer,
         contentType: 'application/pdf'
       }] : []
-    );
-
-    console.log(`✅ Welcome email sent to ${registration.email} with PDF badge`);
+    );    
   } catch (error) {
     console.error("Error in sendWelcomeEmailAfterRegistration:", error);
     // Don't throw error to avoid affecting registration flow
   }
 }
 
-const generateBadgeNumber = async (ticket: any) => {
+export const generateBadgeNumber = async (ticket: any) => {
   const registrationCount = await FormRegistration.countDocuments({
     ticketId: ticket._id,
   });
@@ -931,7 +925,6 @@ async function sendStatusEmailAfterUpdate(
       "email"
     );
 
-    console.log(`✅ ${actionType} email sent to ${registration.email}`);
   } catch (error) {
     console.error("Error in sendStatusEmailAfterUpdate:", error);
     // Don't throw error to avoid affecting status update flow
@@ -1049,8 +1042,7 @@ export const updateFormRegistrationModel = async (
       (file) => file.fieldname === "faceImage" || file.fieldname === "faceScan"
     );
 
-    if (faceScanFile) {
-      console.log("🔧 Processing new face image...");
+    if (faceScanFile) {      
       try {
         // Delete old face from Rekognition if exists
         if (existingRegistration.faceId) {
@@ -1186,9 +1178,7 @@ async function deleteFaceFromRekognition(faceId: string) {
         CollectionId: FACE_COLLECTION_ID,
         FaceIds: [faceId],
       })
-    );
-
-    console.log(`✅ Deleted face ${faceId} from Rekognition`);
+    );    
   } catch (error) {
     console.error(`Failed to delete face from Rekognition:`, error);
     // Don't throw - continue with update even if deletion fails

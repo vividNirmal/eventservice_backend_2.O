@@ -8,6 +8,7 @@ import { generateBadgeNumber, saveQrImage } from "./formRegistration.model";
 import eventHostSchema from "../schema/eventHost.schema";
 import { v4 as uuidv4 } from "uuid";
 import QRCode from "qrcode";
+import exhibitorFormSchema from "../schema/exhibitorForm.schema";
 export const eventuserEvent = async (
   callback: (error: Error | null, result?: any) => void,
   page: number = 1,
@@ -97,7 +98,7 @@ export const eventuserEvent = async (
         // Get the first date range price if available
         const firstRange = ticket.ticketAmount?.dateRangeAmounts?.[0];
         ticketPrice = firstRange?.amount || 0;
-      }            
+      }
       return {
         _id: ticket._id,
         title: ticket.eventId?.eventName || ticket.ticketName || "N/A",
@@ -107,7 +108,7 @@ export const eventuserEvent = async (
           ticket.eventId?.event_description ||
           "No description available",
         type: "ticket",
-        currency : ticket.ticketAmount.currency,
+        currency: ticket.ticketAmount.currency,
         eventTitle: ticket.eventId?.eventName,
         eventImage: ticket.eventId?.event_image,
         eventLogo: ticket.eventId?.event_logo,
@@ -127,7 +128,7 @@ export const eventuserEvent = async (
         price: parseFloat(pkg.package_total_price || 0),
         description: pkg.description || "No description available",
         type: "package",
-        currency : pkg.currency,
+        currency: pkg.currency,
         events:
           pkg.event_package?.map((evt: any) => ({
             eventId: evt.event_Id?._id,
@@ -295,7 +296,7 @@ export const EventuserRegisterDefferntEventmodle = async (
 
         // Generate badge number
         const finalBadgeNo = await generateBadgeNumber(ticket);
-        
+
         // Determine auto-approval from ticket settings
         const isAutoApproved =
           ticket.advancedSettings?.autoApprovedUser || false;
@@ -326,13 +327,13 @@ export const EventuserRegisterDefferntEventmodle = async (
 
         const registration = new formRegistrationSchema(registrationData);
         await registration.save();
-        
+
         // Generate user token for QR code
         const userToken = uuidv4();
         let qrCodeBase64 = null;
         let qrFileName = null;
         let eventDetails = await eventHostSchema.findById(eventId);
-        
+
         if (eventDetails) {
           // Generate QR code data
           const qrData = JSON.stringify({
@@ -343,13 +344,13 @@ export const EventuserRegisterDefferntEventmodle = async (
 
           // Generate base64 QR code
           qrCodeBase64 = await QRCode.toDataURL(qrData);
-          
+
           // Save QR code as file
           qrFileName = saveQrImage(qrCodeBase64, userToken);
           registration.qrImage = `${qrFileName}`;
           await registration.save();
         }
-        
+
         registrations.push(registration);
       }
 
@@ -378,9 +379,15 @@ export const EventuserRegisterDefferntEventmodle = async (
       }
 
       // Verify ticket belongs to the user's company
-      if (ticketData.companyId?.toString() !== loginUserData?.company_id?.toString()) {
+      if (
+        ticketData.companyId?.toString() !==
+        loginUserData?.company_id?.toString()
+      ) {
         const error = new Error("Ticket does not belong to your company");
-        loggerMsg("error", `Unauthorized ticket access attempt by ${loginUserData.email}`);
+        loggerMsg(
+          "error",
+          `Unauthorized ticket access attempt by ${loginUserData.email}`
+        );
         return callback(error, null);
       }
 
@@ -411,7 +418,7 @@ export const EventuserRegisterDefferntEventmodle = async (
 
         // Generate badge number
         const finalBadgeNo = await generateBadgeNumber(ticketData);
-        
+
         // Determine auto-approval from ticket settings
         const isAutoApproved =
           ticketData.advancedSettings?.autoApprovedUser || false;
@@ -443,13 +450,13 @@ export const EventuserRegisterDefferntEventmodle = async (
         // Create new registration
         const registration = new formRegistrationSchema(registrationData);
         await registration.save();
-        
+
         // Generate user token for QR code
         const userToken = uuidv4();
         let qrCodeBase64 = null;
         let qrFileName = null;
         let eventDetails = await eventHostSchema.findById(eventId);
-        
+
         if (eventDetails) {
           // Generate QR code data
           const qrData = JSON.stringify({
@@ -460,7 +467,7 @@ export const EventuserRegisterDefferntEventmodle = async (
 
           // Generate base64 QR code
           qrCodeBase64 = await QRCode.toDataURL(qrData);
-          
+
           // Save QR code as file
           qrFileName = saveQrImage(qrCodeBase64, userToken);
           registration.qrImage = `${qrFileName}`;
@@ -479,13 +486,62 @@ export const EventuserRegisterDefferntEventmodle = async (
 
     // ============ INVALID TYPE ============
     else {
-      const error = new Error("Invalid event data type. Must be 'package' or 'ticket'");
+      const error = new Error(
+        "Invalid event data type. Must be 'package' or 'ticket'"
+      );
       loggerMsg("error", `Invalid type received: ${eventdata.type}`);
       return callback(error, null);
     }
 
     callback(null, { result });
-    
+  } catch (error: any) {
+    loggerMsg(
+      "error",
+      `Error in EventuserRegisterDefferntEventmodle: ${error.message}`
+    );
+    callback(error, null);
+  }
+};
+
+export const ExhibitorFromeventwiseModle = async (
+  eventId: any,
+  token: any,
+  callback: (error: Error | null, result?: any) => void
+) => {
+  try {
+    if (!token) {
+      const error = new Error("Authentication token is required");
+      loggerMsg("error", "User token is missing");
+      return callback(error, null);
+    }
+
+    // Validate JWT secret
+    if (!process.env.JWT_SECRET_KEY) {
+      const error = new Error("JWT secret key is not configured");
+      loggerMsg("error", "JWT_SECRET_KEY is missing in environment");
+      return callback(error, null);
+    }
+
+    let loginUserData: any;
+    try {
+      const actualToken = token.startsWith("Bearer ") ? token.slice(7) : token;
+      loginUserData = jwt.verify(actualToken, process.env.JWT_SECRET_KEY);
+    } catch (jwtError: any) {
+      const error = new Error("Invalid or expired token");
+      loggerMsg("error", `JWT verification failed: ${jwtError.message}`);
+      return callback(error, null);
+    }
+
+    if (!eventId) {
+      const error = new Error("Event data not found");
+      loggerMsg("error", `Event Data not Found`);
+      return callback(error, null);
+    }
+
+    let eventFormList = await exhibitorFormSchema.find({ eventId: eventId , status:"published" });
+    callback(null, {
+      eventFormList,
+    });
   } catch (error: any) {
     loggerMsg(
       "error",

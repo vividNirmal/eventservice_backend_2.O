@@ -59,7 +59,7 @@ import { createPaperBadgeSettingController, deletePaperBadgeSettingByIdControlle
 import { createPaperBadgeSettingSchema, updatePaperBadgeSettingPropertiesSchema, updatePaperBadgeSettingSchema } from "../../utils/validation-schems/paperBadgeSetting.validation";
 import { createBadgeCategorySchema, updateBadgeCategorySchema } from "../../utils/validation-schems/badgeCategory.validation";
 import { createBadgeCategoryController, deleteBadgeCategoryByIdController, getAllBadgeCategoriesController, getBadgeCategoryByEventIdController, getBadgeCategoryByIdController, updateBadgeCategoryByIdController } from "../controllers/badgeCategory.controller";
-import { EventuserEvents, EventuserRegisterDefferntEvent } from "../controllers/eventuser.controller";
+import { EventuserEvents, EventuserRegisterDefferntEvent, ExhibitorFromeventwise } from "../controllers/eventuser.controller";
 import { createEventImageController, deleteEventImageByIdController, getAllEventImagesController, getEventImageByIdController, updateEventImageController } from "../controllers/eventImages.controller";
 import { createEventImageSchema, updateEventImageSchema } from "../../utils/validation-schems/eventImagesSchema.validation";
 import { createEventCompanyTeamController, deleteEventCompanyTeamByIdController, getAllEventCompanyTeamController, getEventCompanyTeamByIdController, getTeamMembersCountController, updateEventCompanyTeamController } from "../controllers/eventCompanyTeam.controller";
@@ -388,6 +388,7 @@ export const upload = multer({ storage: storage });
             // Event user Login
             route.get("/eventuser-events", protectedRoute, EventuserEvents);
             route.post('/eventuser-event-attandes',protectedRoute,validateRequest(ExhibitordirectLoginSchema),EventuserRegisterDefferntEvent)
+            route.get('/eventuser-exhibitorForm-eventWise/:id',protectedRoute,ExhibitorFromeventwise)
 
             // Event category 
             route.post('/store-event-category',protectedRoute,createEventCategoryController);

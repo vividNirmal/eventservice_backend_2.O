@@ -23,6 +23,12 @@ const eventPackageSchema = new mongoose.Schema(
       type: String,
       default: "0",
     },
+    currency: {
+      type: String,
+      enum: ['USD', 'INR', 'EUR', 'GBP', 'AUD', 'CAD', 'SGD', 'AED'],
+      required: [true, "Currency is required"],
+      default: 'USD'
+    },
     event_package: [
       {
         event_Id: {
@@ -32,7 +38,7 @@ const eventPackageSchema = new mongoose.Schema(
         },
         event_category: {
           type: mongoose.Types.ObjectId,
-          ref: "EventCategory", // Adjust ref name to match your Category model
+          ref: "EventCategory",
           required: [true, "Event category is required"],
         },
         event_price: {
@@ -43,7 +49,7 @@ const eventPackageSchema = new mongoose.Schema(
     ],
   },
   {
-    timestamps: true, // Adds createdAt and updatedAt
+    timestamps: true,
   }
 );
 

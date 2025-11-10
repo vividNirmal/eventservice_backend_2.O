@@ -97,8 +97,7 @@ export const eventuserEvent = async (
         // Get the first date range price if available
         const firstRange = ticket.ticketAmount?.dateRangeAmounts?.[0];
         ticketPrice = firstRange?.amount || 0;
-      }
-
+      }            
       return {
         _id: ticket._id,
         title: ticket.eventId?.eventName || ticket.ticketName || "N/A",
@@ -108,6 +107,7 @@ export const eventuserEvent = async (
           ticket.eventId?.event_description ||
           "No description available",
         type: "ticket",
+        currency : ticket.ticketAmount.currency,
         eventTitle: ticket.eventId?.eventName,
         eventImage: ticket.eventId?.event_image,
         eventLogo: ticket.eventId?.event_logo,
@@ -127,6 +127,7 @@ export const eventuserEvent = async (
         price: parseFloat(pkg.package_total_price || 0),
         description: pkg.description || "No description available",
         type: "package",
+        currency : pkg.currency,
         events:
           pkg.event_package?.map((evt: any) => ({
             eventId: evt.event_Id?._id,

@@ -55,6 +55,16 @@ export const createEventPackageModule = async (
       );
     }
 
+    // Validate currency if provided
+    if (data.currency) {
+      const validCurrencies = ['USD', 'INR', 'EUR', 'GBP', 'AUD', 'CAD', 'SGD', 'AED'];
+      if (!validCurrencies.includes(data.currency)) {
+        return callback(
+          new Error(`Invalid currency. Allowed values: ${validCurrencies.join(', ')}`)
+        );
+      }
+    }
+
     // Validate that event_package array is not empty
     if (!data.event_package || data.event_package.length === 0) {
       return callback(
@@ -116,7 +126,8 @@ export const getAllEventPackages = async (
   page: number = 1,
   limit: number = 10,
   search?: string,
-  token?: any
+  token?: any,
+  currency?: string // Added currency filter
 ) => {
   try {
     const skip = (page - 1) * limit;
@@ -148,6 +159,11 @@ export const getAllEventPackages = async (
         loggerMsg("error", `JWT verification failed: ${jwtError.message}`);
         return callback(new Error("Invalid or expired token"), null);
       }
+    }
+
+    // Filter by currency if provided
+    if (currency) {
+      searchQuery.currency = currency;
     }
 
     // Search by title or description
@@ -218,7 +234,7 @@ export const getEventPackageById = async (
 
     const eventPackage = await EventPackageSchema.findOne({
       _id: packageId,
-      companyId: companyId, // Ensure user can only access their company's packages
+      companyId: companyId,
     })
       .populate("companyId", "name email phone address")
       .populate("event_package.event_Id", "title description price duration")
@@ -291,7 +307,7 @@ export const updateEventPackageModule = async (
       const duplicateTitle = await EventPackageSchema.findOne({
         title: data.title,
         companyId: companyId,
-        _id: { $ne: packageId }, // Exclude current package
+        _id: { $ne: packageId },
       });
 
       if (duplicateTitle) {
@@ -299,6 +315,16 @@ export const updateEventPackageModule = async (
           new Error(
             "Another package with this title already exists for this company"
           )
+        );
+      }
+    }
+
+    // Validate currency if being updated
+    if (data.currency) {
+      const validCurrencies = ['USD', 'INR', 'EUR', 'GBP', 'AUD', 'CAD', 'SGD', 'AED'];
+      if (!validCurrencies.includes(data.currency)) {
+        return callback(
+          new Error(`Invalid currency. Allowed values: ${validCurrencies.join(', ')}`)
         );
       }
     }
@@ -382,7 +408,7 @@ export const deleteEventPackagesModule = async (
     // Delete packages belonging to the company only
     const result = await EventPackageSchema.deleteMany({
       _id: { $in: package_ids },
-      companyId: companyId, // Ensure user can only delete their company's packages
+      companyId: companyId,
     });
 
     if (result.deletedCount === 0) {
@@ -436,14 +462,14 @@ export const eventandCategoryAttendesModule = async (
       .findOne({ typeName: "Event Attendees" })
       .sort({ order: 1 })
       .lean();    
-    //  find userType if
+    
     const tickets: any = await ticketSchema
       .find({ userType: userType._id, companyId: companyId })
       .populate({
         path: "eventId",
         populate: "event_category",
       });    
-    callback(null,  tickets );
+    callback(null, tickets);
   } catch (error: any) {
     loggerMsg("error", `Error deleting event packages: ${error}`);
     callback(error, null);

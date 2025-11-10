@@ -398,7 +398,7 @@ export const upload = multer({ storage: storage });
 
             // Event Package 
             route.post ('/store-package',protectedRoute,createEventPackageController)
-            route.put('/update-package/:id',protectedRoute,updateEventPackageController)
+            route.post('/update-package/:id',protectedRoute,updateEventPackageController)
             route.get ('/get-package',protectedRoute,getAllEventPackagesController)
             route.get('/get-package/:id',protectedRoute,getEventPackageByIdController)
             route.post('/detele-package',protectedRoute,deleteEventPackagesController)

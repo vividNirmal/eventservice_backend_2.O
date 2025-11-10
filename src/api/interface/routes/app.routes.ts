@@ -68,6 +68,8 @@ import { createEventCategoryController, deleteEventCategoryByIdController, getAl
 import { createExhibitorFormController, deleteExhibitorFormByIdController, getAllExhibitorFormsController, getExhibitorFormByIdController, getExhibitorFormsCountController, updateExhibitorFormController, updateExhibitorFormtatusController } from "../controllers/exhibitorForm.controller";
 import { createExhibitorFormSchema, getExhibitorFormsQuerySchema, updateExhibitorFormBodySchema, updateExhibitorFormSchema, updateExhibitorFormStatusSchema } from "../../utils/validation-schems/exhibitorForm.validation";
 import { createEventPackageController, deleteEventPackagesController, eventandCategoryAttendes, getAllEventPackagesController, getEventPackageByIdController, updateEventPackageController } from "../controllers/eventPackage.controller";
+import { createExhibitorFormConfigurationController, deleteExhibitorFormConfigurationByIdController, getAllExhibitorFormConfigurationsController, getExhibitorFormConfigurationByIdController, updateExhibitorFormConfigurationByIdController } from "../controllers/exhibitorFormConfiguration.controller";
+import { createExhibitorFormConfigurationSchema, updateExhibitorFormConfigurationSchema } from "../../utils/validation-schems/exhibitorFormConfiguration.validation";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -363,7 +365,7 @@ export const upload = multer({ storage: storage });
             route.put("/event-company-teams/:id", protectedRoute, uploadImagesFile, validateRequest(updateEventCompanyTeamSchema), updateEventCompanyTeamController);
             route.delete("/event-company-teams/:id", protectedRoute, deleteEventCompanyTeamByIdController);
 
-
+            // Exhibitor Form Management for Admin
             route.get("/exhibitor-forms", protectedRoute,  getAllExhibitorFormsController);
             route.get("/exhibitor-forms/:id", protectedRoute, getExhibitorFormByIdController);
             route.get("/exhibitor-forms/count", protectedRoute, getExhibitorFormsCountController);
@@ -371,6 +373,13 @@ export const upload = multer({ storage: storage });
             route.put("/exhibitor-forms/:id", protectedRoute, uploadImagesFile, validateRequest(updateExhibitorFormBodySchema), updateExhibitorFormController);
             route.delete("/exhibitor-forms/:id", protectedRoute, deleteExhibitorFormByIdController);
             route.put("/exhibitor-forms-status/:id", protectedRoute, validateRequest(updateExhibitorFormStatusSchema), updateExhibitorFormtatusController);
+
+            // Exhibitor Form Configuration for Super Admin
+            route.get("/exhibitor-form-configurations", protectedRoute, getAllExhibitorFormConfigurationsController);
+            route.get("/exhibitor-form-configurations/:id", protectedRoute, getExhibitorFormConfigurationByIdController);
+            route.post("/exhibitor-form-configurations", protectedRoute, validateRequest(createExhibitorFormConfigurationSchema), createExhibitorFormConfigurationController);
+            route.put("/exhibitor-form-configurations/:id", protectedRoute, validateRequest(updateExhibitorFormConfigurationSchema), updateExhibitorFormConfigurationByIdController);
+            route.delete("/exhibitor-form-configurations/:id", protectedRoute, deleteExhibitorFormConfigurationByIdController);
 
             route.post('/send-otp',verifyScannerToken,validateRequest(sendOtpValidation),OtpGenerate);
             route.post('/verify-otp',validateRequest(verifyOtpValidation),OtpVerify);

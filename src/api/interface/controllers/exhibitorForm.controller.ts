@@ -35,55 +35,64 @@ export const createExhibitorFormController = async (
       });
     }
 
-    // Handle uploaded files
-    if (files && Array.isArray(files)) {
-      files.forEach((file) => {
-        if (file.fieldname === "important_instructions_image") {
-          formData.mediaInfo = formData.mediaInfo || {};
-          formData.mediaInfo.important_instructions_image = `${
-            (file as any).uploadFolder
-          }/${file.filename}`;
-        } else if (file.fieldname.startsWith("supporting_documents")) {
-          // Handle supporting documents - they come as supporting_documents[0][file], supporting_documents[1][file], etc.
-          formData.mediaInfo = formData.mediaInfo || {};
-          formData.mediaInfo.supporting_documents =
-            formData.mediaInfo.supporting_documents || [];
+    // Initialize mediaInfo
+    formData.mediaInfo = formData.mediaInfo || {};
 
-          // Extract index from fieldname
-          const match = file.fieldname.match(
-            /supporting_documents\[(\d+)\]\[file\]/
-          );
-          if (match) {
-            const index = parseInt(match[1]);
-            // Ensure the array has enough elements
-            while (formData.mediaInfo.supporting_documents.length <= index) {
-              formData.mediaInfo.supporting_documents.push({});
-            }
-            formData.mediaInfo.supporting_documents[index].path = `${
-              (file as any).uploadFolder
-            }/${file.filename}`;
-          }
-        }
-      });
+    // Handle important instructions image - SIMPLIFIED (no action flags needed)
+    const imageFile = files?.find(f => f.fieldname === 'important_instructions_image');
+    if (imageFile) {
+      formData.mediaInfo.important_instructions_image = `${
+        (imageFile as any).uploadFolder
+      }/${imageFile.filename}`;
     }
 
-    // Handle supporting document names directly from form-data fields
-    if (formData.supporting_documents && Array.isArray(formData.supporting_documents)) {
-      formData.mediaInfo = formData.mediaInfo || {};
-      formData.mediaInfo.supporting_documents =
-        formData.mediaInfo.supporting_documents || [];
+    // Handle supporting documents with metadata
+    if (formData.supporting_documents_metadata) {
+      let metadata;
+      try {
+        metadata = JSON.parse(formData.supporting_documents_metadata);
+      } catch (e) {
+        console.error("Error parsing supporting_documents_metadata:", e);
+        metadata = [];
+      }
 
-      formData.supporting_documents.forEach((doc: any, index: number) => {
-        // ensure array size
-        while (formData.mediaInfo.supporting_documents.length <= index) {
-          formData.mediaInfo.supporting_documents.push({});
+      console.log("Supporting documents metadata:", metadata);
+
+      // Get uploaded files
+      const uploadedFiles = files?.filter(f => f.fieldname === 'supporting_documents_files') || [];
+      
+      // Validate that we have matching files for metadata
+      if (metadata.length !== uploadedFiles.length) {
+        console.warn(`Metadata count (${metadata.length}) doesn't match uploaded files count (${uploadedFiles.length})`);
+      }
+      
+      // Build supporting documents array
+      formData.mediaInfo.supporting_documents = [];
+
+      // Map files to metadata (using forEach iteration index for safety)
+      metadata.forEach((item: any, fileIndex: number) => {
+        if (uploadedFiles[fileIndex]) {
+          const file = uploadedFiles[fileIndex];
+          formData.mediaInfo.supporting_documents.push({
+            name: item.name || file.originalname.replace(/\.[^/.]+$/, ""), // Fallback to filename if no name
+            path: `${(file as any).uploadFolder}/${file.filename}`
+          });
+          console.log(`Added document #${fileIndex}: "${item.name}" at path: ${formData.mediaInfo.supporting_documents[fileIndex].path}`);
+        } else {
+          console.warn(`No file found at index ${fileIndex} for metadata item:`, item);
         }
-        formData.mediaInfo.supporting_documents[index].name = doc.name;
       });
 
-      delete formData.supporting_documents; // cleanup
+      // Clean up
+      delete formData.supporting_documents_metadata;
+    } else {
+      // Initialize empty array if no documents
+      formData.mediaInfo.supporting_documents = [];
+      console.log("No supporting documents provided");
     }
 
+    console.log("Final mediaInfo:", JSON.stringify(formData.mediaInfo, null, 2));
+    console.log("=== CREATE EXHIBITOR FORM END ===");
 
     const result = await createExhibitorForm(
       formData,
@@ -104,6 +113,7 @@ export const createExhibitorFormController = async (
       });
     }
   } catch (error: any) {
+    console.error("Error in createExhibitorFormController:", error);
     loggerMsg(
       "error",
       `Error in createExhibitorFormController: ${error.message}`
@@ -111,6 +121,7 @@ export const createExhibitorFormController = async (
     return res.status(500).json({
       status: 0,
       message: "Internal server error",
+      error: error.message
     });
   }
 };
@@ -231,7 +242,7 @@ export const updateExhibitorFormController = async (
     const files = req.files as Express.Multer.File[];
 
     console.log("=== UPDATE DEBUG START ===");
-    console.log("Raw updateData received:", JSON.stringify(updateData, null, 2));
+    console.log("Raw updateData received:", Object.keys(updateData));
     console.log("Files received:", files?.map(f => ({ fieldname: f.fieldname, filename: f.filename })));
 
     // Validate IDs
@@ -261,109 +272,78 @@ export const updateExhibitorFormController = async (
     delete updateData.companyId;
     delete updateData.eventId;
 
-    // Initialize mediaInfo with existing data
+    // Initialize mediaInfo - start with existing data
     updateData.mediaInfo = {
-      ...existingForm.mediaInfo,
-      ...updateData.mediaInfo
+      important_instructions_image: existingForm.mediaInfo?.important_instructions_image || '',
+      supporting_documents: [...(existingForm.mediaInfo?.supporting_documents || [])]
     };
 
-    console.log("After merging with existing:", JSON.stringify(updateData.mediaInfo, null, 2));
+    // Handle important instructions image - SIMPLIFIED
+    const imageFile = files?.find(f => f.fieldname === 'important_instructions_image');
+    if (imageFile) {
+      // New image uploaded - replace existing
+      updateData.mediaInfo.important_instructions_image = `${(imageFile as any).uploadFolder}/${imageFile.filename}`;
+      console.log("New image uploaded:", updateData.mediaInfo.important_instructions_image);
+    } else {
+      // No new image - keep existing from database
+      console.log("Keeping existing image:", updateData.mediaInfo.important_instructions_image);
+    }
 
-    // Handle uploaded files
-    if (files && Array.isArray(files)) {
-      files.forEach((file) => {
-        if (file.fieldname === "important_instructions_image") {
-          console.log("Processing new image file:", file.filename);
-          updateData.mediaInfo.important_instructions_image = `${
-            (file as any).uploadFolder
-          }/${file.filename}`;
-        } else if (file.fieldname.startsWith("supporting_documents")) {
-          const match = file.fieldname.match(
-            /supporting_documents\[(\d+)\]\[file\]/
-          );
-          if (match) {
-            const index = parseInt(match[1]);
-            const nameField = `supporting_documents[${index}][name]`;
-            const documentName = updateData[nameField] || file.originalname;
-            
-            if (updateData.mediaInfo.supporting_documents[index]) {
-              updateData.mediaInfo.supporting_documents[index] = {
-                name: documentName,
-                path: `${(file as any).uploadFolder}/${file.filename}`
-              };
-            } else {
-              updateData.mediaInfo.supporting_documents.push({
-                name: documentName,
-                path: `${(file as any).uploadFolder}/${file.filename}`
-              });
-            }
-            
-            delete updateData[nameField];
+    // Handle supporting documents
+    if (updateData.supporting_documents_metadata) {
+      let metadata;
+      try {
+        metadata = JSON.parse(updateData.supporting_documents_metadata);
+      } catch (e) {
+        metadata = updateData.supporting_documents_metadata;
+      }
+
+      console.log("Supporting documents metadata:", metadata);
+
+      // Get uploaded files
+      const uploadedFiles = files?.filter(f => f.fieldname === 'supporting_documents_files') || [];
+      
+      // Build new supporting documents array
+      const newSupportingDocs: any[] = [];
+      let fileIndex = 0;
+
+      metadata.forEach((item: any) => {
+        if (item.action === 'delete') {
+          // Skip deleted documents
+          console.log(`Deleting document with path: ${item.path}`);
+        } else if (item.action === 'new') {
+          // Add new uploaded file
+          if (uploadedFiles[fileIndex]) {
+            const file = uploadedFiles[fileIndex];
+            newSupportingDocs.push({
+              name: item.name,
+              path: `${(file as any).uploadFolder}/${file.filename}`
+            });
+            console.log(`Added new document: ${item.name}`);
+            fileIndex++;
           }
+        } else if (item.action === 'update') {
+          // Update existing document (name changed)
+          newSupportingDocs.push({
+            name: item.name,
+            path: item.path
+          });
+          console.log(`Updated document name: ${item.name}`);
+        } else if (item.action === 'keep') {
+          // Keep existing document as is
+          newSupportingDocs.push({
+            name: item.name,
+            path: item.path
+          });
+          console.log(`Keeping document: ${item.name}`);
         }
       });
+
+      updateData.mediaInfo.supporting_documents = newSupportingDocs;
+      delete updateData.supporting_documents_metadata;
     }
 
-    // Check if important_instructions_image was sent as a separate field
-    console.log("important_instructions_image field in updateData:", updateData.important_instructions_image);
-    console.log("Type of important_instructions_image:", typeof updateData.important_instructions_image);
-
-    if (updateData.important_instructions_image) {
-      console.log("Found important_instructions_image in updateData, processing...");
-      if (typeof updateData.important_instructions_image === 'string') {
-        console.log("Setting image from string path:", updateData.important_instructions_image);
-        updateData.mediaInfo.important_instructions_image = updateData.important_instructions_image;
-      }
-      delete updateData.important_instructions_image;
-    }
-
-    console.log("After image processing:", JSON.stringify(updateData.mediaInfo, null, 2));
-
-    // Handle document deletions and other processing...
-    const deletedIndices: number[] = [];
-    for (const key in updateData) {
-      const deleteMatch = key.match(/supporting_documents\[(\d+)\]\[deleted\]/);
-      if (deleteMatch && updateData[key] === 'true') {
-        const index = parseInt(deleteMatch[1]);
-        deletedIndices.push(index);
-        delete updateData[key];
-      }
-    }
-
-    if (deletedIndices.length > 0) {
-      deletedIndices.sort((a, b) => b - a).forEach(index => {
-        if (updateData.mediaInfo.supporting_documents[index]) {
-          updateData.mediaInfo.supporting_documents.splice(index, 1);
-        }
-      });
-    }
-
-    for (const key in updateData) {
-      const nameMatch = key.match(/supporting_documents\[(\d+)\]\[name\]/);
-      if (nameMatch) {
-        const index = parseInt(nameMatch[1]);
-        const name = updateData[key];
-        
-        if (updateData.mediaInfo.supporting_documents[index] && 
-            !files?.some(f => f.fieldname === `supporting_documents[${index}][file]`)) {
-          updateData.mediaInfo.supporting_documents[index].name = name;
-        }
-        
-        delete updateData[key];
-      }
-    }
-
-    updateData.mediaInfo.supporting_documents = (updateData.mediaInfo.supporting_documents || []).filter(
-      (doc: any) => doc && doc.name && doc.path
-    );
-
-    console.log("Final updateData before saving:", JSON.stringify({
-      mediaInfo: updateData.mediaInfo,
-      basicInfo: updateData.basicInfo ? '...' : 'none',
-      otherInfo: updateData.otherInfo ? '...' : 'none',
-      notifications: updateData.notifications ? '...' : 'none'
-    }, null, 2));
-
+    console.log("Final mediaInfo to save:", JSON.stringify(updateData.mediaInfo, null, 2));
     console.log("=== UPDATE DEBUG END ===");
 
     const result = await updateExhibitorForm(

@@ -7,6 +7,7 @@ import mongoose from "mongoose";
 import scannerTokenSchema from "../schema/scannerToken.schema";
 import { env } from "process";
 import eventUserSchema from "../schema/eventUser.schema";
+import { loggerMsg } from "../../lib/logger";
 
 interface userData {
   email: string;
@@ -339,10 +340,11 @@ export const storeUser = async (
   try {
     const existingUser = await userSchema.findOne({ email: userData.email });
     if (existingUser) {
+      loggerMsg("error", `User with this email already exists.`);
       const error = new Error("User with this email already exists.");
       return callback(error, null);
     }
-
+    
     const hashedPassword = await bcrypt.hash(userData.password, 10);
 
     const newUser = new userSchema({

@@ -25,7 +25,7 @@ export const createExhibitorFormParticularSchema = Joi.object({
   // System fields
   companyId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
   eventId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required(),
-  ExhibitorForm: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required(),
+  exhibitorFormId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required(),
 }).unknown(true); // Allow unknown to accommodate files in FormData
 
 // Update Body Schema
@@ -46,7 +46,7 @@ export const updateExhibitorFormParticularSchema = Joi.object({
   // System fields
   companyId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
   eventId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
-  ExhibitorForm: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
+  exhibitorFormId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
   id: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
 }).unknown(true);
 

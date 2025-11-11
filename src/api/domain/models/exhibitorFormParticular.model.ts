@@ -54,7 +54,7 @@ export const createExhibitorFormParticular = async (
 
     // Check if particular with same name exists for this exhibitor form
     const existingParticular = await ExhibitorFormParticularSchema.findOne({
-      ExhibitorForm: exhibitorFormId,
+      exhibitorFormId: exhibitorFormId,
       item_name: formData.item_name,
     });
 
@@ -69,7 +69,7 @@ export const createExhibitorFormParticular = async (
       ...formData,
       companyId: companyId || null,
       eventId,
-      ExhibitorForm: exhibitorFormId,
+      exhibitorFormId: exhibitorFormId,
     });
 
     const savedParticular = await newParticular.save();
@@ -122,7 +122,7 @@ export const updateExhibitorFormParticular = async (
     ) {
       const nameExists = await ExhibitorFormParticularSchema.findOne({
         _id: { $ne: id },
-        ExhibitorForm: existingParticular.ExhibitorForm,
+        exhibitorFormId: existingParticular.exhibitorFormId,
         item_name: updateData.item_name,
       });
 
@@ -178,7 +178,7 @@ export const getAllExhibitorFormParticulars = async (
   exhibitorFormId?: mongoose.Types.ObjectId
 ) => {
   try {
-    const { status, search, exhibitorFormId: filterExhibitorFormId } = filters;
+    const { status, search } = filters;
     const { page, limit } = pagination;
 
     // Build search query
@@ -193,11 +193,7 @@ export const getAllExhibitorFormParticulars = async (
     }
 
     if (exhibitorFormId) {
-      searchQuery.ExhibitorForm = exhibitorFormId;
-    }
-
-    if (filterExhibitorFormId) {
-      searchQuery.ExhibitorForm = filterExhibitorFormId;
+      searchQuery.exhibitorFormId = exhibitorFormId;
     }
 
     if (status) {
@@ -217,7 +213,7 @@ export const getAllExhibitorFormParticulars = async (
 
     // Get particulars with pagination
     const particulars = await ExhibitorFormParticularSchema.find(searchQuery)
-      .populate('ExhibitorForm')
+      .populate('exhibitorFormId')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit);
@@ -255,7 +251,7 @@ export const getAllExhibitorFormParticulars = async (
 export const getExhibitorFormParticularById = async (id: mongoose.Types.ObjectId) => {
   try {
     const particular = await ExhibitorFormParticularSchema.findById(id)
-      .populate('ExhibitorForm');
+      .populate('exhibitorFormId');
 
     if (!particular) {
       return {

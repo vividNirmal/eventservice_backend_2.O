@@ -23,7 +23,7 @@ export const createExhibitorFormParticularController = async (
   try {
     const companyId = req.body?.companyId;
     const eventId = req.body?.eventId;
-    const exhibitorFormId = req.body?.ExhibitorForm;
+    const exhibitorFormId = req.body?.exhibitorFormId;
     const formData = req.body;
     const files = req.files as Express.Multer.File[];
 
@@ -34,7 +34,7 @@ export const createExhibitorFormParticularController = async (
       });
     }
 
-    // Validate ExhibitorForm ID
+    // Validate exhibitorForm ID
     if (!exhibitorFormId || !mongoose.Types.ObjectId.isValid(exhibitorFormId)) {
       return res.status(400).json({
         status: 0,
@@ -162,7 +162,7 @@ export const updateExhibitorFormParticularController = async (
     delete updateData.__v;
     delete updateData.companyId;
     delete updateData.eventId;
-    delete updateData.ExhibitorForm;
+    delete updateData.exhibitorFormId;
 
     // Start with existing data
     const finalData = {

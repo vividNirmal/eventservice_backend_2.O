@@ -279,7 +279,7 @@ export const getAllExhibitorForms = async (
 
     // Get forms with pagination
     const forms = await ExhibitorFormSchema.find(searchQuery)
-      .populate('ExhibitorFormConfiguration')
+      .populate('exhibitorFormConfigurationId')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit);

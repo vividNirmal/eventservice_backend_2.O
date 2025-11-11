@@ -24,7 +24,7 @@ export const createExhibitorFormController = async (
   try {
     const companyId = req.body?.companyId;
     const eventId = req.body?.eventId;
-    const exhibitorFormConfigurationId = req.body?.ExhibitorFormConfiguration;
+    const exhibitorFormConfigurationId = req.body?.exhibitorFormConfigurationId;
     const formData = req.body;
     const files = req.files as Express.Multer.File[];
 

@@ -82,7 +82,7 @@ export interface IExhibitorForm extends Document {
     updatedAt: Date;
     companyId?: mongoose.Types.ObjectId;
     eventId?: mongoose.Types.ObjectId;
-    ExhibitorFormConfiguration: mongoose.Types.ObjectId;
+    exhibitorFormConfigurationId: mongoose.Types.ObjectId;
 }
 
 
@@ -193,7 +193,7 @@ const exhibitorFormSchema = new Schema<IExhibitorForm>({
     },
     companyId: { type: Schema.Types.ObjectId, ref: "Company" },
     eventId: { type: Schema.Types.ObjectId, ref: "EventHost" },
-    ExhibitorFormConfiguration: { type: Schema.Types.ObjectId, ref: "ExhibitorFormConfiguration" },
+    exhibitorFormConfigurationId: { type: Schema.Types.ObjectId, ref: "ExhibitorFormConfiguration" },
 }, {
     timestamps: true,
 });

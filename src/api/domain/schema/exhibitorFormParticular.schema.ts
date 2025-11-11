@@ -22,7 +22,7 @@ export interface IExhibitorFormParticular extends Document {
   documents: IDocument[]; // array of name + path objects
   companyId?: mongoose.Types.ObjectId;
   eventId?: mongoose.Types.ObjectId;
-  ExhibitorForm: mongoose.Types.ObjectId;
+  exhibitorFormId: mongoose.Types.ObjectId;
   status: "active" | "inactive";
   createdAt: Date;
   updatedAt: Date;
@@ -54,7 +54,7 @@ const exhibitorFormParticularSchema = new Schema<IExhibitorFormParticular>(
     documents: [documentSchema],
     companyId: { type: Schema.Types.ObjectId, ref: "Company" },
     eventId: { type: Schema.Types.ObjectId, ref: "EventHost" },
-    ExhibitorForm: { type: Schema.Types.ObjectId, ref: "ExhibitorForm" },
+    exhibitorFormId: { type: Schema.Types.ObjectId, ref: "ExhibitorForm" },
     status: {
       type: String,
       enum: ["active", "inactive"],

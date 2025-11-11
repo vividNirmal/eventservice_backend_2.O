@@ -43,31 +43,10 @@ export const eventuserEvent = async (
       return callback(error, null);
     }
 
-    const userTypes: any = await userTypeSchema
-      .find()
-      .sort({ order: 1 })
-      .lean();
-
     const Attendees: any = await userTypeSchema
       .findOne({ typeName: "Event Attendees" })
       .sort({ order: 1 })
-      .lean();
-
-    const eventDetails: any = await formRegistrationSchema
-      .find({ email: loginUserData.email })
-      .populate([
-        {
-          path: "ticketId",
-          populate: { path: "userType", select: "typeName" },
-          select: "ticketName userType registrationFormId ticketAmount",
-        },
-        {
-          path: "eventId",
-          populate: { path: "event_category" },
-          select:
-            "event_title event_slug event_description event_logo event_image event_category",
-        },
-      ]);
+      .lean();    
 
     const eventcategory = await eventCategorySchema.find({
       compayId: loginUserData.company_id,
@@ -132,6 +111,7 @@ export const eventuserEvent = async (
         eventTitle: ticket.eventId?.eventName,
         eventImage: ticket.eventId?.event_image,
         eventLogo: ticket.eventId?.event_logo,
+        dataRange : ticket.eventId?.dateRanges,
         category: ticket.eventId?.event_category?.title,
         ticketCategory: ticket.ticketCategory,
         status: ticket.status,
@@ -167,8 +147,11 @@ export const eventuserEvent = async (
       userTypeId: Attendees?._id,
       order: Attendees?.order || 1,
       count: transformedTickets.length + transformedPackages.length,
-      data: [...transformedTickets, ...transformedPackages],
-    };    
+      data: {
+        event_tickets : transformedTickets,
+        combo_tickets : transformedPackages
+      } 
+    };
 
     const searchQuery: any = {
       userId: loginUserData.userId || loginUserData.id,
@@ -595,18 +578,22 @@ export const EventusercategorywiseEventModle = async (
     }
 
     // Step 1: Find events by category
-    const events = await eventHostSchema.find({
-      event_category: eventcatId
-    }).select("_id event_title event_slug event_description event_logo event_image event_category");
+    const events = await eventHostSchema
+      .find({
+        event_category: eventcatId,
+      })
+      .select(
+        "_id event_title event_slug event_description event_logo event_image event_category"
+      );
 
     // Step 2: Extract event IDs
-    const eventIds = events.map(event => event._id);
+    const eventIds = events.map((event) => event._id);
 
     // Step 3: Find form registrations for these events and this user
     const eventDetails = await formRegistrationSchema
-      .find({ 
+      .find({
         email: loginUserData.email,
-        eventId: { $in: eventIds }
+        eventId: { $in: eventIds },
       })
       .populate([
         {
@@ -627,7 +614,7 @@ export const EventusercategorywiseEventModle = async (
       callback(null, {
         events,
         eventDetails: [],
-        message: "You are not registered for any event in this category"
+        message: "You are not registered for any event in this category",
       });
       return;
     }
@@ -635,9 +622,8 @@ export const EventusercategorywiseEventModle = async (
     callback(null, {
       events,
       eventDetails,
-      message: "Event details retrieved successfully"
+      message: "Event details retrieved successfully",
     });
-    
   } catch (error: any) {
     loggerMsg(
       "error",

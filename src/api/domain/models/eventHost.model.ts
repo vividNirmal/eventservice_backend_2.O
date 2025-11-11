@@ -284,6 +284,7 @@ export const getAdminEventHostListByCompany = async (
             : { company_id: companyId };
 
         const events = await eventHostSchema.find(searchFilter)
+            .sort({ createdAt: -1 })
             .skip(skip)
             .limit(size).populate('event_category');
 

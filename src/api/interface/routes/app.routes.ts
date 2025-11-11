@@ -73,6 +73,8 @@ import { createExhibitorFormConfigurationSchema, updateExhibitorFormConfiguratio
 import { ExhibitordirectLoginSchema } from "../../utils/validation-schems/eventuser.validation";
 import { createExhibitorFormParticularController, deleteExhibitorFormParticularByIdController, getAllExhibitorFormParticularsController, getExhibitorFormParticularByIdController, updateExhibitorFormParticularController, updateExhibitorFormParticularStatusController } from "../controllers/exhibitorFormParticular.controller";
 import { createExhibitorFormParticularSchema, updateExhibitorFormParticularSchema, updateExhibitorFormParticularStatusSchema } from "../../utils/validation-schems/exhibitorFormParticular.validation";
+import { createEventZoneSchema, updateEventZoneSchema } from "../../utils/validation-schems/eventZone.validation";
+import { createEventZoneController, deleteEventZoneByIdController, getAllEventZonesController, getEventZoneByIdController, updateEventZoneByIdController } from "../controllers/eventZone.controller";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -384,7 +386,7 @@ export const upload = multer({ storage: storage });
             route.put("/exhibitor-form-configurations/:id", protectedRoute, validateRequest(updateExhibitorFormConfigurationSchema), updateExhibitorFormConfigurationByIdController);
             route.delete("/exhibitor-form-configurations/:id", protectedRoute, deleteExhibitorFormConfigurationByIdController);
 
-
+            // exhibitor from particulars
             route.get("/exhibitor-form-particulars", protectedRoute,  getAllExhibitorFormParticularsController);
             route.get("/exhibitor-form-particulars/:id", protectedRoute, getExhibitorFormParticularByIdController);
             route.post("/exhibitor-form-particulars", protectedRoute, uploadImagesFile, validateRequest(createExhibitorFormParticularSchema), createExhibitorFormParticularController);
@@ -392,6 +394,13 @@ export const upload = multer({ storage: storage });
             route.delete("/exhibitor-form-particulars/:id", protectedRoute, deleteExhibitorFormParticularByIdController);
             route.put("/exhibitor-form-particulars-status/:id", protectedRoute, validateRequest(updateExhibitorFormParticularStatusSchema), updateExhibitorFormParticularStatusController);
 
+            // event zones
+            route.get("/event-zones", protectedRoute, getAllEventZonesController);
+            route.get("/event-zones/:id", protectedRoute, getEventZoneByIdController);
+            route.post("/event-zones", protectedRoute, validateRequest(createEventZoneSchema), createEventZoneController);
+            route.put("/event-zones/:id", protectedRoute, validateRequest(updateEventZoneSchema), updateEventZoneByIdController);
+            route.delete("/event-zones/:id", protectedRoute, deleteEventZoneByIdController);
+            
             route.post('/send-otp',verifyScannerToken,validateRequest(sendOtpValidation),OtpGenerate);
             route.post('/verify-otp',validateRequest(verifyOtpValidation),OtpVerify);
 

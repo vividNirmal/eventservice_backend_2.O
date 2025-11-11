@@ -168,22 +168,7 @@ export const eventuserEvent = async (
       order: Attendees?.order || 1,
       count: transformedTickets.length + transformedPackages.length,
       data: [...transformedTickets, ...transformedPackages],
-    };
-
-    const groupedData = userTypes.map((userType: any) => {
-      const filteredEvents = eventDetails.filter(
-        (item: any) =>
-          item.ticketId?.userType?._id?.toString() === userType._id.toString()
-      );
-
-      return {
-        userType: userType.typeName,
-        userTypeId: userType._id,
-        order: userType.order,
-        count: filteredEvents.length,
-        data: filteredEvents,
-      };
-    });
+    };    
 
     const searchQuery: any = {
       userId: loginUserData.userId || loginUserData.id,
@@ -198,7 +183,7 @@ export const eventuserEvent = async (
     }
 
     callback(null, {
-      eventcategory : categoriesWithEventCount,
+      eventcategory: categoriesWithEventCount,
       attendasData,
     });
   } catch (error: any) {
@@ -569,6 +554,94 @@ export const ExhibitorFromeventwiseModle = async (
     loggerMsg(
       "error",
       `Error in EventuserRegisterDefferntEventmodle: ${error.message}`
+    );
+    callback(error, null);
+  }
+};
+
+export const EventusercategorywiseEventModle = async (
+  eventcatId: any,
+  token: any,
+  callback: (error: Error | null, result?: any) => void
+) => {
+  try {
+    if (!token) {
+      const error = new Error("Authentication token is required");
+      loggerMsg("error", "User token is missing");
+      return callback(error, null);
+    }
+
+    // Validate JWT secret
+    if (!process.env.JWT_SECRET_KEY) {
+      const error = new Error("JWT secret key is not configured");
+      loggerMsg("error", "JWT_SECRET_KEY is missing in environment");
+      return callback(error, null);
+    }
+
+    let loginUserData: any;
+    try {
+      const actualToken = token.startsWith("Bearer ") ? token.slice(7) : token;
+      loginUserData = jwt.verify(actualToken, process.env.JWT_SECRET_KEY);
+    } catch (jwtError: any) {
+      const error = new Error("Invalid or expired token");
+      loggerMsg("error", `JWT verification failed: ${jwtError.message}`);
+      return callback(error, null);
+    }
+
+    if (!eventcatId) {
+      const error = new Error("Event category ID is required");
+      loggerMsg("error", `Event category ID not provided`);
+      return callback(error, null);
+    }
+
+    // Step 1: Find events by category
+    const events = await eventHostSchema.find({
+      event_category: eventcatId
+    }).select("_id event_title event_slug event_description event_logo event_image event_category");
+
+    // Step 2: Extract event IDs
+    const eventIds = events.map(event => event._id);
+
+    // Step 3: Find form registrations for these events and this user
+    const eventDetails = await formRegistrationSchema
+      .find({ 
+        email: loginUserData.email,
+        eventId: { $in: eventIds }
+      })
+      .populate([
+        {
+          path: "ticketId",
+          populate: { path: "userType", select: "typeName" },
+          select: "ticketName userType registrationFormId ticketAmount",
+        },
+        {
+          path: "eventId",
+          populate: { path: "event_category" },
+          select:
+            "event_title event_slug event_description event_logo event_image event_category",
+        },
+      ]);
+
+    // Check if eventDetails is empty
+    if (!eventDetails || eventDetails.length === 0) {
+      callback(null, {
+        events,
+        eventDetails: [],
+        message: "You are not registered for any event in this category"
+      });
+      return;
+    }
+
+    callback(null, {
+      events,
+      eventDetails,
+      message: "Event details retrieved successfully"
+    });
+    
+  } catch (error: any) {
+    loggerMsg(
+      "error",
+      `Error in EventusercategorywiseEventModle: ${error.message}`
     );
     callback(error, null);
   }

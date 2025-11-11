@@ -9,6 +9,8 @@ import eventHostSchema from "../schema/eventHost.schema";
 import { v4 as uuidv4 } from "uuid";
 import QRCode from "qrcode";
 import exhibitorFormSchema from "../schema/exhibitorForm.schema";
+import eventCategorySchema from "../schema/eventCategory.schema";
+
 export const eventuserEvent = async (
   callback: (error: Error | null, result?: any) => void,
   page: number = 1,
@@ -66,6 +68,24 @@ export const eventuserEvent = async (
             "event_title event_slug event_description event_logo event_image event_category",
         },
       ]);
+
+    const eventcategory = await eventCategorySchema.find({
+      compayId: loginUserData.company_id,
+    });
+    const categoriesWithEventCount = await Promise.all(
+      eventcategory.map(async (category) => {
+        const eventCount = await eventHostSchema.countDocuments({
+          event_category: category._id,
+          company_id: loginUserData.company_id,
+        });
+
+        // Return category with event count
+        return {
+          ...category.toObject(), // Convert mongoose document to plain object
+          eventCount: eventCount,
+        };
+      })
+    );
 
     const eventPackages = await EventPackageSchema.find({
       companyId: loginUserData?.company_id,
@@ -178,7 +198,7 @@ export const eventuserEvent = async (
     }
 
     callback(null, {
-      groupedData,
+      eventcategory : categoriesWithEventCount,
       attendasData,
     });
   } catch (error: any) {
@@ -538,7 +558,10 @@ export const ExhibitorFromeventwiseModle = async (
       return callback(error, null);
     }
 
-    let eventFormList = await exhibitorFormSchema.find({ eventId: eventId , status:"published" });
+    let eventFormList = await exhibitorFormSchema.find({
+      eventId: eventId,
+      status: "published",
+    });
     callback(null, {
       eventFormList,
     });

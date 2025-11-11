@@ -199,6 +199,7 @@ const exhibitorFormSchema = new Schema<IExhibitorForm>({
 });
 
 // Indexes for better performance
+exhibitorFormSchema.index({ eventId: 1, exhibitorFormConfigurationId: 1 }, { unique: true }); // exhibitor form unique for specific event for specific congig type
 exhibitorFormSchema.index({ companyId: 1, status: 1 });
 exhibitorFormSchema.index({ eventId: 1 });
 exhibitorFormSchema.index({ createdAt: -1 });

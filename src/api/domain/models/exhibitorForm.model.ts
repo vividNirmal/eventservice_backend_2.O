@@ -75,24 +75,40 @@ interface PaginationOptions {
  */
 export const createExhibitorForm = async (
   formData: Partial<IExhibitorForm>,
+  exhibitorFormConfigurationId: mongoose.Types.ObjectId,
   eventId: mongoose.Types.ObjectId,
   companyId?: mongoose.Types.ObjectId
 ) => {
   try {
     const parsedData = parseJsonFields(formData);
-    console.log("parsedData>>>>>>>>>>>>>>>>>>>>>>>>", parsedData);
 
     // Check if form with same name exists for this event
     const existingForm = await ExhibitorFormSchema.findOne({
       eventId,
-      "basicInfo.full_name": parsedData.basicInfo?.full_name,
+      exhibitorFormConfigurationId,
     });
 
     if (existingForm) {
       return {
         success: false,
-        message: "Exhibitor form with this name already exists for this event",
+        message: "Exhibitor form with this configuration already exists for this event",
       };
+    }
+
+    // Check if form name exists for this event
+    if (parsedData.basicInfo?.full_name) {
+      const existingFullName = await ExhibitorFormSchema.findOne({
+        eventId,
+        "basicInfo.full_name": parsedData.basicInfo.full_name,
+      });
+
+      if (existingFullName) {
+        return {
+          success: false,
+          message:
+            "Exhibitor form with this form name already exists for this event",
+        };
+      }
     }
 
     // Check if form number exists for this event
@@ -115,6 +131,7 @@ export const createExhibitorForm = async (
       ...parsedData,
       companyId: companyId || null,
       eventId,
+      exhibitorFormConfigurationId,
     });
 
     const savedForm = await newForm.save();
@@ -147,7 +164,6 @@ export const updateExhibitorForm = async (
 ) => {
   try {
     const parsedData = parseJsonFields(updateData);
-    console.log("update parsedData>>>>>>>>>>>>>>>>>>>>>>>", parsedData);
 
     // Check if form exists and belongs to the company
     const existingForm = await ExhibitorFormSchema.findOne({

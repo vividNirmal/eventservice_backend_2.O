@@ -99,6 +99,7 @@ export const createExhibitorFormController = async (
 
     const result = await createExhibitorForm(
       formData,
+      new mongoose.Types.ObjectId(exhibitorFormConfigurationId),
       new mongoose.Types.ObjectId(eventId),
       companyId ? new mongoose.Types.ObjectId(companyId) : undefined
     );
@@ -388,7 +389,7 @@ export const getAllExhibitorFormsController = async (
   try {
     const {
       page = 1,
-      limit = 10,
+      limit = 0,
       status,
       search,
       stallType,

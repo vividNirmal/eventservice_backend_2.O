@@ -75,6 +75,8 @@ import { createExhibitorFormParticularController, deleteExhibitorFormParticularB
 import { createExhibitorFormParticularSchema, updateExhibitorFormParticularSchema, updateExhibitorFormParticularStatusSchema } from "../../utils/validation-schems/exhibitorFormParticular.validation";
 import { createEventZoneSchema, updateEventZoneSchema } from "../../utils/validation-schems/eventZone.validation";
 import { createEventZoneController, deleteEventZoneByIdController, getAllEventZonesController, getEventZoneByIdController, updateEventZoneByIdController } from "../controllers/eventZone.controller";
+import { getExhibitorFormAssetByConfigController, getExhibitorFormAssetListController, upsertExhibitorFormAssetController } from "../controllers/exhibitorFormAsset.controller";
+import { upsertExhibitorFormAssetValidationSchema } from "../../utils/validation-schems/exhibitorFormAsset.validation";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -400,6 +402,11 @@ export const upload = multer({ storage: storage });
             route.post("/event-zones", protectedRoute, validateRequest(createEventZoneSchema), createEventZoneController);
             route.put("/event-zones/:id", protectedRoute, validateRequest(updateEventZoneSchema), updateEventZoneByIdController);
             route.delete("/event-zones/:id", protectedRoute, deleteEventZoneByIdController);
+
+            // exhibitor form assets
+            route.get("/exhibitor-form-assets", protectedRoute, getExhibitorFormAssetListController);
+            route.post("/exhibitor-form-assets/upsert", protectedRoute, validateRequest(upsertExhibitorFormAssetValidationSchema), upsertExhibitorFormAssetController);
+            route.get("/exhibitor-form-assets-byConfig/:eventId/:formConfigId", protectedRoute, getExhibitorFormAssetByConfigController);
             
             route.post('/send-otp',verifyScannerToken,validateRequest(sendOtpValidation),OtpGenerate);
             route.post('/verify-otp',validateRequest(verifyOtpValidation),OtpVerify);

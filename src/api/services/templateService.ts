@@ -4,6 +4,8 @@ import Template from '../domain/schema/template.schema';
 import UserTemplate from '../domain/schema/userTemplate.schema';
 import Ticket from '../domain/schema/ticket.schema';
 import { EmailServiceNew } from './sendEmail.service';
+import juice from 'juice';
+import fetch from "node-fetch"; 
 
 /**
  * Get appropriate template for ticket notification
@@ -108,10 +110,44 @@ export async function sendNotification(
     if (channel === 'email') {
       const compiledSubject = compileTemplate(template.subject || '', templateData);      
       const compiledContent = compileTemplate(template.content, templateData);
+
+      // Safely fetch Quill CSS from CDN (non-blocking)
+      let quillCss = '';
+      try {
+        const quillCssUrl = 'https://cdn.jsdelivr.net/npm/quill@2/dist/quill.snow.css';
+        const res = await fetch(quillCssUrl);
+        if (res.ok) {
+          quillCss = await res.text();
+        } else {
+          console.log(`⚠️ Failed to fetch Quill CSS (status: ${res.status})`);
+        }
+      } catch (cssErr: any) {
+        console.log('⚠️ Quill CSS fetch failed, continuing without it:', cssErr.message);
+      }
+
+      // Build Quill-styled HTML
+      const quillStyledHtml = `
+        <html>
+          <head></head>
+          <body>
+            <div class="ql-snow">
+              <div class="ql-editor">
+                ${compiledContent}
+              </div>
+            </div>
+          </body>
+        </html>
+      `;
+
+      // Inline CSS only if available
+      const inlineStyledHtml = quillCss
+        ? juice.inlineContent(quillStyledHtml, quillCss)
+        : quillStyledHtml;
+
       const emailOptions: any = {
         to: recipientEmail,
         subject: compiledSubject,
-        htmlContent: compiledContent,
+        htmlContent: inlineStyledHtml,
         attachments: []
       };
 

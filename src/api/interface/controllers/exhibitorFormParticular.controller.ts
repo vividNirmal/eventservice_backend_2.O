@@ -11,7 +11,7 @@ import {
 import { ErrorResponse, successResponse } from "../../helper/apiResponse";
 import { loggerMsg } from "../../lib/logger";
 import mongoose from "mongoose";
-import exhibitorFormParticularSchema from "../../domain/schema/exhibitorFormParticular.schema";
+import ExhibitorFormParticularSchema from "../../domain/schema/exhibitorFormParticular.schema";
 
 /**
  * Create new exhibitor form particular
@@ -46,6 +46,16 @@ export const createExhibitorFormParticularController = async (
     const imageFile = files?.find(f => f.fieldname === 'image');
     if (imageFile) {
       formData.image = `${(imageFile as any).uploadFolder}/${imageFile.filename}`;
+    }
+
+    // Handle zones if sent as JSON string
+    if (formData.zones && typeof formData.zones === 'string') {
+      try {
+        formData.zones = JSON.parse(formData.zones);
+      } catch (e) {
+        console.error("Error parsing zones:", e);
+        formData.zones = [];
+      }
     }
 
     // Handle documents with metadata
@@ -145,7 +155,7 @@ export const updateExhibitorFormParticularController = async (
     }
 
     // Get the existing particular first to preserve existing data
-    const existingParticular = await exhibitorFormParticularSchema.findById(id);
+    const existingParticular = await ExhibitorFormParticularSchema.findById(id);
     if (!existingParticular) {
       return res.status(404).json({
         status: 0,
@@ -170,6 +180,16 @@ export const updateExhibitorFormParticularController = async (
       ...updateData,
       documents: [...(existingParticular.documents || [])]
     };
+
+    // Handle zones if sent as JSON string
+    if (updateData.zones && typeof updateData.zones === 'string') {
+      try {
+        finalData.zones = JSON.parse(updateData.zones);
+      } catch (e) {
+        console.error("Error parsing zones:", e);
+        finalData.zones = existingParticular.zones;
+      }
+    }
 
     // Handle image
     const imageFile = files?.find(f => f.fieldname === 'image');
@@ -340,6 +360,7 @@ export const getExhibitorFormParticularByIdController = async (
 ) => {
   try {
     const { id } = req.params;
+    const { eventId } = req.query;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
@@ -348,7 +369,10 @@ export const getExhibitorFormParticularByIdController = async (
       });
     }
 
-    const result = await getExhibitorFormParticularById(new mongoose.Types.ObjectId(id));
+    const result = await getExhibitorFormParticularById(
+      new mongoose.Types.ObjectId(id),
+      eventId ? new mongoose.Types.ObjectId(eventId as string) : undefined
+    );
 
     if (result.success) {
       return successResponse(

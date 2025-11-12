@@ -16,7 +16,7 @@ export interface IExhibitorFormParticular extends Document {
   national_price: number;
   international_price: number;
   material_number: number;
-  zones: string[];
+  zones: mongoose.Types.ObjectId[];
   venue?: string[];
   image: string; // image path
   documents: IDocument[]; // array of name + path objects
@@ -48,7 +48,7 @@ const exhibitorFormParticularSchema = new Schema<IExhibitorFormParticular>(
     national_price: { type: Number },
     international_price: { type: Number },
     material_number: { type: Number },
-    zones: [{ type: String }],
+    zones: [{ type: Schema.Types.ObjectId, ref: "EventZone" }],
     venue: [{ type: String }],
     image: { type: String },
     documents: [documentSchema],

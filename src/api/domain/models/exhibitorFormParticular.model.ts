@@ -5,11 +5,65 @@ import ExhibitorFormParticularSchema, {
   IExhibitorFormParticular,
 } from "../schema/exhibitorFormParticular.schema";
 import mongoose from "mongoose";
+import ExhibitorFormSchema from "../schema/exhibitorForm.schema";
+import ExhibitorFormAssetSchema from "../schema/exhibitorFormAsset.schema";
+
+
+const calculateTotalAllocatedQuantity = async (particular: any, eventId?: mongoose.Types.ObjectId) => {
+  let totalQuantity = 0;
+
+  if (eventId && particular.exhibitorFormId && particular.zones && particular.zones.length > 0) {
+    try {
+      // Get the exhibitor form to get the configuration ID
+      const exhibitorForm = await ExhibitorFormSchema.findById(particular.exhibitorFormId);
+      
+      if (exhibitorForm && exhibitorForm.exhibitorFormConfigurationId) {
+        // Get the asset allocation for this form configuration and event
+        const assetAllocation = await ExhibitorFormAssetSchema.findOne({
+          eventId: eventId,
+          exhibitorFormConfigurationId: exhibitorForm.exhibitorFormConfigurationId
+        }).populate('zones.zoneId');
+
+        if (assetAllocation && assetAllocation.zones) {
+          // Calculate total quantity for the zones assigned to this particular
+          particular.zones.forEach((zone: any) => {
+            const allocatedZone = assetAllocation.zones.find(
+              (allocZone: any) => allocZone.zoneId._id.toString() === zone._id.toString()
+            );
+            if (allocatedZone) {
+              totalQuantity += allocatedZone.quantity || 0;
+            }
+          });
+
+          // Add zone asset quantities to the particular
+          particular.zoneAssetQuantities = assetAllocation.zones
+            .filter((zone: any) =>
+              particular.zones.some((pZone: any) =>
+                pZone._id.toString() === zone.zoneId._id.toString()
+              )
+            )
+            .map((zone: any) => ({
+              zoneId: zone.zoneId._id,
+              zoneName: zone.zoneId.name,
+              quantity: zone.quantity
+            }));
+        }
+      }
+    } catch (error) {
+      console.error("Error calculating total allocated quantity:", error);
+      particular.zoneAssetQuantities = [];
+    }
+  }
+
+  particular.totalAllocatedQuantity = totalQuantity;
+  return particular;
+};
+
 
 /**
  * Add URLs to file fields
  */
-const addFileUrls = (exhibitorFormParticular: any) => {
+const addFileUrlsAndCalculateQuantity = async (exhibitorFormParticular: any, eventId?: mongoose.Types.ObjectId) => {
   const baseUrl = env.BASE_URL;
 
   // Add URL for image
@@ -25,6 +79,9 @@ const addFileUrls = (exhibitorFormParticular: any) => {
         url: `${baseUrl}/uploads/${doc.path}`,
       }));
   }
+
+  // Calculate total allocated quantity
+  exhibitorFormParticular = await calculateTotalAllocatedQuantity(exhibitorFormParticular, eventId);
 
   return exhibitorFormParticular;
 };
@@ -65,6 +122,16 @@ export const createExhibitorFormParticular = async (
       };
     }
 
+    // Parse zones if it's a JSON string
+    if (formData.zones && typeof formData.zones === 'string') {
+      try {
+        formData.zones = JSON.parse(formData.zones);
+      } catch (e) {
+        console.error("Error parsing zones:", e);
+        formData.zones = [];
+      }
+    }
+
     const newParticular = new ExhibitorFormParticularSchema({
       ...formData,
       companyId: companyId || null,
@@ -73,7 +140,7 @@ export const createExhibitorFormParticular = async (
     });
 
     const savedParticular = await newParticular.save();
-    const particularWithUrls = addFileUrls(savedParticular.toObject());
+    const particularWithUrls = await addFileUrlsAndCalculateQuantity(savedParticular.toObject(), eventId);
 
     loggerMsg("info", `Exhibitor form particular created: ${savedParticular._id}`);
 
@@ -115,6 +182,16 @@ export const updateExhibitorFormParticular = async (
       };
     }
 
+    // Parse zones if it's a JSON string
+    if (updateData.zones && typeof updateData.zones === 'string') {
+      try {
+        updateData.zones = JSON.parse(updateData.zones);
+      } catch (e) {
+        console.error("Error parsing zones:", e);
+        updateData.zones = existingParticular.zones;
+      }
+    }
+
     // Check name uniqueness if being updated
     if (
       updateData.item_name &&
@@ -148,7 +225,7 @@ export const updateExhibitorFormParticular = async (
       };
     }
 
-    const particularWithUrls = addFileUrls(updatedParticular.toObject());
+    const particularWithUrls = await addFileUrlsAndCalculateQuantity(updatedParticular.toObject(), existingParticular.eventId);
     loggerMsg("info", `Exhibitor form particular updated: ${id}`);
 
     return {
@@ -214,12 +291,17 @@ export const getAllExhibitorFormParticulars = async (
     // Get particulars with pagination
     const particulars = await ExhibitorFormParticularSchema.find(searchQuery)
       .populate('exhibitorFormId')
+      .populate('zones') // Populate zone references
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit);
 
-    // Add file URLs to particulars
-    const particularsWithUrls = particulars.map((particular) => addFileUrls(particular.toObject()));
+    // Add file URLs and calculate total allocated quantity
+    const particularsWithUrls = await Promise.all(
+      particulars.map(async (particular) => 
+        await addFileUrlsAndCalculateQuantity(particular.toObject(), eventId)
+      )
+    );
 
     const totalPages = Math.ceil(totalCount / limit);
 
@@ -248,10 +330,11 @@ export const getAllExhibitorFormParticulars = async (
 /**
  * Get exhibitor form particular by ID
  */
-export const getExhibitorFormParticularById = async (id: mongoose.Types.ObjectId) => {
+export const getExhibitorFormParticularById = async (id: mongoose.Types.ObjectId, eventId?: mongoose.Types.ObjectId) => {
   try {
     const particular = await ExhibitorFormParticularSchema.findById(id)
-      .populate('exhibitorFormId');
+      .populate('exhibitorFormId')
+      .populate('zones'); // Populate zone references
 
     if (!particular) {
       return {
@@ -260,7 +343,7 @@ export const getExhibitorFormParticularById = async (id: mongoose.Types.ObjectId
       };
     }
 
-    const particularWithUrls = addFileUrls(particular.toObject());
+    const particularWithUrls = await addFileUrlsAndCalculateQuantity(particular.toObject(), eventId);
 
     return {
       success: true,
@@ -293,7 +376,7 @@ export const deleteExhibitorFormParticular = async (id: mongoose.Types.ObjectId)
       };
     }
 
-    const particularWithUrls = addFileUrls(deletedParticular.toObject());
+    const particularWithUrls = addFileUrlsAndCalculateQuantity(deletedParticular.toObject(), deletedParticular?.eventId);
 
     loggerMsg("info", `Exhibitor form particular deleted: ${id}`);
 

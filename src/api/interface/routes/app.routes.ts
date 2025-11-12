@@ -227,7 +227,7 @@ export const upload = multer({ storage: storage });
             route.post("/delete-company", protectedRoute,validateRequest(deleteCompanySchema), deleteCompany)
             route.post("/update-company-status", protectedRoute,validateRequest(updateStatusCompanySchema), updateCompanyStatus)
             route.post("/get-scanner-data-details",validateRequest(scannerData), getParticipantDetailsScanner)
-            route.post("/update-company-logo",protectedRoute,validateRequest(updateCompanyLogoSchema),updateCompanyLogo);
+            route.post("/update-company-logo",protectedRoute,uploadImagesFile,validateRequest(updateCompanyLogoSchema),updateCompanyLogo);
 
             //forget password
             route.post("/forget-password",validateRequest(forgetPasswordSchema),forgetPassword);

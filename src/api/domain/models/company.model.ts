@@ -1,9 +1,8 @@
-import mongoose from "mongoose";
-import { convertToSlug } from "../../helper/helper";
+
+
 import { loggerMsg } from "../../lib/logger";
 import companySchema from "../schema/company.schema";
 import { env } from "../../../infrastructure/env";
-import { inflate } from "zlib";
 
 interface companyData{
     company_name:string;
@@ -14,6 +13,8 @@ interface companyData{
     email_two:string;
     subdomain:string;
     logo?:string;
+    exhibitor_dashboard_banner?:String;
+    attandess_dashboard_banner?:string;
 }
 interface companyLogo{
     company_id:string;
@@ -65,6 +66,8 @@ export const storeCompany = async (companyData: companyData, callback: (error: a
             subdomain:companyData.subdomain,
             status:1,
             logo: companyData.logo ? companyData.logo : "",
+            exhibitor_dashboard_banner : companyData.exhibitor_dashboard_banner ? companyData.exhibitor_dashboard_banner :"",
+            attandess_dashboard_banner : companyData.attandess_dashboard_banner ? companyData.attandess_dashboard_banner : ""
         });
 
         const savedCompany= await newCompany.save();
@@ -85,7 +88,8 @@ export const updateCompany = async (
     try {
         // console.log("companyData.company_name",companyData.company_name);
         // Find the company by ID and update
-        const updatedCompany = await companySchema.findByIdAndUpdate(
+        const baseUrl = env.BASE_URL;
+        let updatedCompany = await companySchema.findByIdAndUpdate(
             companyId,
             {
                 $set: {
@@ -96,7 +100,9 @@ export const updateCompany = async (
                     email_one: companyData.email_one,
                     email_two: companyData.email_two,
                     subdomain: companyData.subdomain,
-                    logo: companyData.logo
+                    logo: companyData.logo,
+                    exhibitor_dashboard_banner : companyData.exhibitor_dashboard_banner ,
+                    attandess_dashboard_banner : companyData.attandess_dashboard_banner 
                 },
             },
             { new: true } 
@@ -105,7 +111,12 @@ export const updateCompany = async (
         if (!updatedCompany) {
             return callback(new Error("Company not found"), null);
         }
-
+        if(updatedCompany.exhibitor_dashboard_banner){
+            updatedCompany.exhibitor_dashboard_banner = `${baseUrl}/uploads/${updatedCompany.exhibitor_dashboard_banner}`
+        }
+         if(updatedCompany.attandess_dashboard_banner){
+            updatedCompany.attandess_dashboard_banner = `${baseUrl}/uploads/${updatedCompany.attandess_dashboard_banner}`
+        }
         return callback(null, { updatedCompany });
     } catch (error) {
         console.error("Error updating company:", error);
@@ -115,17 +126,19 @@ export const updateCompany = async (
 
 export const updateCompanyLogoModel = async (
     companyId: string,
-    companyData: companyLogo,
+    companyData: any,
     callback: (error: any, result: any) => void
 ) => {
     try {
-        // console.log("companyData.logo",companyData.logo);
-        // Find the company by ID and update
+        console.log("companyData.logo",companyData.logo);
+        
         const updatedCompany = await companySchema.findByIdAndUpdate(
             companyId,
             {
                 $set: {
-                    logo: companyData.logo
+                    logo: companyData.logo,
+                    exhibitor_dashboard_banner : companyData.exhibitor_dashboard_banner ? companyData.exhibitor_dashboard_banner :"",
+                    attandess_dashboard_banner : companyData.attandess_dashboard_banner ? companyData.attandess_dashboard_banner : "" 
                 },
             },
             { new: true } 

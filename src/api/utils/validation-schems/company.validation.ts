@@ -87,6 +87,8 @@ export const updateCompanySchema = Joi.object({
         "string.company_id": "Please enter a valid Subdomain.",
         "any.required": "Subdomain is required."
     }),
+    attandess_dashboard_banner :Joi.optional(),
+    exhibitor_dashboard_banner : Joi.optional()
      
 });
 
@@ -94,6 +96,9 @@ export const updateCompanyLogoSchema = Joi.object({
     company_id: Joi.string().required().messages({
         "any.required": "company_id is required."
     }),
+    logo:Joi.optional(),
+    attandess_dashboard_banner :Joi.optional(),
+    exhibitor_dashboard_banner : Joi.optional()
 });
 
 

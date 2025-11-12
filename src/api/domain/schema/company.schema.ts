@@ -11,6 +11,8 @@ export interface IcompanySchema extends Document {
     subdomain:string;
     status:number;
     logo?: string; // Optional field for logo
+    exhibitor_dashboard_banner?: string; // Optional field for logo
+    attandess_dashboard_banner? :string
 }
 
 const companySchema: Schema = new Schema<IcompanySchema>({
@@ -23,6 +25,8 @@ const companySchema: Schema = new Schema<IcompanySchema>({
     subdomain:{ type: String, required: true },
     status:{ type: Number, required: false,default: 1 },
     logo: { type: String, required: false }, // Optional field for logo
+    exhibitor_dashboard_banner : {type:String,required :false},
+    attandess_dashboard_banner : {type:String,required :false},
 },
 {
     timestamps: true,

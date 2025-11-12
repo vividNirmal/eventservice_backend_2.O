@@ -77,6 +77,7 @@ import { createEventZoneSchema, updateEventZoneSchema } from "../../utils/valida
 import { createEventZoneController, deleteEventZoneByIdController, getAllEventZonesController, getEventZoneByIdController, updateEventZoneByIdController } from "../controllers/eventZone.controller";
 import { getExhibitorFormAssetByConfigController, getExhibitorFormAssetListController, upsertExhibitorFormAssetController } from "../controllers/exhibitorFormAsset.controller";
 import { upsertExhibitorFormAssetValidationSchema } from "../../utils/validation-schems/exhibitorFormAsset.validation";
+import { createPaymentHistory, getAllPaymentHistory } from "../controllers/exihibitorPayment.controller";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -430,6 +431,11 @@ export const upload = multer({ storage: storage });
             route.get('/get-package/:id',protectedRoute,getEventPackageByIdController)
             route.post('/detele-package',protectedRoute,deleteEventPackagesController)
             route.get('/get-event-attendas',protectedRoute,eventandCategoryAttendes)
+
+            // Event Payment exihibitor 
+            route.post('/create-payment',protectedRoute,createPaymentHistory)
+            route.get('/get-payment-history',protectedRoute,getAllPaymentHistory)
+
         } catch (error) {
             // Log any errors that occur during route definition
             console.log(error, 'warn')

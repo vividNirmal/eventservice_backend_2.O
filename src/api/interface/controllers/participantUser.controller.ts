@@ -366,10 +366,11 @@ export const scanParticipantQR = async (req: Request, res: Response) => {
     const formRegistrationId = qrData.formRegistration_id;
     let participant: any = await FormRegistration.findById(
       formRegistrationId
-    ).lean();
+    )
+    let new_particiant :any  =  participant.toObject()
     const map_array: any = {};
     const ticket: any = await ticketSchema
-      .findOne({ _id: participant?.ticketId })
+      .findOne({ _id: new_particiant?.ticketId })
       .populate("registrationFormId")
       .lean();
     const forms_registration = ticket?.registrationFormId;
@@ -383,7 +384,7 @@ export const scanParticipantQR = async (req: Request, res: Response) => {
         });
       });
     }
-    participant = { ...participant, map_array };
+    
 
     if (!event_id || !formRegistrationId)
       return ErrorResponse(
@@ -417,13 +418,14 @@ export const scanParticipantQR = async (req: Request, res: Response) => {
     let color_status = "";
     let scanning_msg = "";
 
-    if (!participant.approved) {
+    if (!new_particiant.approved) {
       scanning_msg = "Participant is blocked from this event";
       color_status = "red";
-    } else {
+    } else {      
+      
       if (scanner_type == 0) {
         // ✅ Check-in
-        if (participant.status === "in") {
+        if (new_particiant.status === "in") {
           scanning_msg = "Already checked in";
           color_status = "yellow";
         } else {
@@ -435,7 +437,7 @@ export const scanParticipantQR = async (req: Request, res: Response) => {
         }
       } else if (scanner_type == 1) {
         // ✅ Check-out
-        if (participant.status !== "in") {
+        if (new_particiant.status !== "in") {
           scanning_msg = "You can't check out without checking in first";
           color_status = "red";
         } else {
@@ -447,6 +449,8 @@ export const scanParticipantQR = async (req: Request, res: Response) => {
         }
       }
     }
+
+     participant = { ...new_particiant, map_array };
 
     // 🧩 Step 5: Add image URLs and response formatting
     const baseUrl = env.BASE_URL;

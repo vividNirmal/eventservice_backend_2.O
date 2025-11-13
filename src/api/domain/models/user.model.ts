@@ -103,7 +103,20 @@ export const userLogin = async (
       return callback(error, null);
     }
     if (registeruser?.compayId && registeruser?.compayId.logo) {
-      registeruser.compayId.logo = `${baseUrl}/${registeruser.compayId.logo}`    }
+      registeruser.compayId.logo = `${baseUrl}/${registeruser.compayId.logo}`;
+    }
+    if (
+      registeruser?.compayId &&
+      registeruser?.compayId.attandess_dashboard_banner
+    ) {
+      registeruser.compayId.attandess_dashboard_banner = `${baseUrl}/${registeruser.compayId.attandess_dashboard_banner}`;
+    }
+    if (
+      registeruser?.compayId &&
+      registeruser?.compayId.exhibitor_dashboard_banner 
+    ) {
+      registeruser.compayId.exhibitor_dashboard_banner   = `${baseUrl}/${registeruser.compayId.exhibitor_dashboard_banner }`;
+    }
     if (registeruser) {
       const subdomain = userData.subdomain;
       const company_details: any = await companySchema.findOne({ subdomain });
@@ -127,7 +140,7 @@ export const userLogin = async (
           userId: registeruser._id,
           email: registeruser.email,
           company_id: company_details.id,
-          userType: registeruser.userType,          
+          userType: registeruser.userType,
         },
         process.env.JWT_SECRET_KEY || "defaultsecretkey",
         { expiresIn: "8h" }
@@ -344,7 +357,7 @@ export const storeUser = async (
       const error = new Error("User with this email already exists.");
       return callback(error, null);
     }
-    
+
     const hashedPassword = await bcrypt.hash(userData.password, 10);
 
     const newUser = new userSchema({

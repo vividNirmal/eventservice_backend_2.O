@@ -605,7 +605,7 @@ export const EventusercategorywiseEventModle = async (
           path: "eventId",
           populate: { path: "event_category" },
           select:
-            "event_title event_slug event_description event_logo event_image event_category",
+            "event_title event_slug event_description event_logo event_image event_category dateRanges",
         },
       ]);
 

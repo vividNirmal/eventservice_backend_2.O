@@ -41,6 +41,14 @@ const eventPackageSchema = new mongoose.Schema(
           ref: "EventCategory",
           required: [true, "Event category is required"],
         },
+        ticketType :{
+          type : String,
+          require :false
+        },
+        ticketSlot :{
+          type :String,
+          require : false
+        },
         event_price: {
           type: String,
           default: "0",

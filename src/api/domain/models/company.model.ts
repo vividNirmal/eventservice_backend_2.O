@@ -26,6 +26,23 @@ interface companyStatus{
     status:number;
 }
 
+const addImageUrls = (company: any) => {
+  const baseUrl = env.BASE_URL;
+  if (company) {
+    if (company.logo) {
+      company.logo = `${baseUrl}/uploads/${company.logo}`;
+    }
+    if (company.attandess_dashboard_banner) {
+      company.attandess_dashboard_banner = `${baseUrl}/uploads/${company.attandess_dashboard_banner}`;
+    }
+    if (company.exhibitor_dashboard_banner) {
+      company.exhibitor_dashboard_banner = `${baseUrl}/uploads/${company.exhibitor_dashboard_banner}`;
+    }
+  }
+  return company;
+};
+
+
 
 export const updateStatus = async (companyStatus: companyStatus, callback: (error: any, result: any) => void) => {
     try {
@@ -125,35 +142,67 @@ export const updateCompany = async (
 };
 
 export const updateCompanyLogoModel = async (
-    companyId: string,
-    companyData: any,
-    callback: (error: any, result: any) => void
+  companyId: string,
+  companyData: any,
+  callback: (error: any, result: any) => void
 ) => {
-    try {
-        console.log("companyData.logo",companyData.logo);
-        
-        const updatedCompany = await companySchema.findByIdAndUpdate(
-            companyId,
-            {
-                $set: {
-                    logo: companyData.logo,
-                    exhibitor_dashboard_banner : companyData.exhibitor_dashboard_banner ? companyData.exhibitor_dashboard_banner :"",
-                    attandess_dashboard_banner : companyData.attandess_dashboard_banner ? companyData.attandess_dashboard_banner : "" 
-                },
-            },
-            { new: true } 
-        );
+  try {
+    const updateData: any = {};
+    
+    // Only update the fields that are provided
+    if (companyData.logo) updateData.logo = companyData.logo;
+    if (companyData.exhibitor_dashboard_banner) updateData.exhibitor_dashboard_banner = companyData.exhibitor_dashboard_banner;
+    if (companyData.attandess_dashboard_banner) updateData.attandess_dashboard_banner = companyData.attandess_dashboard_banner;
 
-        if (!updatedCompany) {
-            return callback(new Error("Company not found"), null);
-        }
+    const updatedCompany = await companySchema.findByIdAndUpdate(
+      companyId,
+      { $set: updateData },
+      { new: true }
+    );
 
-        return callback(null, { updatedCompany });
-    } catch (error) {
-        console.error("Error updating company logo:", error);
-        return callback(error, null);
+    if (!updatedCompany) {
+      return callback(new Error("Company not found"), null);
     }
+
+    // Add full URLs to the response
+    const companyWithUrls = addImageUrls(updatedCompany.toObject());
+
+    return callback(null, { updatedCompany: companyWithUrls });
+  } catch (error) {
+    console.error("Error updating company logo:", error);
+    return callback(error, null);
+  }
 };
+
+export const getCompanyImagesModel = async (
+  companyId: string,
+  callback: (error: any, result: any) => void
+) => {
+  try {
+    const company = await companySchema.findById(companyId)
+      .select('logo exhibitor_dashboard_banner attandess_dashboard_banner company_name');
+
+    if (!company) {
+      return callback(new Error("Company not found"), null);
+    }
+
+    // Add full URLs to the images
+    const companyWithUrls = addImageUrls(company.toObject());
+
+    const images = {
+      logo: companyWithUrls.logo || null,
+      exhibitor_dashboard_banner: companyWithUrls.exhibitor_dashboard_banner || null,
+      attandess_dashboard_banner: companyWithUrls.attandess_dashboard_banner || null,
+      company_name: companyWithUrls.company_name
+    };
+
+    return callback(null, { images });
+  } catch (error) {
+    console.error("Error fetching company images:", error);
+    return callback(error, null);
+  }
+};
+
 
 export const companyList = async (companyData: companyData, page: number, pageSize: number, searchQuery: string, callback: (error: any, result: any) => void) => {
     try {

@@ -7,6 +7,7 @@ import {
   updateCompany,
   updateStatus,
   updateCompanyLogoModel,
+  getCompanyImagesModel,
 } from "../../domain/models/company.model";
 import companySchema from "../../domain/schema/company.schema";
 import path from "path";
@@ -136,6 +137,29 @@ export const updateCompanyLogo = async (req: Request, res: Response) => {
     });
   } catch (error) {
     return ErrorResponse(res, "An error occurred during event retrieval.");
+  }
+};
+
+export const getCompanyImages = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    if (!id) {
+      return ErrorResponse(res, "Company ID is required.");
+    }
+
+    getCompanyImagesModel(id, (error: any, result: any) => {
+      if (error) {
+        return ErrorResponse(res, error.message);
+      }
+
+      return successResponse(res, "Company images retrieved successfully", {
+        images: result.images
+      });
+    });
+  } catch (error) {
+    console.error("Error in getCompanyImages:", error);
+    return ErrorResponse(res, "An error occurred while fetching company images.");
   }
 };
 

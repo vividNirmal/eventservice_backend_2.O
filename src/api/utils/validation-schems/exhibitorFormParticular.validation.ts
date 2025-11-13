@@ -151,18 +151,10 @@ export const updateExhibitorFormParticularSchema = Joi.object({
 
 // Status Update Schema
 export const updateExhibitorFormParticularStatusSchema = Joi.object({
-  params: Joi.object({
-    id: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required()
-      .messages({
-        'string.pattern.base': 'ID must be a valid MongoDB ObjectId',
-        'any.required': 'ID is required',
-      }),
+  status: Joi.string().valid('active', 'inactive').required()
+    .messages({
+      'any.only': 'Status must be either active or inactive',
+      'any.required': 'Status is required',
   }),
-  body: Joi.object({
-    status: Joi.string().valid('active', 'inactive').required()
-      .messages({
-        'any.only': 'Status must be either active or inactive',
-        'any.required': 'Status is required',
-      }),
-  }),
+  id: Joi.string().optional(),
 });

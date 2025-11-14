@@ -132,6 +132,7 @@ export const eventuserEvent = async (
         events:
           pkg.event_package?.map((evt: any) => ({
             eventId: evt.event_Id?._id,
+            eventTitle:evt.event_Id?.title,
             categoryTitle: evt.event_category?.title,
             eventPrice: parseFloat(evt.event_price || 0),
           })) || [],

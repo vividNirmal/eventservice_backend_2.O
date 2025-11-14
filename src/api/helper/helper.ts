@@ -30,7 +30,9 @@ export const uploadImagesFile = multer({
                 mimeType === "application/zip" ||
                 mimeType === "application/x-rar-compressed" ||
                 mimeType === "application/json" ||
-                mimeType === "text/xml"
+                mimeType === "text/xml" || 
+                mimeType === ("application/vnd.ms-excel") || 
+                mimeType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             ) {
                 folder = "attachments"; // all doc/text/zip/json files go here
             } else {

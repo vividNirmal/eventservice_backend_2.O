@@ -78,6 +78,8 @@ import { createEventZoneController, deleteEventZoneByIdController, getAllEventZo
 import { getExhibitorFormAssetByConfigController, getExhibitorFormAssetListController, upsertExhibitorFormAssetController } from "../controllers/exhibitorFormAsset.controller";
 import { upsertExhibitorFormAssetValidationSchema } from "../../utils/validation-schems/exhibitorFormAsset.validation";
 import { createPaymentHistory, getAllPaymentHistory } from "../controllers/exihibitorPayment.controller";
+import { createUserCampaignController, deleteUserCampaignByIdController, getAllUserCampaignsController, getUserCampaignByIdController, sendCampaignNowController, updateUserCampaignController } from "../controllers/userCampaign.controller";
+import { createUserCampaignSchema, updateUserCampaignSchema } from "../../utils/validation-schems/userCampaign.validation";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -409,6 +411,14 @@ export const upload = multer({ storage: storage });
             route.get("/exhibitor-form-assets", protectedRoute, getExhibitorFormAssetListController);
             route.post("/exhibitor-form-assets/upsert", protectedRoute, validateRequest(upsertExhibitorFormAssetValidationSchema), upsertExhibitorFormAssetController);
             route.get("/exhibitor-form-assets-byConfig/:eventId/:formConfigId", protectedRoute, getExhibitorFormAssetByConfigController);
+
+            // Create campaign (with Excel file upload)
+            route.post("/user-campaigns", protectedRoute, uploadImagesFile, validateRequest(createUserCampaignSchema), createUserCampaignController);
+            route.get("/user-campaigns", protectedRoute, getAllUserCampaignsController);
+            route.get("/user-campaigns/:id", protectedRoute, getUserCampaignByIdController);
+            route.put("/user-campaigns/:id", protectedRoute, uploadImagesFile, validateRequest(updateUserCampaignSchema), updateUserCampaignController);
+            route.delete("/user-campaigns/:id", protectedRoute, deleteUserCampaignByIdController);
+            route.post("/user-campaigns/:id/send-now", protectedRoute, sendCampaignNowController);
             
             route.post('/send-otp',verifyScannerToken,validateRequest(sendOtpValidation),OtpGenerate);
             route.post('/verify-otp',validateRequest(verifyOtpValidation),OtpVerify);

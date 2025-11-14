@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { successResponse, ErrorResponse } from "../../helper/apiResponse";
 import {
   storeCompany,
@@ -144,10 +144,10 @@ export const getCompanyImages = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
-    if (!id) {
-      return ErrorResponse(res, "Company ID is required.");
+    if (!id || id === "undefined" || !mongoose.Types.ObjectId.isValid(id)) {
+      return ErrorResponse(res, "Valid Company ID is required.");
     }
-
+    
     getCompanyImagesModel(id, (error: any, result: any) => {
       if (error) {
         return ErrorResponse(res, error.message);

@@ -44,7 +44,8 @@ const defaultFieldSchema = new mongoose.Schema(
     optionDepending : {type : String},
     filevalidation : {type:[fileValidation],default :[]},
     fieldConfigration : {type:[fieldConfigration],default :[]},
-    mapField : {type : String}
+    mapField : {type : String},
+    isAdmin : {type : Boolean, default : false}
   },
   { timestamps: true, autoIndex: true }
 );

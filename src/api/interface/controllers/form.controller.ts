@@ -29,6 +29,7 @@ export const getFormListController = async (req: AuthenticatedRequest, res: Resp
         const search = req.query.search as string;
         const userType = req.query.userType as string;
         const eventId = req.query.eventId as string;
+        const isAdminForm = req.query.isAdminForm as any;
 
         getAllForms((error: any, result: any) => {
             if (error) {
@@ -38,7 +39,7 @@ export const getFormListController = async (req: AuthenticatedRequest, res: Resp
 
             loggerMsg("info", "Forms retrieved successfully");
             return successResponse(res, "Forms retrieved successfully", result);
-        }, page, limit, search, userType, eventId);
+        }, page, limit, search, userType, eventId, isAdminForm);
 
     } catch (error: any) {
         loggerMsg("error", `Error in getFormListController: ${error.message}`);
@@ -76,12 +77,17 @@ export const createFormController = async (req: AuthenticatedRequest, res: Respo
     try {
         const { formName, userType, pages, companyId, eventId } = req.body;
 
+        const isAdminForm =
+            req.body.isAdminForm === true || req.body.isAdminForm === "true";
+
         const formData = {
             formName,
             userType,
             pages: pages || [], // 👈 replaces formFields
-            companyId: companyId || req.user?.company_id || null,
-            eventId: eventId || null
+            // companyId: companyId || req.user?.company_id || null,
+            companyId: companyId || null,
+            eventId: eventId || null,
+            isAdminForm
         };
 
         createForm(formData, (error: any, result: any) => {

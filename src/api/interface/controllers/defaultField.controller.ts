@@ -5,6 +5,7 @@ import {
   getAllDefaultFields,
   getDefaultFieldById,
   getDefaultFieldByUserType,
+  getDefaultFieldForAdmin,
   updateDefaultFieldById,
 } from "../../domain/models/defaultField.model";
 import { ErrorResponse, successResponse } from "../../helper/apiResponse";
@@ -28,9 +29,10 @@ interface AuthenticatedRequest extends Request {
     optionPath: string;
     optionValue: string;
     optionName: string;
-    optionRequestType :String;
-    optionDepending : String;
-    filevalidation:{fileType :[],fileSize:String}
+    optionRequestType: String;
+    optionDepending: String;
+    filevalidation: { fileType: []; fileSize: String };
+    isAdmin: boolean; 
   };
 }
 
@@ -67,6 +69,14 @@ export const getAllDefaultFieldsController: RequestHandler = async (
     const limit = parseInt(req.query.limit as string) || 10;
     const search = req.query.search as string;
     const userType = req.query.userType as string;
+    const isAdminParam = req.query.isAdmin as string;
+
+    // Convert string to boolean properly
+    let isAdminBoolean: boolean | undefined;
+    if (isAdminParam !== undefined) {
+      isAdminBoolean = isAdminParam === 'true';
+    }
+
     getAllDefaultFields(
       (error: any, result: any) => {
         if (error) {
@@ -86,7 +96,8 @@ export const getAllDefaultFieldsController: RequestHandler = async (
       },
       page,
       limit,
-      search
+      search,
+      isAdminBoolean
     );
   } catch (error: any) {
     loggerMsg(
@@ -180,10 +191,10 @@ export const getDefaultFieldByUserTypeController: RequestHandler = async (
         return ErrorResponse(res, error.message);
       }
 
-      loggerMsg("info", "Fetched default field by ID successfully");
+      loggerMsg("info", "Fetched default field by user type successfully");
       return successResponse(
         res,
-        "Fetched default field by ID successfully",
+        "Fetched default field by user type successfully",
         result
       );
     });
@@ -191,6 +202,38 @@ export const getDefaultFieldByUserTypeController: RequestHandler = async (
     loggerMsg(
       "error",
       `Error in getDefaultFieldByIdController: ${error.message}`
+    );
+    return ErrorResponse(res, error.message);
+  }
+};
+
+//  Get admin default fields controller
+export const getDefaultFieldAdminController: RequestHandler = async (
+  req: any,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    getDefaultFieldForAdmin((error: any, result: any) => {
+      if (error) {
+        loggerMsg(
+          "error",
+          `Error in getDefaultFieldAdminController: ${error.message}`
+        );
+        return ErrorResponse(res, error.message);
+      }
+
+      loggerMsg("info", "Fetched admin default fields successfully");
+      return successResponse(
+        res,
+        "Fetched admin default fields successfully",
+        result
+      );
+    });
+  } catch (error: any) {
+    loggerMsg(
+      "error",
+      `Error in getDefaultFieldAdminController: ${error.message}`
     );
     return ErrorResponse(res, error.message);
   }

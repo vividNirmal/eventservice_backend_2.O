@@ -62,6 +62,7 @@ export const createDefaultFieldSchema = Joi.object({
   filevalidation : Joi.optional(),
   fieldConfigration : Joi.optional(),
   mapField: Joi.optional(),
+  isAdmin: Joi.optional()
 });
 
 export const deleteDefaultFieldSchema = Joi.object({

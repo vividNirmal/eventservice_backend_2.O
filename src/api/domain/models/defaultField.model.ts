@@ -21,19 +21,26 @@ interface DefaultField {
   specialCharactor: string;
   userFieldMapping :[],
   fieldPermission: String;
+  isAdmin: boolean;
 }
+
 export const createDefaultFieldModule = async (
   formData: any,
   callback: (error: Error | null, result?: any) => void
 ) => {
   try {
-   if (
+    if (
       formData.fieldminLimit !== undefined ||
       formData.fieldmaxLimit !== undefined ||
       formData.specialCharactor !== undefined ||
       formData.fieldType !== undefined
     ) {
       formData.validators = buildValidator(formData);
+    }
+
+    // Handle isAdmin field - convert string to boolean if needed
+    if (formData.isAdmin !== undefined) {
+      formData.isAdmin = formData.isAdmin === 'true' || formData.isAdmin === true;
     }
 
     // Save document
@@ -51,25 +58,52 @@ export const getAllDefaultFields = async (
   callback: (error: Error | null, result?: any) => void,
   page: number = 1,
   limit: number = 10,
-  search?: string
+  search?: string,
+  isAdmin?: boolean
 ) => {
   try {
     const skip = (page - 1) * limit;
 
     // Build search query
-    const searchQuery: any = {};
+    const searchQuery: any[] = [];
+
+    // Handle search condition
     if (search) {
-      searchQuery.$or = [
-        { formName: { $regex: search, $options: "i" } },
-        { userType: { $regex: search, $options: "i" } },
-      ];
+      searchQuery.push({
+        $or: [
+          { fieldName: { $regex: search, $options: "i" } },
+          { fieldType: { $regex: search, $options: "i" } },
+          { fieldTitle: { $regex: search, $options: "i" } },
+        ]
+      });
     }
+
+    // FIXED: Handle isAdmin filter properly
+    if (isAdmin !== undefined) {
+      if (isAdmin) {
+        // Case 1: Only admin fields (isAdmin = true)
+        searchQuery.push({ isAdmin: true });
+      } else {
+        // Case 2: Only user fields (isAdmin = false OR isAdmin doesn't exist)
+        searchQuery.push({
+          $or: [
+            { isAdmin: false },
+            { isAdmin: { $exists: false } },
+            { isAdmin: null }
+          ]
+        });
+      }
+    }
+
+    // Build final query
+    const finalQuery = searchQuery.length > 0 ? { $and: searchQuery } : {};
+
     const fields = await defaultFieldSchema
-      .find({ ...searchQuery })
+      .find(finalQuery)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
-    const totalData = await defaultFieldSchema.countDocuments(searchQuery);
+    const totalData = await defaultFieldSchema.countDocuments(finalQuery);
     const totalPages = Math.ceil(totalData / limit);
     callback(null, {
       fields,
@@ -98,6 +132,7 @@ export const getDefaultFieldById = async (
     callback(error, null);
   }
 };
+
 export const updateDefaultFieldById = async (
   id: string,
   updateData: Partial<DefaultField>,
@@ -110,8 +145,13 @@ export const updateDefaultFieldById = async (
       updateData.fieldmaxLimit !== undefined ||
       updateData.specialCharactor !== undefined
     ) {
-       updateData.validators = buildValidator(updateData);
+      updateData.validators = buildValidator(updateData);
     }
+
+    // // Handle isAdmin field - convert string to boolean if needed
+    // if (updateData.isAdmin !== undefined) {
+    //   updateData.isAdmin = updateData.isAdmin === 'true' || updateData.isAdmin === true;
+    // }
 
     const updatedField = await defaultFieldSchema.findByIdAndUpdate(
       id,
@@ -135,13 +175,35 @@ export const getDefaultFieldByUserType = async (
   callback: (error: Error | null, result?: any) => void
 ) => {
   try {
-    const field = await defaultFieldSchema.find({userType : userType});
+    // Only return non-admin fields for user types
+    const field = await defaultFieldSchema.find({
+      userType: userType,
+      isAdmin: { $ne: true } // Exclude admin fields
+    });
+    
     if (!field) {
       return callback(new Error("Field not found"), null);
     }
     callback(null, { field });
   } catch (error: any) {
     loggerMsg("error", `Error fetching default field by userType: ${error}`);
+    callback(error, null);
+  }
+};
+
+// Get admin default fields
+export const getDefaultFieldForAdmin = async (
+  callback: (error: Error | null, result?: any) => void
+) => {
+  try {
+    const field = await defaultFieldSchema.find({ isAdmin: true });
+    
+    if (!field) {
+      return callback(new Error("Admin fields not found"), null);
+    }
+    callback(null, { field });
+  } catch (error: any) {
+    loggerMsg("error", `Error fetching admin default fields: ${error}`);
     callback(error, null);
   }
 };

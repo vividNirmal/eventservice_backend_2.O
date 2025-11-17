@@ -5,11 +5,12 @@ import DefaultFieldSchema from "../schema/defaultField.schema";
 
 interface FormData {
   formName: string;
-  userType: string;
+  userType?: string;
   pages:any[];
   formFields?: any[];
   companyId?: string;
   eventId?: string;
+  isAdminForm?: boolean;
 }
 
 interface UpdateFormData extends FormData {
@@ -26,7 +27,8 @@ export const getAllForms = async (
   limit: number = 10,
   search?: string,
   userType?: string,
-  eventId?: string
+  eventId?: string,
+  isAdminForm?: boolean
 ) => {
   try {
     const skip = (page - 1) * limit;    
@@ -37,9 +39,14 @@ export const getAllForms = async (
         { formName: { $regex: search, $options: "i" } },
       ];
     }    
+
+    // Handle admin form filtering
+    if (isAdminForm !== undefined) {
+      searchQuery.isAdminForm = isAdminForm;
+    }
     
     // If userType is provided, first find the UserType ObjectId
-    if (userType) {
+    if (userType && !isAdminForm) {
       // Check if it's already an ObjectId or a name
       if (mongoose.Types.ObjectId.isValid(userType) && userType.length === 24) {
         // It's already an ObjectId
@@ -68,7 +75,7 @@ export const getAllForms = async (
       }
     }
     
-    if (eventId) {
+    if (eventId && !isAdminForm) {
       searchQuery.eventId = new mongoose.Types.ObjectId(eventId);
     }
 
@@ -144,6 +151,8 @@ export const createForm = async (
   callback: (error: any, result: any) => void
 ) => {
   try {
+    const isAdminForm = formData.isAdminForm || false;
+    
     // Fetch default fields for the specified userType
     const defaultFields = await DefaultFieldSchema.find({
       userFieldMapping: formData.userType,
@@ -174,11 +183,12 @@ export const createForm = async (
 
     const newForm = new FormSchema({
       formName: formData.formName,
-      userType: formData.userType,
+      userType: isAdminForm ? null : formData.userType, // null for admin forms
       pages: pages,
       formFields: formData.formFields || [],
-      companyId: formData?.companyId || null,
-      eventId: formData?.eventId || null,
+      companyId: isAdminForm ? null : (formData?.companyId || null),
+      eventId: isAdminForm ? null : (formData?.eventId || null),
+      isAdminForm: isAdminForm, // Add the flag
     });
     const savedForm = await newForm.save();
     return callback(null, { form: savedForm });

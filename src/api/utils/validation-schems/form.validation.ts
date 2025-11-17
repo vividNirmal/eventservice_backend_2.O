@@ -11,9 +11,13 @@ export const createFormSchema = Joi.object({
         'string.max': 'Form name must not exceed 100 characters',
         'any.required': 'Form name is required'
     }),
-    userType: Joi.string().required().messages({
-        'any.required': 'User type is required'
-    }),
+    isAdminForm: Joi.boolean().default(false),
+    userType: Joi.string()
+        .when("isAdminForm", {
+            is: true,
+            then: Joi.optional().allow(null),
+            otherwise: Joi.string().required()
+        }),
     formFields: Joi.array().items(formFieldSchema).optional().default([]),
     settings: Joi.any().optional(), // Allow settings object as flexible JSON
     companyId: Joi.string().optional().allow(null), // companyId can be null or empty for certain user types
@@ -29,9 +33,13 @@ export const updateFormSchema = Joi.object({
         'string.min': 'Form name must be at least 3 characters long',
         'string.max': 'Form name must not exceed 100 characters'
     }),
-    userType: Joi.string().required().messages({
-        'any.required': 'User type is required'
-    }),
+    isAdminForm: Joi.boolean().optional(),
+    userType: Joi.string()
+        .when("isAdminForm", {
+            is: true,
+            then: Joi.optional().allow(null),
+            otherwise: Joi.string().required()
+        }),
     formFields: Joi.array().items(formFieldSchema).optional(),
     settings: Joi.any().optional() // Allow settings object as flexible JSON
 });
@@ -43,11 +51,16 @@ export const updateFormBodySchema = Joi.object({
         'string.max': 'Form name must not exceed 100 characters',
         'any.required': 'Form name is required'
     }),
-    userType: Joi.string().required().messages({
-        'any.required': 'User type is required'
-    }),
+    isAdminForm: Joi.boolean().optional(),
+    userType: Joi.string()
+        .when("isAdminForm", {
+            is: true,
+            then: Joi.optional().allow(null),
+            otherwise: Joi.string().required()
+        }),
+
     formFields: Joi.array().items(formFieldSchema).optional(),
-    pages :Joi.any().optional(),
+    pages: Joi.any().optional(),
     settings: Joi.any().optional(), // Allow settings object as flexible JSON
     companyId: Joi.string().optional().allow(null) // companyId can be null or empty for certain user types
 });

@@ -33,9 +33,11 @@ export interface IForm extends Document {
   settings?: any;
   companyId?: mongoose.Types.ObjectId;
   eventId?: mongoose.Types.ObjectId;
+  isAdminForm: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
+
 const pageSchema = new Schema<IPage>(
   {
     name: { type: String, required: true },
@@ -48,11 +50,30 @@ const pageSchema = new Schema<IPage>(
 const formSchema = new Schema<IForm>(
   {
     formName: { type: String, required: true },
-    userType: { type: mongoose.Schema.Types.ObjectId, ref: "UserType", required: true },
+    userType: { 
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: "UserType", 
+      required: function() {
+        return !(this as IForm).isAdminForm;
+      } 
+    },
     pages: [pageSchema],
     settings: { type: Schema.Types.Mixed },
-    companyId: { type: Schema.Types.ObjectId, ref: "Company" },
-    eventId: { type: Schema.Types.ObjectId, ref: "EventHost" },
+    companyId: { 
+      type: Schema.Types.ObjectId, 
+      ref: "Company",
+      required: function() {
+        return !(this as IForm).isAdminForm;
+      }
+    },
+    eventId: { 
+      type: Schema.Types.ObjectId, 
+      ref: "EventHost",
+      required: function() {
+        return !(this as IForm).isAdminForm;
+      }
+    },
+    isAdminForm: { type: Boolean, default: false } // New field
   },
   { timestamps: true }
 );

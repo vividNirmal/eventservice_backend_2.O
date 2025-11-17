@@ -127,6 +127,7 @@ export const getAllForms = async (
     return callback(error, null);
   }
 };
+
 export const getFormById = async (
   formId: string,
   callback: (error: any, result: any) => void

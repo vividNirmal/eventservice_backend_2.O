@@ -10,7 +10,7 @@ const basicInfoSchema = Joi.object({
   measurement_unit: Joi.string().trim().max(50).optional().allow(''),
   allow_multiple_submission: Joi.boolean().default(false),
   is_mendatory: Joi.boolean().default(false),
-  dependant_form: Joi.string().trim().max(100).optional().allow(''),
+  dependant_form: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional().allow('', null),
   dependant_features: Joi.string().trim().max(200).optional().allow(''),
   limit_quantity_for_all: Joi.boolean().default(false),
   payment_collection_required: Joi.boolean().default(false),

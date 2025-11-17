@@ -15,7 +15,7 @@ export interface IBasicInfo {
     measurement_unit: string;
     allow_multiple_submission: boolean;
     is_mendatory: boolean;
-    dependant_form: string;
+    dependant_form: mongoose.Types.ObjectId;
     dependant_features?: string;
     limit_quantity_for_all: boolean;
     payment_collection_required: boolean;
@@ -100,7 +100,10 @@ const basicInfoSchema = new Schema<IBasicInfo>({
     measurement_unit: { type: String },
     allow_multiple_submission: { type: Boolean, default: false },
     is_mendatory: { type: Boolean, default: false },
-    dependant_form: { type: String },
+    dependant_form: { 
+        type: Schema.Types.ObjectId, 
+        ref: 'Form'
+    },
     dependant_features: { type: String },
     limit_quantity_for_all: { type: Boolean, default: false },
     payment_collection_required: { type: Boolean, default: false },

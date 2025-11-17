@@ -68,6 +68,7 @@ export interface ITicket extends Document {
     registrationFormId?: mongoose.Types.ObjectId;
     ticketCategory: string;
     serialNoPrefix: string;
+    theme?: string
     startCount: number;
     description?: string;
 
@@ -212,6 +213,11 @@ const ticketSchema: Schema = new Schema<ITicket>({
         type: String, 
         required: true,
         enum: ['Default', 'VIP', 'VVIP', 'Premium', 'Standard']
+    },
+    theme: {
+        type: String,
+        enum: ['theme1', 'theme2'],
+        default: 'theme1'
     },
     serialNoPrefix: { type: String, required: true, trim: true },
     startCount: { type: Number, required: true, default: 0, min: 0 },

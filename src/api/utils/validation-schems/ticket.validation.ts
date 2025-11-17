@@ -105,8 +105,9 @@ export const createTicketSchema = Joi.object({
     registrationFormId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
     ticketCategory: Joi.string().valid('Default', 'VIP', 'VVIP', 'Premium', 'Standard').required(),
     serialNoPrefix: Joi.string().trim().min(1).max(20).required(),
+    theme: Joi.string().valid('theme1', 'theme2').optional(),
     startCount: Joi.alternatives().try(Joi.number(), Joi.string()).optional().default(0),
-    description: Joi.string().trim().max(500).optional(),
+    description: Joi.string().trim().max(500).optional().allow(""),
 
     // Ticket Amount - Step 2
     ticketAmount: Joi.alternatives().try(
@@ -150,8 +151,9 @@ export const updateTicketBodySchema = Joi.object({
     registrationFormId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).optional(),
     ticketCategory: Joi.string().valid('Default', 'VIP', 'VVIP', 'Premium', 'Standard').optional(),
     serialNoPrefix: Joi.string().trim().min(1).max(20).optional(),
+    theme: Joi.string().trim().optional(),
     startCount: Joi.alternatives().try(Joi.number(), Joi.string()).optional(),
-    description: Joi.string().trim().max(500).optional(),
+    description: Joi.string().trim().max(500).optional().allow(""),
 
     // Ticket Amount
     ticketAmount: Joi.alternatives().try(

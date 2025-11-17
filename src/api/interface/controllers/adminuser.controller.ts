@@ -14,14 +14,14 @@ import * as bcrypt from "bcryptjs";
 import { loggerMsg } from "../../lib/logger";
 
 export const getAdminUser = async (req: Request, res: Response) => {
-  try {
+  try {    
     const { page = 1, pageSize = 10, searchQuery = "" } = req.query;
     adminUserList(
       req.user,
       req.body,
       parseInt(page as string),
       parseInt(pageSize as string),
-      searchQuery as string,
+      searchQuery as string,      
       (error: any, result: any) => {
         if (error) {
           return res.status(500).json({

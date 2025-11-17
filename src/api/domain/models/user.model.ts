@@ -40,6 +40,7 @@ interface userLoginData {
 interface loginUserData {
   user_id: string;
   company_id: string;
+  role : string;
 }
 
 interface userStatus {
@@ -155,8 +156,9 @@ export const userLogin = async (
 
       return callback(null, result);
     }
+
     if (user) {
-      if (user.role == "superadmin") {
+      if (user.role == "superadmin" && userData.subdomain == null) {
         const isPasswordCorrect = await bcrypt.compare(
           userData.password,
           user.password
@@ -172,6 +174,7 @@ export const userLogin = async (
             email: user.email,
             name: user.name,
             company_id: "0",
+            role: user.role,
           },
           process.env.JWT_SECRET_KEY || "defaultsecretkey",
           { expiresIn: "8h" }
@@ -197,6 +200,10 @@ export const userLogin = async (
 
         if (!company_details) {
           const error = new Error("Company not found.");
+          return callback(error, null);
+        }
+        if (user.role == "superadmin") {
+          const error = new Error("you don't have access ");
           return callback(error, null);
         }
         const baseUrl = env.BASE_URL;
@@ -392,9 +399,9 @@ export const adminUserList = async (
     const currentPage = page || 1;
     const size = pageSize || 10;
 
-    const skip = (currentPage - 1) * size;
+    const skip = (currentPage - 1) * size;    
 
-    if (loginuserData.company_id != "0") {
+    if (loginuserData.company_id != "0" && loginuserData.role !== "superadmin") {
       const searchFilter = searchQuery
         ? {
             $or: [
@@ -476,7 +483,7 @@ export const updateUser = async (
         password: existingUser.password,
         year: new Date().getFullYear(),
       });
-      const emailField = existingUser.email
+      const emailField = existingUser.email;
 
       try {
         await EmailService.sendEmail(emailField, "Your Event ID!", htmlContent);
@@ -493,15 +500,16 @@ export const updateUser = async (
   }
 };
 
-
-export const passwordChange =async(userData: UpdateUserData,
-  callback: (error: any, result: any) => void)=> {
-      try {
+export const passwordChange = async (
+  userData: UpdateUserData,
+  callback: (error: any, result: any) => void
+) => {
+  try {
     const existingUser = await userSchema.findById(userData.user_id);
     if (!existingUser) {
       const error = new Error("User not found.");
       return callback(error, null);
-    }     
+    }
     if (userData.password && userData.password !== "") {
       const hashedPassword = await bcrypt.hash(userData.password, 10);
       existingUser.password = hashedPassword;
@@ -511,7 +519,7 @@ export const passwordChange =async(userData: UpdateUserData,
         password: userData.password,
         year: new Date().getFullYear(),
       });
-      const emailField = existingUser.email
+      const emailField = existingUser.email;
 
       try {
         await EmailService.sendEmail(emailField, "Your Event ID!", htmlContent);
@@ -526,7 +534,7 @@ export const passwordChange =async(userData: UpdateUserData,
   } catch (error) {
     return callback(error, null);
   }
-  }
+};
 
 const PasswordChangeEmail = (params: {
   name: string;
@@ -665,4 +673,3 @@ const PasswordChangeEmail = (params: {
 };
 
 export default PasswordChangeEmail;
-

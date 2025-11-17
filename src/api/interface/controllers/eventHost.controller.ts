@@ -368,8 +368,9 @@ export const copyAdminEventHost = async (req: Request, res: Response) => {
       organizer_email: eventHostObject.organizer_email,
       organizer_phone: eventHostObject.organizer_phone,
       with_face_scanner: eventHostObject.with_face_scanner,
-      event_category : eventHostObject.event_category
-      // Don't copy selected_form_id and ticketId to avoid association conflicts
+      event_category : eventHostObject.event_category,
+      event_entry_exit_device : eventHostObject.event_entry_exit_device||[],
+      instant_register: Array.isArray(eventHostObject.instant_register) ? eventHostObject.instant_register : []
     };
     
     // Use the storeEventHost model function to save the new event host

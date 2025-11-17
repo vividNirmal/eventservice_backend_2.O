@@ -7,6 +7,19 @@ export interface IDateRange {
   endTime: string;   // HH:mm format
 }
 
+// Enum for event entry/exit device types
+export enum EventEntryExitDevice {
+  FACE_SCAN = "Face Scan",
+  QR = "QR",
+  FACE_SCANNER_QR = "Face Scanner + QR",  
+}
+
+// Enum for instant register options
+export enum InstantRegisterOption {
+  NAME_NUMBER_ONLY = "Name and Number Entry Only",
+  NAME_NUMBER_FACE = "Name, Number and Face"
+}
+
 export interface IEventHost extends Document {
   eventName: string;
   eventShortName: string;
@@ -17,7 +30,7 @@ export interface IEventHost extends Document {
   endTime: string;   // HH:mm format (kept for backward compatibility)
   dateRanges: IDateRange[]; // New field for multiple date ranges
   eventCategory: string[];
-  event_category : mongoose.Types.ObjectId,
+  event_category: mongoose.Types.ObjectId;
   location: string;  
   company_id?: string;
   company_name?: string;
@@ -41,6 +54,8 @@ export interface IEventHost extends Document {
   selected_form_id?: string;
   ticketId?: string;
   participant_capacity?: number;
+  event_entry_exit_device?: EventEntryExitDevice[]; // Array of entry/exit devices
+  instant_register?: InstantRegisterOption[]; // New field for instant register option
   createdAt: Date;
   updatedAt: Date;
 }
@@ -60,7 +75,7 @@ const eventHostSchema: Schema = new Schema<IEventHost>(
       endDate: { type: String, required: true },
       endTime: { type: String, required: true }
     }],
-    eventCategory : { type: [String] },
+    eventCategory: { type: [String] },
     location: { type: String },
     // Additional event details fields
     company_id: { type: String, required: true, index: true },
@@ -85,7 +100,15 @@ const eventHostSchema: Schema = new Schema<IEventHost>(
     selected_form_id: { type: String },
     ticketId: { type: String },
     participant_capacity: { type: Number, default: 1000 },
-    event_category : {type : Schema.Types.ObjectId , ref:'EventCategory'}
+    event_category: { type: Schema.Types.ObjectId, ref: 'EventCategory' },
+    event_entry_exit_device: [{
+      type: String,
+      enum: Object.values(EventEntryExitDevice)
+    }],
+    instant_register:[{
+      type: String,
+      enum: Object.values(InstantRegisterOption)
+    }]
   },
   {
     timestamps: true, // Automatically handles createdAt and updatedAt

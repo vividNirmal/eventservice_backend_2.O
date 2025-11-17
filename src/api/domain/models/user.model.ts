@@ -8,6 +8,7 @@ import scannerTokenSchema from "../schema/scannerToken.schema";
 import { env } from "process";
 import eventUserSchema from "../schema/eventUser.schema";
 import { loggerMsg } from "../../lib/logger";
+import { EmailService } from "../../services/sendEmail.service";
 
 interface userData {
   email: string;
@@ -113,9 +114,9 @@ export const userLogin = async (
     }
     if (
       registeruser?.compayId &&
-      registeruser?.compayId.exhibitor_dashboard_banner 
+      registeruser?.compayId.exhibitor_dashboard_banner
     ) {
-      registeruser.compayId.exhibitor_dashboard_banner   = `${baseUrl}/${registeruser.compayId.exhibitor_dashboard_banner }`;
+      registeruser.compayId.exhibitor_dashboard_banner = `${baseUrl}/${registeruser.compayId.exhibitor_dashboard_banner}`;
     }
     if (registeruser) {
       const subdomain = userData.subdomain;
@@ -460,16 +461,29 @@ export const updateUser = async (
         return callback(error, null);
       }
     }
-
     existingUser.name = userData.name || existingUser.name;
     existingUser.email = userData.email || existingUser.email;
-    existingUser.profilePicture =
+    existingUser.password = existingUser.profilePicture =
       userData.profilePicture || existingUser.profilePicture;
     existingUser.role = userData.role || existingUser.role;
 
     if (userData.password && userData.password !== "") {
       const hashedPassword = await bcrypt.hash(userData.password, 10);
       existingUser.password = hashedPassword;
+      const htmlContent = PasswordChangeEmail({
+        name: existingUser.name,
+        email: existingUser.email,
+        password: existingUser.password,
+        year: new Date().getFullYear(),
+      });
+      const emailField = existingUser.email
+
+      try {
+        await EmailService.sendEmail(emailField, "Your Event ID!", htmlContent);
+      } catch (emailError) {
+        console.log("❌ Password Email sending failed:", emailError);
+        // Don't throw error - email failure shouldn't affect participant creation
+      }
     }
 
     const updatedUser = await existingUser.save();
@@ -478,3 +492,177 @@ export const updateUser = async (
     return callback(error, null);
   }
 };
+
+
+export const passwordChange =async(userData: UpdateUserData,
+  callback: (error: any, result: any) => void)=> {
+      try {
+    const existingUser = await userSchema.findById(userData.user_id);
+    if (!existingUser) {
+      const error = new Error("User not found.");
+      return callback(error, null);
+    }     
+    if (userData.password && userData.password !== "") {
+      const hashedPassword = await bcrypt.hash(userData.password, 10);
+      existingUser.password = hashedPassword;
+      const htmlContent = PasswordChangeEmail({
+        name: existingUser.name,
+        email: existingUser.email,
+        password: userData.password,
+        year: new Date().getFullYear(),
+      });
+      const emailField = existingUser.email
+
+      try {
+        await EmailService.sendEmail(emailField, "Your Event ID!", htmlContent);
+      } catch (emailError) {
+        console.log("❌ Password Email sending failed:", emailError);
+        // Don't throw error - email failure shouldn't affect participant creation
+      }
+    }
+
+    const updatedUser = await existingUser.save();
+    return callback(null, updatedUser);
+  } catch (error) {
+    return callback(error, null);
+  }
+  }
+
+const PasswordChangeEmail = (params: {
+  name: string;
+  email: string;
+  password: string;
+  year: number;
+}) => {
+  const { name, email, password, year } = params;
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width" />
+  <title>Password Changed</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #f8f9fb;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Outer wrapper -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" >
+    <tr>
+      <td align="center">
+        
+        <!-- Main container -->
+        <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;">
+          
+          <!-- Header section with solid color -->
+          <tr>
+            <td style="background:#2563eb; padding:48px 40px; text-align:center; border-radius:12px 12px 0 0;">
+              <div style="font-size:28px; font-weight:700; color:#ffffff; margin-bottom:8px; letter-spacing:-0.5px;">
+                ✓ Password Updated
+              </div>
+              <div style="font-size:14px; color:#dbeafe; font-weight:500;">
+                Your account is secure
+              </div>
+            </td>
+          </tr>
+
+          <!-- Main content -->
+          <tr>
+            <td style="background:#ffffff; padding:40px; border-radius:0 0 12px 12px; box-shadow:0 10px 25px rgba(0,0,0,0.08);">
+              
+              <!-- Greeting -->
+              <div style="font-size:16px; color:#1f2937; line-height:1.6; margin-bottom:28px;">
+                Hi <strong style="font-weight:700; color:#1e3a8a;">${name}</strong>,
+              </div>
+
+              <div style="font-size:15px; color:#4b5563; line-height:1.8; margin-bottom:28px;">
+                Your password has been successfully changed. Your account is now secured with your new password.
+              </div>
+
+              <!-- Account details card -->
+              <div style="background:#f8fafc; border-left:4px solid #2563eb; padding:20px; margin-bottom:28px; border-radius:6px;">
+                <div style="margin-bottom:16px;">
+                  <div style="font-size:12px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">
+                    Account Email
+                  </div>
+                  <div style="font-size:15px; color:#1f2937; word-break:break-all;">
+                    ${email}
+                  </div>
+                </div>
+                <div>
+                  <div style="font-size:12px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">
+                    New Password
+                  </div>
+                  <div style="font-size:15px; color:#1f2937; font-family:monospace; background:#ffffff; padding:8px 12px; border-radius:4px; border:1px solid #e2e8f0;">
+                    ${password}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Security tip -->
+              <div style="background:#f0fdf4; border-left:4px solid #16a34a; padding:16px; border-radius:6px; margin-bottom:28px;">
+                <div style="font-size:13px; color:#15803d; font-weight:600; margin-bottom:4px;">
+                  💡 Security Tip
+                </div>
+                <div style="font-size:13px; color:#166534; line-height:1.6;">
+                  Keep your password confidential and never share it with anyone. Example App will never ask for your password via email.
+                </div>
+              </div>
+
+              <!-- Call to action -->
+              <div style="text-align:center; margin-bottom:28px;">
+                <a href="#" style="display:inline-block; background:#2563eb; color:#ffffff; text-decoration:none; padding:12px 32px; border-radius:6px; font-size:15px; font-weight:600; transition:background 0.2s ease;">
+                  Go to Account
+                </a>
+              </div>
+
+              <!-- Divider -->
+              <div style="border-top:1px solid #e5e7eb; margin-bottom:28px;"></div>
+
+              <!-- Additional info -->
+              <div style="font-size:13px; color:#6b7280; line-height:1.8;">
+                <p style="margin:0 0 8px 0;">
+                  If you didn't make this change or need help securing your account, please contact our support team immediately.
+                </p>
+                <p style="margin:0;">
+                  <a href="#" style="color:#2563eb; text-decoration:underline;">Contact Support</a>
+                </p>
+              </div>
+
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f9fafb; padding:24px 40px; text-align:center; border-radius:0 0 8px 8px; border-top:1px solid #e5e7eb;">
+              <div style="font-size:12px; color:#9ca3af; line-height:1.6;">
+                <p style="margin:0 0 8px 0;">
+                  © ${year} Example App. All rights reserved.
+                </p>
+                <p style="margin:0; color:#d1d5db;">
+                  This is an automated security notification. Please do not reply to this email.
+                </p>
+              </div>
+            </td>
+          </tr>
+
+        </table>
+        <!-- End container -->
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
+`;
+};
+
+export default PasswordChangeEmail;
+

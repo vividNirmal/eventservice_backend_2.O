@@ -133,3 +133,12 @@ export const setPasswordSchema = Joi.object({
     })
 });
 
+export const changePasswordValidation  = Joi.object({
+    user_id: Joi.string().required().messages({
+        "any.required": "user_id is required."
+    }),
+    password: Joi.string().required().messages({
+        "any.required": "Password  is required."
+    }),
+});
+

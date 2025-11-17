@@ -10,8 +10,8 @@ import { storeCompanyController,getCompany,getCompanyDetails,updateCompanyContro
 
 import { getEventDetailsSlug,logoutAllScanners,scannerPageLogin } from "../../interface/controllers/ScannerPage.controller";
 import { storeEventParticipantUser ,getUserDetailsUsingEmail,generateEventPdf,generateScannerEventPdf,getParticipantDetails,getParticipantDetailsScanner,scanFaceId,scanParticipantFace, OtpGenerate, OtpVerify, updateParticipantUser, toggleParticipantBlockStatus, scanParticipantQR } from "../../interface/controllers/participantUser.controller";
-import { getAdminUser,storeAdminUser,getSingleAdminUser,updateAdminUser,checkEmailUser,deleteAdminUser,forgetPassword,setPassword,updateUserStatus,changePassword} from "../../interface/controllers/adminuser.controller";
-import { registerUserSchema,loginUserSchema,updateUserSchema,forgetPasswordSchema,setPasswordSchema,updateStatusUserSchema,deleteUsersSchema,changePasswordSchema,scannerPageLoginUserSchema} from "../../utils/validation-schems/user.validation";
+import { getAdminUser,storeAdminUser,getSingleAdminUser,updateAdminUser,checkEmailUser,deleteAdminUser,forgetPassword,setPassword,updateUserStatus,changePassword, userPassword} from "../../interface/controllers/adminuser.controller";
+import { registerUserSchema,loginUserSchema,updateUserSchema,forgetPasswordSchema,setPasswordSchema,updateStatusUserSchema,deleteUsersSchema,changePasswordSchema,scannerPageLoginUserSchema, changePasswordValidation} from "../../utils/validation-schems/user.validation";
 import { EventParticipantUsers, DynamicEventParticipantUsers, sendOtpValidation, UpdateParticipantUsers, verifyOtpValidation } from "../../utils/validation-schems/event_participant_users.validation";
 import { adminEventSchema , adminUpdateEventSchema,deleteEventSchema,extraEventDetails,getDeviceUrlSchema,updateExtraEventDetails, verifyDeviceAndLoginSchema, verifyDeviceDirectAccessSchema, generateFormUrlSchema} from "../../utils/validation-schems/adminevent.validation";
 import { processAndSaveImages, uploadEventImagesFile, uploadImagesFile, uploadTemplateAttachments } from "../../helper/helper";
@@ -83,9 +83,6 @@ import { createUserCampaignSchema, updateUserCampaignSchema } from "../../utils/
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
-
-
-// import { getUsersProfiles, imageCaptionUpdate, imageUpload, removeImages, removeSingleImage, setProfileImage, updateUserProfile } from "../controllers/user.controller";
     const route = express.Router();
 
     export const appRoute = (router: express.Router): void => {
@@ -126,6 +123,7 @@ export const upload = multer({ storage: storage });
             route.post("/update-admin-users",protectedRoute,validateRequest(updateUserSchema),updateAdminUser);
             route.post("/delete-admin-user",protectedRoute,validateRequest(deleteUsersSchema),deleteAdminUser);            
             route.post("/update-user-status", protectedRoute,validateRequest(updateStatusUserSchema), updateUserStatus)
+            route.post("/user-password-change",protectedRoute,validateRequest(changePasswordValidation),userPassword)
 
             //event module urls
             route.post("/save-event-details",protectedRoute,validateRequest(adminEventSchema),storeAdminEvent);

@@ -6,6 +6,7 @@ import {
   storeUser,
   updateUser,
   updateStatus,
+  passwordChange,
 } from "../../domain/models/user.model";
 import userSchema from "../../domain/schema/user.schema";
 import nodemailer from "nodemailer";
@@ -84,8 +85,7 @@ export const getSingleAdminUser = async (req: Request, res: Response) => {
 };
 
 export const updateAdminUser = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
+  try {    
     updateUser(req.body, (error: any, result: any) => {
       if (error) {
          loggerMsg(
@@ -222,8 +222,7 @@ export const forgetPassword = async (req: Request, res: Response) => {
 
 export const setPassword = async (req: Request, res: Response) => {
   try {
-    const { email, otp, password } = req.body;
-    // console.log(otp,password);
+    const { email, otp, password } = req.body;    
     if (!email || !otp || !password) {
       return ErrorResponse(res, "Email, OTP, and new password are required.");
     }
@@ -299,3 +298,20 @@ export const changePassword = async (req: Request, res: Response) => {
     return ErrorResponse(res, "An error occurred while changing the password.");
   }
 };
+
+export const userPassword =async(req : Request ,res : Response ) => {
+  try {    
+    passwordChange(req.body, (error: any, result: any) => {
+      if (error) {
+         loggerMsg(
+          "error",
+          `Error in user passwodchanges: ${error.message}`
+        );
+        return ErrorResponse(res, error.message);
+      }
+      return successResponse(res, "success", result);
+    });
+  } catch (error) {
+    return ErrorResponse(res, "Password not change .");
+  }
+}

@@ -51,3 +51,10 @@ export const updateRegistrationValidation = Joi.object({
   id: Joi.string().optional(),
   // Since form fields are dynamic, we allow extra keys
 }).unknown(true);
+
+export const instantRegisterValidation = Joi.object({
+  event_id: Joi.string().required().messages({
+    "string.empty": "Event ID is required.",
+  }),
+  formData: Joi.object().optional(),
+});

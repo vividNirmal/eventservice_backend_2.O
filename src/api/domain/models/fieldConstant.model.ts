@@ -1,5 +1,5 @@
 import { loggerMsg } from "../../lib/logger";
-import fieldConstantSchema from "../schema/fieldContant.schema"
+import fieldConstantSchema from "../schema/FieldContant.schema"
 
 export const createFieldConstant = async (
   data: any,

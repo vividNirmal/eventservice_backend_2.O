@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Request, RequestHandler, Response } from "express";
 import { loggerMsg } from "../../lib/logger";
 import {
   successCreated,
@@ -21,6 +21,7 @@ import {
   storeFormRegistrationModel,
   updateFormRegistrationStatusModel,
   updateFormRegistrationModel,
+  
 } from "../../domain/models/formRegistration.model";
 import mongoose from "mongoose";
 import FormRegistration from "../../domain/schema/formRegistration.schema";
@@ -333,7 +334,12 @@ export const getRegistrationController = async (
 /**
  * Helper function to calculate field width in mm
  */
-function getFieldWidth(field: any, props: any, fieldDataMap: Record<string, string>, isPreview: boolean = false): number{
+function getFieldWidth(
+  field: any,
+  props: any,
+  fieldDataMap: Record<string, string>,
+  isPreview: boolean = false
+): number {
   if (field.type === "image") {
     return parseFloat(props.width) || 30;
   }
@@ -345,20 +351,19 @@ function getFieldWidth(field: any, props: any, fieldDataMap: Record<string, stri
   // For text fields, estimate based on font size and content length
   const fontSize = parseFloat(props.fontSize) || 12;
   const charWidth = fontSize * 0.6;
-  
+
   let textLength = 0;
   if (isPreview) {
     // In preview mode, use field name or placeholder text for width calculation
     textLength = field.name?.length || field.id?.length || 10;
   } else {
     // In actual mode, use actual data from fieldDataMap
-    const text = fieldDataMap[field.id] || '';
+    const text = fieldDataMap[field.id] || "";
     textLength = text.length;
   }
-  
-  return (textLength * charWidth) / 3.78; // Convert pixels to mm (1mm ≈ 3.78px at 96dpi)
-};
 
+  return (textLength * charWidth) / 3.78; // Convert pixels to mm (1mm ≈ 3.78px at 96dpi)
+}
 
 /**
  * Helper function to generate HTML for a single field
@@ -377,26 +382,30 @@ function generateFieldHtml(
 ): string {
   const fieldValue = fieldDataMap[field.id] || "";
   const position = fixedPosition ? "absolute" : "relative";
-  
+
   // Handle margins based on positioning mode
   let marginStyles = "";
   if (fixedPosition) {
     // For combined fields in fixed position, calculate position based on actual widths
     const baseLeft = parseFloat(props.marginLeft) || 0;
     const spacing = 2; // 2mm spacing between combined fields
-    const offsetLeft = baseLeft + previousFieldsWidth + (fieldIndex * spacing);
-    
+    const offsetLeft = baseLeft + previousFieldsWidth + fieldIndex * spacing;
+
     marginStyles = `left: ${offsetLeft}mm; top: ${props.marginTop || "0mm"};`;
   } else if (!isInCombinedGroup) {
     // Only apply margins for non-combined fields
-    marginStyles = `margin-left: ${props.marginLeft || "0mm"}; margin-top: ${props.marginTop || "0mm"};`;
+    marginStyles = `margin-left: ${props.marginLeft || "0mm"}; margin-top: ${
+      props.marginTop || "0mm"
+    };`;
   }
 
   // Handle Face Image
   if (field.type === "image") {
     const imageUrl = fieldValue || "";
     const imageHtml = imageUrl
-      ? `<img src="${imageUrl}" alt="Face Image" style="width: 100%; height: 100%; object-fit: ${props.objectFit || "cover"}; display: block;" />`
+      ? `<img src="${imageUrl}" alt="Face Image" style="width: 100%; height: 100%; object-fit: ${
+          props.objectFit || "cover"
+        }; display: block;" />`
       : `<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; color: #999; font-size: 10px; height: 100%;">
            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
@@ -406,11 +415,17 @@ function generateFieldHtml(
          </div>`;
 
     return `<div style="position: ${position}; ${marginStyles} display: flex; justify-content: ${
-      props.position === "left" ? "flex-start" : props.position === "center" ? "center" : "flex-end"
+      props.position === "left"
+        ? "flex-start"
+        : props.position === "center"
+        ? "center"
+        : "flex-end"
     }; line-height: 0;">
-      <div style="width: ${props.width || "30mm"}; height: ${props.height || "40mm"}; border-radius: ${
-        props.borderRadius || "0px"
-      }; overflow: hidden; background-color: #f0f0f0; display: flex; align-items: center; justify-content: center; border: 1px solid #ddd;">
+      <div style="width: ${props.width || "30mm"}; height: ${
+      props.height || "40mm"
+    }; border-radius: ${
+      props.borderRadius || "0px"
+    }; overflow: hidden; background-color: #f0f0f0; display: flex; align-items: center; justify-content: center; border: 1px solid #ddd;">
         ${imageHtml}
       </div>
     </div>`;
@@ -419,20 +434,26 @@ function generateFieldHtml(
   // Handle QR Code
   if (field.type === "qrcode") {
     return `<div style="position: ${position}; ${marginStyles} display: flex; justify-content: ${
-      props.position === "left" ? "flex-start" : props.position === "center" ? "center" : "flex-end"
+      props.position === "left"
+        ? "flex-start"
+        : props.position === "center"
+        ? "center"
+        : "flex-end"
     }; line-height: 0;">
-      <img src="${fieldValue}" alt="QR Code" style="width: ${props.width || "20mm"}; height: ${
-        props.height || "20mm"
-      }; display: block;" />
+      <img src="${fieldValue}" alt="QR Code" style="width: ${
+      props.width || "20mm"
+    }; height: ${props.height || "20mm"}; display: block;" />
     </div>`;
   }
 
   // Handle Text Fields
   const displayStyle = isInCombinedGroup ? "inline-block" : "block";
-  
-  return `<div style="position: ${position}; ${marginStyles} text-align: ${props.position || "left"}; font-family: ${
-    props.fontFamily || "Roboto"
-  }; font-size: ${props.fontSize || "12pt"}; color: ${categoryTextColor || props.fontColor || "#000"}; font-weight: ${
+
+  return `<div style="position: ${position}; ${marginStyles} text-align: ${
+    props.position || "left"
+  }; font-family: ${props.fontFamily || "Roboto"}; font-size: ${
+    props.fontSize || "12pt"
+  }; color: ${categoryTextColor || props.fontColor || "#000"}; font-weight: ${
     props.fontStyle === "bold" ? "bold" : "normal"
   }; text-transform: ${
     props.textFormat === "uppercase"
@@ -442,7 +463,9 @@ function generateFieldHtml(
       : props.textFormat === "capitalize"
       ? "capitalize"
       : "none"
-  }; display: ${displayStyle}; line-height: 1.2; margin: ${isInCombinedGroup ? '0' : ''}; white-space: nowrap;">${fieldValue}</div>`;
+  }; display: ${displayStyle}; line-height: 1.2; margin: ${
+    isInCombinedGroup ? "0" : ""
+  }; white-space: nowrap;">${fieldValue}</div>`;
 }
 
 /**
@@ -458,7 +481,7 @@ export const generateBadgePdf = async (
     const registration = await FormRegistration.findById(formRegistrationId)
       .populate({
         path: "ticketId",
-        populate: { path: "registrationFormId" }
+        populate: { path: "registrationFormId" },
       })
       .populate("eventId")
       .lean();
@@ -477,7 +500,7 @@ export const generateBadgePdf = async (
     // Build map_array from ticket's registration form
     const map_array: Record<string, string> = {};
     const registrationForm = ticket.registrationFormId;
-    
+
     if (registrationForm?.pages) {
       registrationForm.pages.forEach((page: any) => {
         page.elements?.forEach((element: any) => {
@@ -528,10 +551,7 @@ export const generateBadgePdf = async (
     };
 
     // Get form data
-    const formData = registration.formData || {};
-
-    console.log("formData>>>>", formData);
-    console.log("map_array>>>>", map_array);
+    const formData = registration.formData || {};    
 
     // Helper function to get field value using map_array
     const getFieldValue = (fieldKey: string): string => {
@@ -539,32 +559,34 @@ export const generateBadgePdf = async (
       if (fieldKey === "qrCode") {
         return qrCodeBase64;
       }
-      
+
       if (fieldKey === "date") {
         return formatDateTime(event.startDate);
       }
-      
+
       if (fieldKey === "badgeCategory") {
-        return registration.businessData?.category || ticket.ticketCategory || "";
+        return (
+          registration.businessData?.category || ticket.ticketCategory || ""
+        );
       }
-      
+
       if (fieldKey === "badgeNo") {
         return registration.badgeNo || "";
       }
-      
+
       if (fieldKey === "email") {
         return registration.email || formData.email || "";
       }
 
       if (fieldKey === "faceImage") {
-        return registration.faceImageUrl 
+        return registration.faceImageUrl
           ? `${baseUrl}/uploads/participants/${registration.faceImageUrl}`
           : "";
       }
 
       // For dynamic form fields: Use map_array mapping
       const mappedFieldName = map_array[fieldKey];
-      
+
       if (mappedFieldName && formData[mappedFieldName]) {
         return formData[mappedFieldName];
       }
@@ -576,14 +598,13 @@ export const generateBadgePdf = async (
 
       return "";
     };
-    
-    
+
     // ✨ Dynamically build fieldDataMap based on e-badge setting fields
     const fieldDataMap: Record<string, string> = {};
-    
+
     // Collect all unique field IDs from e-badge settings
     const allFieldIds = new Set<string>();
-    
+
     for (const fieldGroup of eBadgeSetting.fields || []) {
       if (fieldGroup.field && Array.isArray(fieldGroup.field)) {
         fieldGroup.field.forEach((field: any) => {
@@ -598,8 +619,6 @@ export const generateBadgePdf = async (
     allFieldIds.forEach((fieldId) => {
       fieldDataMap[fieldId] = getFieldValue(fieldId);
     });    
-    console.log("fieldDataMap>>>>", fieldDataMap,allFieldIds);
-    console.log("fieldGroup>>>>", eBadgeSetting.fields,eBadgeSetting);
     // Parse HTML template
     const htmlTemplate = template.htmlContent;
     let finalHtml = htmlTemplate;
@@ -608,17 +627,20 @@ export const generateBadgePdf = async (
     const badgeCategoryGroup = eBadgeSetting.fields?.find((f: any) =>
       f.field?.some((field: any) => field.id === "badgeCategory")
     );
-    
+
     const selectedCategoryId = badgeCategoryGroup
-      ? eBadgeSetting.fieldProperties?.[badgeCategoryGroup.combined_id || badgeCategoryGroup.id]?.categoryId
+      ? eBadgeSetting.fieldProperties?.[
+          badgeCategoryGroup.combined_id || badgeCategoryGroup.id
+        ]?.categoryId
       : null;
 
     // Apply badge category colors if selected
     let categoryBackgroundColor = "";
     let categoryTextColor = "";
-    
+
     if (selectedCategoryId) {
-      const BadgeCategory = require("../../domain/schema/badgeCategory.schema").default;
+      const BadgeCategory =
+        require("../../domain/schema/badgeCategory.schema").default;
       const category = await BadgeCategory.findById(selectedCategoryId);
       if (category) {
         categoryBackgroundColor = category.backgroundColor;
@@ -641,12 +663,28 @@ export const generateBadgePdf = async (
 
       if (fieldGroup.combined_id && !fixedPosition) {
         // Combined fields - render in a flex container (when NOT using fixed position)
-        let combinedHtml = `<div style="display: flex; gap: 8px; align-items: center; margin-top: ${props.marginTop || "0mm"}; margin-left: ${props.marginLeft || "0mm"}; justify-content: ${
-          props.position === "left" ? "flex-start" : props.position === "center" ? "center" : "flex-end"
+        let combinedHtml = `<div style="display: flex; gap: 8px; align-items: center; margin-top: ${
+          props.marginTop || "0mm"
+        }; margin-left: ${props.marginLeft || "0mm"}; justify-content: ${
+          props.position === "left"
+            ? "flex-start"
+            : props.position === "center"
+            ? "center"
+            : "flex-end"
         }; line-height: 1; font-size: 0;">`;
 
         for (const field of fieldGroup.field) {
-          combinedHtml += generateFieldHtml(field, props, fieldDataMap, false, categoryTextColor, true, 0, 1, 0);
+          combinedHtml += generateFieldHtml(
+            field,
+            props,
+            fieldDataMap,
+            false,
+            categoryTextColor,
+            true,
+            0,
+            1,
+            0
+          );
         }
 
         combinedHtml += "</div>";
@@ -678,7 +716,17 @@ export const generateBadgePdf = async (
         // Single field
         const field = fieldGroup.field?.[0];
         if (field) {
-          dynamicContent += generateFieldHtml(field, props, fieldDataMap, fixedPosition, categoryTextColor, false, 0, 1, 0);
+          dynamicContent += generateFieldHtml(
+            field,
+            props,
+            fieldDataMap,
+            fixedPosition,
+            categoryTextColor,
+            false,
+            0,
+            1,
+            0
+          );
         }
       }
     }
@@ -691,23 +739,23 @@ export const generateBadgePdf = async (
     if (badgeContentMatch) {
       const fullBadgeDiv = badgeContentMatch[0]; // Complete div with all attributes
       const originalContent = badgeContentMatch[1]; // Inner content (may be empty)
-      
+
       // Extract the full style attribute
       const styleMatch = fullBadgeDiv.match(/style="([^"]*)"/);
-      const originalStyles = styleMatch ? styleMatch[1] : '';
+      const originalStyles = styleMatch ? styleMatch[1] : "";
 
       // Parse original styles into a Map
       const styleMap = new Map<string, string>();
 
       if (originalStyles) {
-        originalStyles.split(';').forEach((style: any) => {
+        originalStyles.split(";").forEach((style: any) => {
           // Use indexOf to avoid breaking URLs with ://
-          const colonIndex = style.indexOf(':');
+          const colonIndex = style.indexOf(":");
           if (colonIndex === -1) return;
-          
+
           const key = style.substring(0, colonIndex).trim();
           const value = style.substring(colonIndex + 1).trim();
-          
+
           if (key && value) {
             styleMap.set(key, value);
           }
@@ -716,30 +764,30 @@ export const generateBadgePdf = async (
 
       // Add/override ONLY the necessary positioning styles
       // DO NOT override background-image or other visual styles
-      styleMap.set('visibility', 'visible');
-      styleMap.set('position', 'relative');
-      styleMap.set('width', '100%');
-      styleMap.set('box-sizing', 'border-box');
-      styleMap.set('padding', '0');
-      styleMap.set('margin', '0');
+      styleMap.set("visibility", "visible");
+      styleMap.set("position", "relative");
+      styleMap.set("width", "100%");
+      styleMap.set("box-sizing", "border-box");
+      styleMap.set("padding", "0");
+      styleMap.set("margin", "0");
 
       // Only set height if not already present (preserve template height)
-      if (!styleMap.has('height')) {
-        styleMap.set('height', '100%');
+      if (!styleMap.has("height")) {
+        styleMap.set("height", "100%");
       }
 
       // Apply category colors if selected (these should override template colors)
       if (categoryBackgroundColor) {
-        styleMap.set('background-color', categoryBackgroundColor);
+        styleMap.set("background-color", categoryBackgroundColor);
       }
       if (categoryTextColor) {
-        styleMap.set('color', categoryTextColor);
+        styleMap.set("color", categoryTextColor);
       }
 
       // Build final merged style string
       const mergedStyles = Array.from(styleMap.entries())
         .map(([key, value]) => `${key}: ${value}`)
-        .join('; ');
+        .join("; ");
 
       // Replace ONLY the badgeContent div, preserving ALL original styles + adding dynamic content
       finalHtml = finalHtml.replace(
@@ -751,8 +799,12 @@ export const generateBadgePdf = async (
       finalHtml = finalHtml.replace(
         /<div[^>]*id="badgeContent"[^>]*>[\s\S]*?<\/div>/,
         `<div id="badgeContent" style="visibility: visible; position: relative; width: 100%; height: 100%; box-sizing: border-box; padding: 0; margin: 0;${
-          categoryBackgroundColor ? ` background-color: ${categoryBackgroundColor};` : ""
-        }${categoryTextColor ? ` color: ${categoryTextColor};` : ""}">${dynamicContent}</div>`
+          categoryBackgroundColor
+            ? ` background-color: ${categoryBackgroundColor};`
+            : ""
+        }${
+          categoryTextColor ? ` color: ${categoryTextColor};` : ""
+        }">${dynamicContent}</div>`
       );
     }
 
@@ -781,8 +833,8 @@ export const generateBadgePdf = async (
     }
 
     // Launch puppeteer and generate PDF
-    const browser = await puppeteer.launch({      
-      args: ["--no-sandbox",]
+    const browser = await puppeteer.launch({
+      args: ["--no-sandbox"],
     });
     const page = await browser.newPage();
     await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 2 });
@@ -798,8 +850,8 @@ export const generateBadgePdf = async (
         top: 0,
         right: 0,
         bottom: 0,
-        left: 0
-      }
+        left: 0,
+      },
     });
 
     // Convert Uint8Array → Buffer for compatibility
@@ -807,18 +859,19 @@ export const generateBadgePdf = async (
 
     await browser.close();
     return pdfBuffer;
-
   } catch (error) {
     console.error("❌ Error generating badge PDF:", error);
     throw error;
   }
 };
 
-
 /**
  * API endpoint to generate and download PDF
  */
-export const generateFormRegistrationPdf = async (req: Request, res: Response) => {
+export const generateFormRegistrationPdf = async (
+  req: Request,
+  res: Response
+) => {
   try {
     const { formRegistrationId } = req.body;
 
@@ -853,11 +906,13 @@ export const generateFormRegistrationPdf = async (req: Request, res: Response) =
   }
 };
 
-
 //////////////////////////////////
 
 // Paper size configurations
-const paperSizeConfig: Record<string, { width: string; height: string; format?: any }> = {
+const paperSizeConfig: Record<
+  string,
+  { width: string; height: string; format?: any }
+> = {
   a4: { width: "210mm", height: "297mm", format: "A4" },
   a5: { width: "148mm", height: "210mm", format: "A5" },
   letter: { width: "215.9mm", height: "279.4mm", format: "Letter" },
@@ -1217,23 +1272,23 @@ export const generatePaperBadgePdf = async (
     if (badgeContentMatch) {
       const fullBadgeDiv = badgeContentMatch[0]; // Complete div with all attributes
       const originalContent = badgeContentMatch[1]; // Inner content (may be empty)
-      
+
       // Extract the full style attribute
       const styleMatch = fullBadgeDiv.match(/style="([^"]*)"/);
-      const originalStyles = styleMatch ? styleMatch[1] : '';
+      const originalStyles = styleMatch ? styleMatch[1] : "";
 
       // Parse original styles into a Map
       const styleMap = new Map<string, string>();
 
       if (originalStyles) {
-        originalStyles.split(';').forEach(style => {
+        originalStyles.split(";").forEach((style) => {
           // Use indexOf to avoid breaking URLs with ://
-          const colonIndex = style.indexOf(':');
+          const colonIndex = style.indexOf(":");
           if (colonIndex === -1) return;
-          
+
           const key = style.substring(0, colonIndex).trim();
           const value = style.substring(colonIndex + 1).trim();
-          
+
           if (key && value) {
             styleMap.set(key, value);
           }
@@ -1242,30 +1297,30 @@ export const generatePaperBadgePdf = async (
 
       // Add/override ONLY the necessary positioning styles
       // DO NOT override background-image or other visual styles
-      styleMap.set('visibility', 'visible');
-      styleMap.set('position', 'relative');
-      styleMap.set('width', '100%');
-      styleMap.set('box-sizing', 'border-box');
-      styleMap.set('padding', '0');
-      styleMap.set('margin', '0');
+      styleMap.set("visibility", "visible");
+      styleMap.set("position", "relative");
+      styleMap.set("width", "100%");
+      styleMap.set("box-sizing", "border-box");
+      styleMap.set("padding", "0");
+      styleMap.set("margin", "0");
 
       // Only set height if not already present (preserve template height)
-      if (!styleMap.has('height')) {
-        styleMap.set('height', '100%');
+      if (!styleMap.has("height")) {
+        styleMap.set("height", "100%");
       }
 
       // Apply category colors if selected (these should override template colors)
       if (categoryBackgroundColor) {
-        styleMap.set('background-color', categoryBackgroundColor);
+        styleMap.set("background-color", categoryBackgroundColor);
       }
       if (categoryTextColor) {
-        styleMap.set('color', categoryTextColor);
+        styleMap.set("color", categoryTextColor);
       }
 
       // Build final merged style string
       const mergedStyles = Array.from(styleMap.entries())
         .map(([key, value]) => `${key}: ${value}`)
-        .join('; ');
+        .join("; ");
 
       // Replace ONLY the badgeContent div, preserving ALL original styles + adding dynamic content
       finalHtml = finalHtml.replace(
@@ -1410,37 +1465,37 @@ export const generatePaperBadgePdf = async (
     }
 
     // Launch puppeteer and generate PDF
-   const browser = await puppeteer.launch({
-  args: ["--no-sandbox", ]
-});
+    const browser = await puppeteer.launch({
+      args: ["--no-sandbox"],
+    });
 
-const page = await browser.newPage();
-await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 2 });
-await page.setContent(finalHtml, { waitUntil: "networkidle0" });
-await page.evaluateHandle("document.fonts.ready");
-const pdfOptions: any = {
-  printBackground: true,
-  preferCSSPageSize: false,
-  margin: {
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-  },
-};
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 2 });
+    await page.setContent(finalHtml, { waitUntil: "networkidle0" });
+    await page.evaluateHandle("document.fonts.ready");
+    const pdfOptions: any = {
+      printBackground: true,
+      preferCSSPageSize: false,
+      margin: {
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0,
+      },
+    };
 
-// Use format if available, otherwise use custom dimensions
-if (paperDimensions.format) {
-  pdfOptions.format = paperDimensions.format;
-} else {
-  pdfOptions.width = paperDimensions.width;
-  pdfOptions.height = paperDimensions.height;
-}
+    // Use format if available, otherwise use custom dimensions
+    if (paperDimensions.format) {
+      pdfOptions.format = paperDimensions.format;
+    } else {
+      pdfOptions.width = paperDimensions.width;
+      pdfOptions.height = paperDimensions.height;
+    }
 
-const pdfUint8 = await page.pdf(pdfOptions);
-const pdfBuffer = Buffer.from(pdfUint8);
+    const pdfUint8 = await page.pdf(pdfOptions);
+    const pdfBuffer = Buffer.from(pdfUint8);
 
-await browser.close();
+    await browser.close();
 
     return pdfBuffer;
   } catch (error: any) {

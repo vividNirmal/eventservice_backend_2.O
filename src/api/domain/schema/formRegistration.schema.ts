@@ -18,6 +18,7 @@ export interface IFormRegistration extends Document {
     category?: string;
     amount?: number;
   };
+  instantRegistered: boolean; // Flag for instant registration
 }
 
 const businessData = new mongoose.Schema(
@@ -44,6 +45,7 @@ const formRegistrationSchema: Schema = new Schema<IFormRegistration>(
     status: { type: String, required: false }, //// event Status
     // token: { type: String }, // Store user token for QR generation
     businessData: { type : businessData  },
+    instantRegistered: { type: Boolean, default: false }, // Flag for instant registration
   },
   {
     timestamps: true,

@@ -48,7 +48,7 @@ import { createUserTypeController, deleteUserTypeByIdController, getAllUserTypes
 import { createUserTypeMapController, deleteUserTypeMapByIdController, getAllUserTypeMapsController, getUserTypeMapByIdController, updateUserTypeMapByIdController } from "../controllers/userTypeMap.controller";
 import { createUserTypeMapSchema, updateUserTypeMapSchema } from "../../utils/validation-schems/userTypeMap.validation";
 import { generateFormRegistrationPdf, generatePaperBadgePdfEndpoint, getFormRegistrationListController, getPaperBadgePreviewPdf, getRegistrationController, resolveEmailController, resolveFormUrlController, submitRegistrationController, updateFormRegistrationController, updateFormRegistrationStatusController } from "../controllers/formRegistration.controller";
-import { formRegistrationStatusValidation, generatePdfValidation, resolveEmailValidation, resolveFormUrlValidation, submitRegistrationValidation, updateRegistrationValidation } from "../../utils/validation-schems/formRegistration.validation";
+import { formRegistrationStatusValidation, generatePdfValidation, instantRegisterValidation, resolveEmailValidation, resolveFormUrlValidation, submitRegistrationValidation, updateRegistrationValidation } from "../../utils/validation-schems/formRegistration.validation";
 import { createEBadgeTemplateSchema, updateEBadgeTemplateSchema } from "../../utils/validation-schems/eBadgeTemplate.validation";
 import { createEBadgeTemplateController, deleteEBadgeTemplateByIdController, getAllEBadgeTemplatesController, getEBadgeTemplateByEventIdController, getEBadgeTemplateByIdController, updateEBadgeTemplateByIdController } from "../controllers/eBadgeTemplate.controller";
 import { createEBadgeSettingSchema, updateEBadgeSettingPropertiesSchema, updateEBadgeSettingSchema } from "../../utils/validation-schems/eBadgeSetting.validation";
@@ -80,6 +80,7 @@ import { upsertExhibitorFormAssetValidationSchema } from "../../utils/validation
 import { createPaymentHistory, getAllPaymentHistory } from "../controllers/exihibitorPayment.controller";
 import { createUserCampaignController, deleteUserCampaignByIdController, getAllUserCampaignsController, getUserCampaignByIdController, sendCampaignNowController, updateUserCampaignController } from "../controllers/userCampaign.controller";
 import { createUserCampaignSchema, updateUserCampaignSchema } from "../../utils/validation-schems/userCampaign.validation";
+import { instantRegisteredFormRegistration } from "../controllers/instantRegisterFormRegister.controller";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -445,6 +446,9 @@ export const upload = multer({ storage: storage });
             // Event Payment exihibitor 
             route.post('/create-payment',protectedRoute,createPaymentHistory)
             route.get('/get-payment-history',protectedRoute,getAllPaymentHistory)
+
+            // Instant Register Form Registration
+            route.post("/instant-register-form", uploadImagesFile, validateRequest(instantRegisterValidation), instantRegisteredFormRegistration);
 
         } catch (error) {
             // Log any errors that occur during route definition

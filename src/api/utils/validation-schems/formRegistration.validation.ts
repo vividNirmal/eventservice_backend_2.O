@@ -56,5 +56,12 @@ export const instantRegisterValidation = Joi.object({
   event_id: Joi.string().required().messages({
     "string.empty": "Event ID is required.",
   }),
+  name: Joi.string().required().messages({
+    "string.empty": "Name is required.",
+  }),
+  contact_no: Joi.string().required().messages({
+    "string.empty": "Contact number is required.",
+  }),
+
   formData: Joi.object().optional(),
-});
+}).unknown(true);

@@ -556,7 +556,7 @@ export const storeFormRegistrationModel = async (
 };
 
 // Face processing functions (updated to handle disk storage)
-async function processFaceImage(
+export async function processFaceImage(
   file: Express.Multer.File
 ): Promise<{ faceId: string; imageKey: string; imageBuffer: Buffer }> {
   const allowedMimeTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/x-webp", "application/octet-stream"];
@@ -595,7 +595,7 @@ async function processFaceImage(
   return await uploadFaceToAWS(processedBuffer, file.mimetype);
 }
 
-async function processFaceImageBase64(
+export async function processFaceImageBase64(
   base64Image: string
 ): Promise<{ faceId: string; imageKey: string; imageBuffer: Buffer }> {
   const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");

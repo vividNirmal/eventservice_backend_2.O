@@ -12,7 +12,7 @@ export const instantRegisteredFormRegistration: RequestHandler = async (
   try {
     const data = req.body;
 
-    instantRegisteredFormRegistrationModel(data,  (error, result) => {
+    instantRegisteredFormRegistrationModel(data, req.files as Express.Multer.File[],(error, result) => {
       if (error) {
         loggerMsg(
           "error",

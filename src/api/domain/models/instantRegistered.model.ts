@@ -14,8 +14,6 @@ import formRegistrationSchema from "../schema/formRegistration.schema";
 import { v4 as uuidv4 } from "uuid";
 import { generateBadgePdf } from "../../interface/controllers/formRegistration.controller";
 
-
-
 const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME;
 
 export const instantRegisteredFormRegistrationModel = async (
@@ -44,6 +42,20 @@ export const instantRegisteredFormRegistrationModel = async (
     const contactField = ticket?.registrationFormId?.pages
       ?.flatMap((page: any) => page.elements)
       ?.find((el: any) => el.mapField === "contact_no").fieldName;
+
+    // Check if user with same contact_no already exists
+    const existingUser = await formRegistrationSchema
+      .findOne({
+        eventId: event_id,
+        [`formData.${contactField}`]: contact_no,
+      })
+      .lean();
+    if (existingUser) {
+      const error = new Error(
+        "User already registered with this contact number"
+      );
+      return callback(error, null);
+    }
     const forData: any = {};
     forData[nameField] = name;
     forData[contactField] = contact_no;
@@ -127,7 +139,6 @@ export const instantRegisteredFormRegistrationModel = async (
       ticketId: ticket?._id,
       status: "in",
       checkin_time: new Date(),
-      
     };
     if (faceId) {
       registrationData.faceId = faceId;
@@ -146,30 +157,35 @@ export const instantRegisteredFormRegistrationModel = async (
         event_id: ticket.eventId._id,
         event_slug: ticket.eventId.event_slug,
         formRegistration_id: registration._id,
-      });      
-      qrCodeBase64 = await QRCode.toDataURL(qrData);      
+      });
+      qrCodeBase64 = await QRCode.toDataURL(qrData);
       qrFileName = saveQrImage(qrCodeBase64, userToken);
       registration.qrImage = `${qrFileName}`;
       await registration.save();
-    }    
+    }
     let pdfBuffer: Buffer | null = null;
     try {
       pdfBuffer = await generateBadgePdf(registration.id.toString());
     } catch (pdfError) {
-      console.error("Failed to generate PDF badge:", pdfError);     
+      console.error("Failed to generate PDF badge:", pdfError);
     }
     const responseData: any = {
       registrationId: registration._id,
       badgeNo: finalBadgeNo,
-      userData : {name : name, contact_no: contact_no},
-      scannerData:{status: "in", color_status: "green", scanning_msg: "Welcome! You are now checked in."  },
+      userData: { name: name, contact_no: contact_no },
+      scannerData: {
+        status: "in",
+        color_status: "green",
+        scanning_msg: "Welcome! You are now checked in.",
+      },
     };
     if (faceId) {
       responseData.faceId = faceId;
     }
 
     if (faceImageUrl) {
-      responseData.faceImageUrl =  baseUrl + "/uploads/participants/" + `${faceImageUrl}`;
+      responseData.faceImageUrl =
+        baseUrl + "/uploads/participants/" + `${faceImageUrl}`;
     }
     // Add QR code to response if generated
     if (qrCodeBase64) {

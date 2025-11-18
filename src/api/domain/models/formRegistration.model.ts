@@ -685,12 +685,22 @@ async function sendWelcomeEmailAfterRegistration(
   pdfBuffer: Buffer | null = null
 ) {
   try {
+
+    // Fetch ticket for eventId + companyId
+    const ticket = await Ticket.findById(ticketId)
+      .populate("eventId")
+      .populate("companyId");
+
+    const event: any= ticket?.eventId;
+    const company: any = ticket?.companyId;
+
+
     const templateData = {
       badgeNo: registration.badgeNo,
       email: registration.email,
       formData: registration.formData || {},
-      // ticketName: ticket?.ticketName || "",
-      // eventName: event?.eventName || "",
+      eventName: event?.eventName || "",
+      companyName: company?.company_name || "",
     };
 
     await sendNotification(
@@ -908,6 +918,13 @@ async function sendStatusEmailAfterUpdate(
   approved: boolean
 ) {
   try {
+    const ticket = await Ticket.findById(registration.ticketId)
+      .populate("eventId")
+      .populate("companyId");
+
+    const event: any = ticket?.eventId;
+    const company: any = ticket?.companyId;
+
     const actionType = approved ? "approve" : "disapprove";
 
     const templateData = {
@@ -915,6 +932,8 @@ async function sendStatusEmailAfterUpdate(
       email: registration.email,
       formData: registration.formData || {},
       status: approved ? "approved" : "disapproved",
+      eventName: event?.eventName || "",
+      companyName: company?.company_name|| "",
     };
 
     await sendNotification(
@@ -1194,11 +1213,14 @@ export async function StoreEventuser(formData: any) {
     let contactNumber;
     let password ;
     let panNo;
+    let eventName;
     if (formData?.eventId) {
       const eventId: any = await eventHostSchema.findById(formData?.eventId).populate('event_category');
       companyId = eventId.company_id;
+      eventName = eventId?.eventName || "";
     }
     const compayDetails = await companySchema.findById(companyId);
+    const companyName = compayDetails?.company_name || "";
 
     // Get userType and registration form data
     if (formData.ticketId) {
@@ -1256,6 +1278,8 @@ export async function StoreEventuser(formData: any) {
         password: existingUser.password,
         name: existingUser.name,
         websites: `https://${compayDetails?.subdomain}.${env.FRONTEND_DOMAIN}`,
+        companyName: companyName,
+        eventName: eventName || "",
       };
 
       await sendNotification(
@@ -1285,6 +1309,8 @@ export async function StoreEventuser(formData: any) {
           formData.formData[EventFormData?.map_array["last_name"]]
         }`,
         websites: `https://${compayDetails?.subdomain}.${env.FRONTEND_DOMAIN}`,
+        companyName: companyName,
+        eventName: eventName || "",
       };
 
       await sendNotification(

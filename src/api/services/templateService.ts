@@ -125,17 +125,51 @@ export async function sendNotification(
         console.log('⚠️ Quill CSS fetch failed, continuing without it:', cssErr.message);
       }
 
-      // Build Quill-styled HTML
+      // // Build Quill-styled HTML
+      // const quillStyledHtml = `
+      //   <html>
+      //     <head></head>
+      //     <body>
+      //       <div class="ql-snow">
+      //         <div class="ql-editor">
+      //           ${compiledContent}
+      //         </div>
+      //       </div>
+      //     </body>
+      //   </html>
+      // `;
+
       const quillStyledHtml = `
         <html>
-          <head></head>
-          <body>
-            <div class="ql-snow">
-              <div class="ql-editor">
-                ${compiledContent}
-              </div>
-            </div>
-          </body>
+        <head></head>
+        <body style="margin:0; padding:0; background:#f5f5f5;">
+
+        <!-- FIXED WIDTH WRAPPER -->
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background:#f5f5f5; padding:20px 0;">
+          <tr>
+            <td align="center">
+              
+              <table width="600" border="0" cellspacing="0" cellpadding="0" 
+                style="width:600px; max-width:600px; background:#ffffff; padding:20px; border-radius:8px;">
+                
+                <tr>
+                  <td style="font-family: Arial, sans-serif; font-size:14px; line-height:1.6;">
+                    
+                    <div class="ql-snow">
+                      <div class="ql-editor">
+                        ${compiledContent}
+                      </div>
+                    </div>
+
+                  </td>
+                </tr>
+
+              </table>
+            </td>
+          </tr>
+        </table>
+
+        </body>
         </html>
       `;
 

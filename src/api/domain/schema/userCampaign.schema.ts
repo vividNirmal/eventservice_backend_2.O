@@ -10,9 +10,16 @@ export interface IUserCampaign extends Document {
     scheduled: boolean;                    // ON/OFF toggle
     scheduledAt?: Date;
     
+    // Add batch processing fields
+    batchSize: number;
+    batchInterval: number; // in minutes
+    currentBatch: number;
+    totalBatches: number;
+    isProcessing: boolean;
+    
     eventId?: mongoose.Types.ObjectId;
     companyId?: mongoose.Types.ObjectId;
-    status: "pending" | "completed" | "failed";
+    status: "pending" | "processing" | "completed" | "failed" | "paused";
     sentCount?: number;
     failedCount?: number;
     errorMessage?: string;
@@ -31,11 +38,18 @@ const userCampaignSchema: Schema = new Schema<IUserCampaign>({
     scheduled: { type: Boolean, default: false },
     scheduledAt: { type: Date },
     
+    // Batch processing fields
+    batchSize: { type: Number, default: 100 }, // #batch
+    batchInterval: { type: Number, default: 1 }, // 1 minute
+    currentBatch: { type: Number, default: 0 },
+    totalBatches: { type: Number, default: 0 },
+    isProcessing: { type: Boolean, default: false },
+    
     eventId: { type: Schema.Types.ObjectId, ref: "EventHost" },
     companyId: { type: Schema.Types.ObjectId, ref: "Company" },
     status: {
         type: String,
-        enum: ["pending", "completed", "failed"],
+        enum: ["pending", "processing", "completed", "failed", "paused"],
         default: "pending",
     },
     sentCount: { type: Number, default: 0 },

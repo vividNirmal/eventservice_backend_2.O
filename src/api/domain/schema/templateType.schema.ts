@@ -29,7 +29,7 @@ const templateTypeSchema: Schema = new Schema<ITemplateType>(
     actionType:  { 
       type: String,
       required: true,
-      enum: ["welcome", "approve", "disapprove", "suspend", "onboard", "notify"],
+      enum: ["welcome", "approve", "disapprove", "suspend", "onboard", "notify", "reminder"],
     },
   },
   {

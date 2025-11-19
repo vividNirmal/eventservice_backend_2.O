@@ -41,7 +41,7 @@ export const createUserCampaignController = async (req: Request, res: Response) 
       });
     }
 
-    const result = await createUserCampaign(campaignData, companyId, eventId, excelFilePath);
+    const result: any = await createUserCampaign(campaignData, companyId, eventId, excelFilePath);
 
     if (result.success) {
       return res.status(201).json({

@@ -11,167 +11,8 @@ import { EmailServiceNew } from "../../services/sendEmail.service";
 import UserTemplate from "../schema/userTemplate.schema";
 import { compileTemplate } from "../../services/templateService";
 import path from "path";
+import { sendCampaignEmails, getFullFilePath, readExcelContacts } from "../../services/batchEmailService";
 
-/**
- * Helper function to get full path from relative path
- */
-const getFullFilePath = (relativePath: any) => {
-  return path.join(process.cwd(), "uploads", relativePath);
-};
-
-/**
- * Read Excel file and extract contacts
- */
-const readExcelContacts = (relativePath: any) => {
-  try {
-    const fullPath = getFullFilePath(relativePath);
-
-    if (!fs.existsSync(fullPath)) {
-      throw new Error(`Excel file not found at: ${fullPath}`);
-    }
-
-    const workbook = XLSX.readFile(fullPath);
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const data = XLSX.utils.sheet_to_json(worksheet);
-
-    const contacts = data
-      .map((row: any, index) => ({
-        email: row.email || row.Email || row.EMAIL,
-        name: row.name || row.Name || row.NAME || `Contact ${index + 1}`,
-        contact:
-          row.contact ||
-          row.Contact ||
-          row.CONTACT ||
-          row.phone ||
-          row.Phone ||
-          row.PHONE,
-        // Add any other fields from Excel
-        ...row,
-      }))
-      .filter((contact) => contact.email); // Only include rows with email
-
-    console.log(`Found ${contacts.length} contacts in Excel file`);
-    return contacts;
-  } catch (error: any) {
-    loggerMsg("error", `Error reading Excel file: ${error.message}`);
-    throw new Error(`Failed to read Excel file: ${error.message}`);
-  }
-};
-
-/**
- * Send campaign emails
- */
-const sendCampaignEmails = async (campaignId: any) => {
-  let campaign: any;
-  try {
-    campaign = await UserCampaignSchema.findById(campaignId)
-      .populate("templateId")
-      .populate("eventId");
-
-    if (!campaign) {
-      throw new Error("Campaign not found");
-    }
-
-    const contacts = readExcelContacts(campaign.excelFile);
-
-    campaign.totalContacts = contacts.length;
-
-    let sentCount = 0;
-    let failedCount = 0;
-    const errors = [];
-
-    // Get template
-    const template = await UserTemplate.findById(campaign.templateId);
-    if (!template) {
-      throw new Error("Template not found");
-    }
-
-    // Send emails to each contact
-    for (const contact of contacts) {
-      try {
-        const templateData = {
-          name: contact.name,
-          email: contact.email,
-          contact: contact.contact,
-          eventName: campaign.eventId?.name || "Event",
-          campaignName: campaign.name,
-          // Add more template variables as needed
-          ...contact,
-        };
-
-        const compiledSubject = compileTemplate(
-          template.subject || "",
-          templateData
-        );
-        const compiledContent = compileTemplate(template.content, templateData);
-
-        const emailOptions: any = {
-          to: contact.email,
-          subject: compiledSubject,
-          htmlContent: compiledContent,
-        };
-
-        // Add template attachments if any
-        if (template.attachments?.length > 0) {
-          emailOptions.attachments = template.attachments.map((att) => ({
-            filename: att.originalName || att.filename,
-            path: att.path,
-            contentType: att.mimetype,
-          }));
-        }
-
-        await EmailServiceNew.sendEmail(emailOptions);
-        sentCount++;
-
-        // Update progress every 10 emails
-        if (sentCount % 10 === 0) {
-          campaign.sentCount = sentCount;
-          campaign.failedCount = failedCount;
-          await campaign.save();
-        }
-      } catch (error: any) {
-        console.log("error>>sending inter", error);
-        loggerMsg(
-          "error",
-          `Failed to send email to ${contact.email}: ${error.message}`
-        );
-        failedCount++;
-        errors.push(`${contact.email}: ${error.message}`);
-
-        // Update failed count
-        campaign.failedCount = failedCount;
-        await campaign.save();
-      }
-    }
-
-    // Final update
-    campaign.sentCount = sentCount;
-    campaign.failedCount = failedCount;
-    campaign.status = failedCount === 0 ? "completed" : "failed";
-
-    if (errors.length > 0) {
-      campaign.errorMessage = `Failed to send ${failedCount} emails. First error: ${errors[0]}`;
-    }
-
-    await campaign.save();
-    loggerMsg(
-      "info",
-      `Campaign ${campaignId} completed: ${sentCount} sent, ${failedCount} failed`
-    );
-  } catch (error: any) {
-    loggerMsg(
-      "error",
-      `Error in send CampaignEmails for campaign ${campaignId}: ${error.message}`
-    );
-
-    if (campaign) {
-      campaign.status = "failed";
-      campaign.errorMessage = error.message;
-      await campaign.save();
-    }
-  }
-};
 
 /**
  * Schedule a campaign
@@ -246,12 +87,15 @@ export const createUserCampaign = async (
       totalContacts,
       companyId,
       eventId,
-      status: "pending", // Simplified since it's always "pending"
+      status: "pending",
+      batchSize: campaignData.batchSize || 100, // #batch
+      batchInterval: campaignData.batchInterval || 1,
     });
 
     const savedCampaign = await newCampaign.save();
 
     if (campaignData.scheduled === false) {
+      // Start batch processing immediately
       sendCampaignEmails(savedCampaign._id);
     } else if (campaignData.scheduledAt) {
       scheduleCampaign(savedCampaign);

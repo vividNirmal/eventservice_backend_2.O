@@ -81,6 +81,8 @@ import { createPaymentHistory, getAllPaymentHistory } from "../controllers/exihi
 import { createUserCampaignController, deleteUserCampaignByIdController, getAllUserCampaignsController, getUserCampaignByIdController, sendCampaignNowController, updateUserCampaignController } from "../controllers/userCampaign.controller";
 import { createUserCampaignSchema, updateUserCampaignSchema } from "../../utils/validation-schems/userCampaign.validation";
 import { instantRegisteredFormRegistration } from "../controllers/instantRegisterFormRegister.controller";
+import { getAllExhibitorApplicationsController, resolveExhibitorApplicationController, storeExhibitorApplicationController } from "../controllers/exhibitorApplication.controller";
+import { submitExhibitorApplicationValidation } from "../../utils/validation-schems/exhibitorApplication.validation";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -419,6 +421,11 @@ export const upload = multer({ storage: storage });
             route.put("/user-campaigns/:id", protectedRoute, uploadImagesFile, validateRequest(updateUserCampaignSchema), updateUserCampaignController);
             route.delete("/user-campaigns/:id", protectedRoute, deleteUserCampaignByIdController);
             route.post("/user-campaigns/:id/send-now", protectedRoute, sendCampaignNowController);
+
+            // exhibitor-dashborad
+            route.post("/store-exhibitor-application", protectedRoute, uploadImagesFile, validateRequest(submitExhibitorApplicationValidation), storeExhibitorApplicationController);
+            route.get("/resolve-exhibitor-application/:id", protectedRoute, resolveExhibitorApplicationController);
+            route.get("/get-exhibitor-applications", protectedRoute, getAllExhibitorApplicationsController);
             
             route.post('/send-otp',verifyScannerToken,validateRequest(sendOtpValidation),OtpGenerate);
             route.post('/verify-otp',validateRequest(verifyOtpValidation),OtpVerify);

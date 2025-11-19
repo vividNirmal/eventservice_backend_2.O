@@ -158,7 +158,7 @@ export const userLogin = async (
     }
 
     if (user) {
-      if (user.role == "superadmin" && userData.subdomain == null) {
+      if (user.role == "superadmin" && userData.subdomain == 'admin') {
         const isPasswordCorrect = await bcrypt.compare(
           userData.password,
           user.password

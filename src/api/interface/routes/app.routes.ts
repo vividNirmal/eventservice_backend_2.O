@@ -87,6 +87,8 @@ import { createHeroSectionController, deleteHeroSectionByIdController, getAllHer
 import { createHeroSectionSchema, updateHeroSectionSchema } from "../../utils/validation-schems/heroSection.validation";
 import { createAboutSectionSchema } from "../../utils/validation-schems/aboutSection.validation";
 import { getAboutSectionController, saveAboutSectionController } from "../controllers/aboutSection.controller";
+import { getDataSectionController, saveDataSectionController } from "../controllers/dataSection.controller";
+import { saveDataSectionSchema } from "../../utils/validation-schems/dataSection.validation";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -446,6 +448,9 @@ export const upload = multer({ storage: storage });
             route.get("/get-about-section/:id", protectedRoute, getAboutSectionController);
             route.post("/save-about-section", protectedRoute, uploadImagesFile, validateRequest(createAboutSectionSchema), saveAboutSectionController);
 
+            // Data Section
+            route.get("/get-data-section/:id", protectedRoute, getDataSectionController);
+            route.post("/save-data-section", protectedRoute, uploadImagesFile, validateRequest(saveDataSectionSchema), saveDataSectionController);
             // WEB CONTENT //
             
             route.post('/send-otp',verifyScannerToken,validateRequest(sendOtpValidation),OtpGenerate);

@@ -85,6 +85,8 @@ import { getAllExhibitorApplicationsController, resolveExhibitorApplicationContr
 import { submitExhibitorApplicationValidation } from "../../utils/validation-schems/exhibitorApplication.validation";
 import { createHeroSectionController, deleteHeroSectionByIdController, getAllHeroSectionsController, getHeroSectionByIdController, updateHeroSectionController } from "../controllers/heroSection.controller";
 import { createHeroSectionSchema, updateHeroSectionSchema } from "../../utils/validation-schems/heroSection.validation";
+import { createAboutSectionSchema } from "../../utils/validation-schems/aboutSection.validation";
+import { getAboutSectionController, saveAboutSectionController } from "../controllers/aboutSection.controller";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -432,13 +434,17 @@ export const upload = multer({ storage: storage });
             
             // WEB CONTENT //
 
-            // Create hero section
+            // Hero Section
             route.post("/create-hero-section", protectedRoute, uploadImagesFile, validateRequest(createHeroSectionSchema),createHeroSectionController);
             route.put("/update-hero-section/:id", protectedRoute, uploadImagesFile, validateRequest(updateHeroSectionSchema), updateHeroSectionController);
             route.get("/get-hero-sections", protectedRoute, getAllHeroSectionsController);
             route.get("/get-hero-section/:id", protectedRoute, getHeroSectionByIdController);
             route.delete("/delete-hero-section/:id",  deleteHeroSectionByIdController);
             route.delete("/delete-hero-section/:id", protectedRoute, deleteHeroSectionByIdController);
+
+            // About Section
+            route.get("/get-about-section/:id", protectedRoute, getAboutSectionController);
+            route.post("/save-about-section", protectedRoute, uploadImagesFile, validateRequest(createAboutSectionSchema), saveAboutSectionController);
 
             // WEB CONTENT //
             

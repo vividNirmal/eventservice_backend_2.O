@@ -1,8 +1,6 @@
 const mongoose = require("mongoose");
 const messageSchema = require("./api/domain/schema/message.schema");
 
-
-
 const checkDatabaseConnection = async () => {
     try {
         const connection = mongoose.connection;

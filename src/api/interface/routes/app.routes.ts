@@ -89,6 +89,8 @@ import { createAboutSectionSchema } from "../../utils/validation-schems/aboutSec
 import { getAboutSectionController, saveAboutSectionController } from "../controllers/aboutSection.controller";
 import { getDataSectionController, saveDataSectionController } from "../controllers/dataSection.controller";
 import { saveDataSectionSchema } from "../../utils/validation-schems/dataSection.validation";
+import { saveReasonSectionSchema } from "../../utils/validation-schems/reasonSection.validation";
+import { getReasonSectionController, saveReasonSectionController } from "../controllers/reasonSection.controller";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -451,6 +453,11 @@ export const upload = multer({ storage: storage });
             // Data Section
             route.get("/get-data-section/:id", protectedRoute, getDataSectionController);
             route.post("/save-data-section", protectedRoute, uploadImagesFile, validateRequest(saveDataSectionSchema), saveDataSectionController);
+
+            // Reason Section
+            route.get("/get-reason-section/:id", protectedRoute, getReasonSectionController);
+            route.post("/save-reason-section", protectedRoute, uploadImagesFile, validateRequest(saveReasonSectionSchema), saveReasonSectionController);
+
             // WEB CONTENT //
             
             route.post('/send-otp',verifyScannerToken,validateRequest(sendOtpValidation),OtpGenerate);

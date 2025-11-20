@@ -83,6 +83,8 @@ import { createUserCampaignSchema, updateUserCampaignSchema } from "../../utils/
 import { instantRegisteredFormRegistration } from "../controllers/instantRegisterFormRegister.controller";
 import { getAllExhibitorApplicationsController, resolveExhibitorApplicationController, storeExhibitorApplicationController } from "../controllers/exhibitorApplication.controller";
 import { submitExhibitorApplicationValidation } from "../../utils/validation-schems/exhibitorApplication.validation";
+import { createHeroSectionController, deleteHeroSectionByIdController, getAllHeroSectionsController, getHeroSectionByIdController, updateHeroSectionController } from "../controllers/heroSection.controller";
+import { createHeroSectionSchema, updateHeroSectionSchema } from "../../utils/validation-schems/heroSection.validation";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -426,6 +428,19 @@ export const upload = multer({ storage: storage });
             route.post("/store-exhibitor-application", protectedRoute, uploadImagesFile, validateRequest(submitExhibitorApplicationValidation), storeExhibitorApplicationController);
             route.get("/resolve-exhibitor-application/:id", protectedRoute, resolveExhibitorApplicationController);
             route.get("/get-exhibitor-applications", protectedRoute, getAllExhibitorApplicationsController);
+
+            
+            // WEB CONTENT //
+
+            // Create hero section
+            route.post("/create-hero-section", protectedRoute, uploadImagesFile, validateRequest(createHeroSectionSchema),createHeroSectionController);
+            route.put("/update-hero-section/:id", protectedRoute, uploadImagesFile, validateRequest(updateHeroSectionSchema), updateHeroSectionController);
+            route.get("/get-hero-sections", protectedRoute, getAllHeroSectionsController);
+            route.get("/get-hero-section/:id", protectedRoute, getHeroSectionByIdController);
+            route.delete("/delete-hero-section/:id",  deleteHeroSectionByIdController);
+            route.delete("/delete-hero-section/:id", protectedRoute, deleteHeroSectionByIdController);
+
+            // WEB CONTENT //
             
             route.post('/send-otp',verifyScannerToken,validateRequest(sendOtpValidation),OtpGenerate);
             route.post('/verify-otp',validateRequest(verifyOtpValidation),OtpVerify);

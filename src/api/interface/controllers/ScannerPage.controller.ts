@@ -9,7 +9,7 @@ import eventHostSchema from "../../domain/schema/eventHost.schema";
     export const getEventDetailsSlug = async (req: Request, res: Response) => {
         try {
             const { event_slug, sub_domain } = req.body;
-            const company_details = await companySchema.findOne({ subdomain : sub_domain});
+            const company_details: any = await companySchema.findOne({ subdomain : sub_domain});
             if(!company_details){
                 return  ErrorResponse(res,'Company not found.')
             }

@@ -1,49 +1,31 @@
 import { Request, Response } from 'express';
 import {
-  createHeroSection,
-  getAllHeroSections,
-  getHeroSectionById,
-  deleteHeroSectionById,
-  updateHeroSection,
+  getHeroSectionModel,
+  saveHeroSectionModel,
 } from "../../domain/models/heroSection.model";
 import { ErrorResponse, successResponse } from "../../helper/apiResponse";
 import { loggerMsg } from "../../lib/logger";
-import mongoose from 'mongoose';
 
 /**
- * Create new hero section
+ * Get hero section by company ID
  */
-export const createHeroSectionController = async (req: Request, res: Response) => {
+export const getHeroSectionController = async (req: Request, res: Response) => {
   try {
-    const companyId = req.body.companyId;
-    const heroSectionData = req.body;
-    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+    const { id: companyId } = req.params;
 
-    // Handle uploaded file
-    if (files && Array.isArray(files)) {
-      files.forEach((file) => {
-        if (file.fieldname === "image") {
-          heroSectionData.image = `${file.uploadFolder}/${file.filename}`;
-        }
-      });
-    }
-
-    const result = await createHeroSection(heroSectionData, companyId);
-
-    if (result.success) {
-      return res.status(201).json({
-        status: 1,
-        message: result.message,
-        data: result.data,
-      });
-    } else {
+    if (!companyId) {
       return res.status(400).json({
         status: 0,
-        message: result.message || "Failed to create hero section",
+        message: "Company ID is required",
       });
     }
+
+    getHeroSectionModel(companyId as string, (error, result) => {
+      if (error) return ErrorResponse(res, error.message);
+      return successResponse(res, "Hero section fetched successfully", result);
+    });
   } catch (error: any) {
-    loggerMsg("error", `Error in createHeroSectionController: ${error.message}`);
+    loggerMsg("error", `Error in getHeroSectionController: ${error.message}`);
     return res.status(500).json({
       status: 0,
       message: "Internal server error",
@@ -52,42 +34,51 @@ export const createHeroSectionController = async (req: Request, res: Response) =
 };
 
 /**
- * Update hero section
+ * Create or update hero section
  */
-export const updateHeroSectionController = async (req: Request, res: Response) => {
+export const saveHeroSectionController = async (req: Request, res: Response) => {
   try {
-    const { id } = req.params;
-    const companyId = req.body.companyId;
-    const updateData = req.body;
+    const { companyId, existingHeroes } = req.body;
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!companyId) {
       return res.status(400).json({
         status: 0,
-        message: "Invalid hero section ID",
+        message: "Company ID is required",
       });
     }
 
-    // Remove system fields that shouldn't be updated
-    delete updateData._id;
-    delete updateData.createdAt;
-    delete updateData.updatedAt;
-    delete updateData.__v;
+    // Parse existing heroes
+    let heroes = [];
+    if (existingHeroes) {
+      try {
+        heroes = JSON.parse(existingHeroes);
+      } catch (error) {
+        loggerMsg("error", "Failed to parse existing heroes");
+      }
+    }
 
-    // Handle uploaded file
+    // Process uploaded hero images
     if (files && Array.isArray(files)) {
-      files.forEach((file) => {
-        if (file.fieldname === "image") {
-          updateData.image = `${file.uploadFolder}/${file.filename}`;
+      const heroImageIndexes = req.body.heroImageIndexes;
+      const indexes = Array.isArray(heroImageIndexes) 
+        ? heroImageIndexes 
+        : [heroImageIndexes];
+
+      files.forEach((file, fileIndex) => {
+        if (file.fieldname === "heroImages") {
+          const heroIndex = parseInt(indexes[fileIndex]);
+          if (!isNaN(heroIndex) && heroes[heroIndex]) {
+            heroes[heroIndex].image = `${file.uploadFolder}/${file.filename}`;
+          }
         }
       });
     }
 
-    const result = await updateHeroSection(
-      new mongoose.Types.ObjectId(id),
-      updateData,
+    const result = await saveHeroSectionModel({
+      hero: heroes,
       companyId
-    );
+    });
 
     if (result.success) {
       return res.status(200).json({
@@ -96,63 +87,16 @@ export const updateHeroSectionController = async (req: Request, res: Response) =
         data: result.data,
       });
     } else {
-      return res.status(404).json({
+      return res.status(400).json({
         status: 0,
-        message: result.message || "Hero section not found",
+        message: result.message || "Failed to save hero section",
       });
     }
   } catch (error: any) {
-    loggerMsg("error", `Error in updateHeroSectionController: ${error.message}`);
+    loggerMsg("error", `Error in saveHeroSectionController: ${error.message}`);
     return res.status(500).json({
       status: 0,
       message: "Internal server error",
     });
-  }
-};
-
-/**
- * Get all hero sections with pagination and search
- */
-export const getAllHeroSectionsController = async (req: Request, res: Response) => {
-  try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-    const search = req.query.search as string;
-    const companyId = req.query.companyId as string;
-
-    getAllHeroSections((error, result) => {
-      if (error) return ErrorResponse(res, error.message);
-      return successResponse(res, "Hero sections fetched successfully", result);
-    }, page, limit, search, companyId);
-  } catch (error: any) {
-    return ErrorResponse(res, error.message);
-  }
-};
-
-/**
- * Get hero section by ID
- */
-export const getHeroSectionByIdController = async (req: Request, res: Response) => {
-  try {
-    getHeroSectionById(req.params.id, (error, result) => {
-      if (error) return ErrorResponse(res, error.message);
-      return successResponse(res, "Hero section fetched successfully", result);
-    });
-  } catch (error: any) {
-    return ErrorResponse(res, error.message);
-  }
-};
-
-/**
- * Delete hero section by ID
- */
-export const deleteHeroSectionByIdController = async (req: Request, res: Response) => {
-  try {
-    deleteHeroSectionById(req.params.id, (error, result) => {
-      if (error) return ErrorResponse(res, error.message);
-      return successResponse(res, "Hero section deleted successfully", result);
-    });
-  } catch (error: any) {
-    return ErrorResponse(res, error.message);
   }
 };

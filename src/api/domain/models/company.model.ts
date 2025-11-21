@@ -42,6 +42,30 @@ const addImageUrls = (company: any) => {
   return company;
 };
 
+/**
+ * Get company by subdomain
+ */
+export const getCompanyBySubdomainModel = async (
+  subdomain: string,
+  callback: (error: Error | null, result?: any) => void
+) => {
+  try {
+    const company = await companySchema.findOne({ 
+      subdomain,
+      status: 1 // Only get active companies
+    });
+
+    if (!company) {
+      return callback(new Error("Company not found or inactive"), null);
+    }
+
+    const companyData = addImageUrls(company.toObject());
+    callback(null, { company: companyData });
+  } catch (error: any) {
+    loggerMsg("error", `Error fetching company by subdomain: ${error}`);
+    callback(error, null);
+  }
+};
 
 
 export const updateStatus = async (companyStatus: companyStatus, callback: (error: any, result: any) => void) => {

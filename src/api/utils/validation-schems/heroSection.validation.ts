@@ -1,32 +1,28 @@
 import Joi from "joi";
 
-export const createHeroSectionSchema = Joi.object({
-  title: Joi.string().required().min(1).max(255).messages({
-    "string.empty": "Title is required",
-    "string.min": "Title must be at least 1 character",
-    "string.max": "Title must not exceed 255 characters",
+const heroSchema = Joi.object({
+  image: Joi.string().required().messages({
+    "string.empty": "Hero image is required",
   }),
-  description: Joi.string().required().min(1).max(1000).messages({
-    "string.empty": "Description is required",
-    "string.min": "Description must be at least 1 character",
-    "string.max": "Description must not exceed 1000 characters",
+  title: Joi.string().required().trim().min(1).max(255).messages({
+    "string.empty": "Hero title is required",
+    "string.min": "Hero title must be at least 1 character",
+    "string.max": "Hero title must not exceed 255 characters",
   }),
-  image: Joi.string().uri().optional().allow(null, ''),
+  description: Joi.string().required().trim().min(1).max(1000).messages({
+    "string.empty": "Hero description is required",
+    "string.min": "Hero description must be at least 1 character",
+    "string.max": "Hero description must not exceed 1000 characters",
+  }),
+  _id: Joi.string().optional(),
+});
+
+export const saveHeroSectionSchema = Joi.object({
+  hero: Joi.array().items(heroSchema).optional().default([]),
+  existingHeroes: Joi.string().optional(),
+  heroImages: Joi.any().optional(),
+  heroImageIndexes: Joi.any().optional(),
   companyId: Joi.string().required().messages({
     "string.empty": "Company ID is required",
   }),
-});
-
-export const updateHeroSectionSchema = Joi.object({
-  title: Joi.string().min(1).max(255).messages({
-    "string.min": "Title must be at least 1 character",
-    "string.max": "Title must not exceed 255 characters",
-  }),
-  description: Joi.string().min(1).max(1000).messages({
-    "string.min": "Description must be at least 1 character",
-    "string.max": "Description must not exceed 1000 characters",
-  }),
-  image: Joi.string().uri().optional().allow(null, ''),
-  companyId: Joi.string().optional(),
-  id: Joi.string().optional(),
 });

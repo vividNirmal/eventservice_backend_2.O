@@ -8,14 +8,44 @@ import {
   updateStatus,
   updateCompanyLogoModel,
   getCompanyImagesModel,
+  getCompanyBySubdomainModel,
 } from "../../domain/models/company.model";
 import companySchema from "../../domain/schema/company.schema";
 import path from "path";
 import fs from "fs";
 import { env } from "process";
+import { loggerMsg } from "../../lib/logger";
 interface FileWithBuffer extends Express.Multer.File {
   buffer: Buffer;
 }
+
+/**
+ * Get company details by subdomain
+ */
+export const getCompanyBySubdomainController = async (req: Request, res: Response) => {
+  try {
+    const { subdomain } = req.params;
+
+    if (!subdomain) {
+      return res.status(400).json({
+        status: 0,
+        message: "Subdomain is required",
+      });
+    }
+
+    getCompanyBySubdomainModel(subdomain as string, (error, result) => {
+      if (error) return ErrorResponse(res, error.message);
+      return successResponse(res, "Company details fetched successfully", result);
+    });
+  } catch (error: any) {
+    console.log("error>>>>>>>>>",error);
+    loggerMsg("error", `Error in getCompanyBySubdomainController: ${error.message}`);
+    return res.status(500).json({
+      status: 0,
+      message: "Internal server error",
+    });
+  }
+};
 
 export const storeCompanyController = async (req: Request, res: Response) => {
   try {

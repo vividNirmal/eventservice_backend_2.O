@@ -6,7 +6,7 @@ import { registerUser , loginUser} from "../../interface/controllers/auth.contro
 import { getCountry,getState,getCity,importXlsxData,getHomePageCity } from "../../interface/controllers/location.controller";
 import { getSetting , updateSetting } from "../../interface/controllers/setting.controller";
 import { storeScannerMachine,updateScannerMachine,deleteScannerMachine,getScannerMachine,assignScannerMachine,removeAssignScannerMachine,getScannerMachineDetails,checkUniqueMachineId,getScannerMachinesByCompany } from "../../interface/controllers/scannerMachine.controller";
-import { storeCompanyController,getCompany,getCompanyDetails,updateCompanyController,deleteCompany,updateCompanyStatus, updateCompanyLogo, getCompanyImages } from "../../interface/controllers/company.controller";
+import { storeCompanyController,getCompany,getCompanyDetails,updateCompanyController,deleteCompany,updateCompanyStatus, updateCompanyLogo, getCompanyImages, getCompanyBySubdomainController } from "../../interface/controllers/company.controller";
 
 import { getEventDetailsSlug,logoutAllScanners,scannerPageLogin } from "../../interface/controllers/ScannerPage.controller";
 import { storeEventParticipantUser ,getUserDetailsUsingEmail,generateEventPdf,generateScannerEventPdf,getParticipantDetails,getParticipantDetailsScanner,scanFaceId,scanParticipantFace, OtpGenerate, OtpVerify, updateParticipantUser, toggleParticipantBlockStatus, scanParticipantQR } from "../../interface/controllers/participantUser.controller";
@@ -83,8 +83,8 @@ import { createUserCampaignSchema, updateUserCampaignSchema } from "../../utils/
 import { instantRegisteredFormRegistration } from "../controllers/instantRegisterFormRegister.controller";
 import { getAllExhibitorApplicationsController, resolveExhibitorApplicationController, storeExhibitorApplicationController } from "../controllers/exhibitorApplication.controller";
 import { submitExhibitorApplicationValidation } from "../../utils/validation-schems/exhibitorApplication.validation";
-import { createHeroSectionController, deleteHeroSectionByIdController, getAllHeroSectionsController, getHeroSectionByIdController, updateHeroSectionController } from "../controllers/heroSection.controller";
-import { createHeroSectionSchema, updateHeroSectionSchema } from "../../utils/validation-schems/heroSection.validation";
+import {  getHeroSectionController, saveHeroSectionController } from "../controllers/heroSection.controller";
+import {  saveHeroSectionSchema } from "../../utils/validation-schems/heroSection.validation";
 import { createAboutSectionSchema } from "../../utils/validation-schems/aboutSection.validation";
 import { getAboutSectionController, saveAboutSectionController } from "../controllers/aboutSection.controller";
 import { getDataSectionController, saveDataSectionController } from "../controllers/dataSection.controller";
@@ -438,18 +438,17 @@ export const upload = multer({ storage: storage });
             route.get("/get-exhibitor-applications", protectedRoute, getAllExhibitorApplicationsController);
 
             
-            // WEB CONTENT //
+            ////////// WEB CONTENT //////////
 
+            // PUBLIC ROUTS //
+            route.get("/company/subdomain/:subdomain", getCompanyBySubdomainController);
+            route.get("/get-hero-section/:id", getHeroSectionController);
+            route.get("/get-about-section/:id",  getAboutSectionController);
+            
             // Hero Section
-            route.post("/create-hero-section", protectedRoute, uploadImagesFile, validateRequest(createHeroSectionSchema),createHeroSectionController);
-            route.put("/update-hero-section/:id", protectedRoute, uploadImagesFile, validateRequest(updateHeroSectionSchema), updateHeroSectionController);
-            route.get("/get-hero-sections", protectedRoute, getAllHeroSectionsController);
-            route.get("/get-hero-section/:id", protectedRoute, getHeroSectionByIdController);
-            route.delete("/delete-hero-section/:id",  deleteHeroSectionByIdController);
-            route.delete("/delete-hero-section/:id", protectedRoute, deleteHeroSectionByIdController);
+            route.post("/save-hero-section", protectedRoute, uploadImagesFile, validateRequest(saveHeroSectionSchema), saveHeroSectionController);
 
             // About Section
-            route.get("/get-about-section/:id", protectedRoute, getAboutSectionController);
             route.post("/save-about-section", protectedRoute, uploadImagesFile, validateRequest(createAboutSectionSchema), saveAboutSectionController);
 
             // Data Section
@@ -464,7 +463,7 @@ export const upload = multer({ storage: storage });
             route.post("/save-partner-section", protectedRoute, uploadImagesFile, validateRequest(savePartnerSectionSchema), savePartnerSectionController);
 
 
-            // WEB CONTENT //
+            ////////// WEB CONTENT //////////
             
             route.post('/send-otp',verifyScannerToken,validateRequest(sendOtpValidation),OtpGenerate);
             route.post('/verify-otp',validateRequest(verifyOtpValidation),OtpVerify);

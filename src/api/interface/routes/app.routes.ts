@@ -475,7 +475,7 @@ export const upload = multer({ storage: storage });
             route.get('/event-list-by-category/:id',protectedRoute,EventuserEvent)
             // Event category 
             route.post('/store-event-category',protectedRoute,createEventCategoryController);
-            route.get ('/get-event-category',protectedRoute,getAllEventCategoriesController);
+            route.get ('/get-event-category',getAllEventCategoriesController);
             route.get('/get-event-category/:id',protectedRoute,getEventCategoryByIdController);
             route.put('/update-event-category/:id',protectedRoute,updateEventCategoryByIdController);
             route.delete('/delete-event-category/:id',protectedRoute,deleteEventCategoryByIdController)

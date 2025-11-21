@@ -52,8 +52,8 @@ export const createEventCategoryModule = async (
 
     const newCategory = new eventCategorySchema(categoryData);
     const savedCategory = await newCategory.save();
-    const allCategory = await eventCategorySchema.find({})
-    callback(null, { eventCategory: allCategory, savedCategory  });
+    const allCategory = await eventCategorySchema.find({});
+    callback(null, { eventCategory: allCategory, savedCategory });
   } catch (error: any) {
     loggerMsg("error", `Error creating event category: ${error}`);
 
@@ -69,7 +69,7 @@ export const createEventCategoryModule = async (
 };
 
 export const getAllEventCategories = async (
-  token: any,
+  companyId: any,
   callback: (error: Error | null, result?: any) => void,
   page: number = 1,
   limit?: number,
@@ -80,18 +80,6 @@ export const getAllEventCategories = async (
     if (!process.env.JWT_SECRET_KEY) {
       return callback(new Error("JWT secret key is not configured"));
     }
-    if (!token) {
-      const error = new Error("Authentication token is required");
-      loggerMsg("error", "User token is missing");
-      return callback(error, null);
-    }
-
-    const actualToken = token.startsWith("Bearer ") ? token.slice(7) : token;
-    const loginUserData: any = jwt.verify(
-      actualToken,
-      process.env.JWT_SECRET_KEY
-    );
-    const companyId = loginUserData.company_id;
 
     if (!companyId) {
       return callback(new Error("Company ID not found in token"));

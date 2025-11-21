@@ -18,12 +18,13 @@ import eventHostSchema from "../../domain/schema/eventHost.schema";
                 return ErrorResponse(res, 'Company is not active.');
             }
 
-            const event_details = await eventHostSchema.findOne({event_slug:event_slug});
+            const event_details:any = await eventHostSchema.findOne({event_slug:event_slug});
             if(!event_details){
                 return  ErrorResponse(res,'Event not found.')
             }
 
-            if(event_details.company_id != company_details._id){    
+            // Ensure we compare string representations to avoid comparison between ObjectId and string/undefined
+            if (!event_details.company_id || event_details.company_id.toString() !== company_details._id.toString()) {    
                 return  ErrorResponse(res,`Event does not belong to the company. ${event_details.company_id}`)
             }
 

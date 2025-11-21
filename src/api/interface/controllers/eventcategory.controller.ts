@@ -44,9 +44,9 @@ export const getAllEventCategoriesController: RequestHandler = async (
     const page = parseInt(req.query.page as string) || 1;
     const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
     const search = req.query.search as string;
-    const token  = req.headers.authorization;
+    const companyId  = req.query.companyId as string;
     getAllEventCategories(
-      token,
+      companyId,
       (error, result) => {
         if (error) {
           loggerMsg(

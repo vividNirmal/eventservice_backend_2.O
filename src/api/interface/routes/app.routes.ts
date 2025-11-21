@@ -444,6 +444,9 @@ export const upload = multer({ storage: storage });
             route.get("/company/subdomain/:subdomain", getCompanyBySubdomainController);
             route.get("/get-hero-section/:id", getHeroSectionController);
             route.get("/get-about-section/:id",  getAboutSectionController);
+            route.get("/get-data-section/:id", getDataSectionController);
+            route.get("/get-reason-section/:id", getReasonSectionController);
+            route.get("/get-partner-section/:id", getPartnerSectionController);
             
             // Hero Section
             route.post("/save-hero-section", protectedRoute, uploadImagesFile, validateRequest(saveHeroSectionSchema), saveHeroSectionController);
@@ -452,14 +455,11 @@ export const upload = multer({ storage: storage });
             route.post("/save-about-section", protectedRoute, uploadImagesFile, validateRequest(createAboutSectionSchema), saveAboutSectionController);
 
             // Data Section
-            route.get("/get-data-section/:id", protectedRoute, getDataSectionController);
             route.post("/save-data-section", protectedRoute, uploadImagesFile, validateRequest(saveDataSectionSchema), saveDataSectionController);
 
             // Reason Section
-            route.get("/get-reason-section/:id", protectedRoute, getReasonSectionController);
             route.post("/save-reason-section", protectedRoute, uploadImagesFile, validateRequest(saveReasonSectionSchema), saveReasonSectionController);
 
-            route.get("/get-partner-section/:id", protectedRoute, getPartnerSectionController);
             route.post("/save-partner-section", protectedRoute, uploadImagesFile, validateRequest(savePartnerSectionSchema), savePartnerSectionController);
 
 

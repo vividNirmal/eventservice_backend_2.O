@@ -91,6 +91,8 @@ import { getDataSectionController, saveDataSectionController } from "../controll
 import { saveDataSectionSchema } from "../../utils/validation-schems/dataSection.validation";
 import { saveReasonSectionSchema } from "../../utils/validation-schems/reasonSection.validation";
 import { getReasonSectionController, saveReasonSectionController } from "../controllers/reasonSection.controller";
+import { savePartnerSectionSchema } from "../../utils/validation-schems/partnerSection.validation";
+import { getPartnerSectionController, savePartnerSectionController } from "../controllers/partnerSection.controller";
 
 const storage = multer.memoryStorage();
 export const upload = multer({ storage: storage });
@@ -457,6 +459,10 @@ export const upload = multer({ storage: storage });
             // Reason Section
             route.get("/get-reason-section/:id", protectedRoute, getReasonSectionController);
             route.post("/save-reason-section", protectedRoute, uploadImagesFile, validateRequest(saveReasonSectionSchema), saveReasonSectionController);
+
+            route.get("/get-partner-section/:id", protectedRoute, getPartnerSectionController);
+            route.post("/save-partner-section", protectedRoute, uploadImagesFile, validateRequest(savePartnerSectionSchema), savePartnerSectionController);
+
 
             // WEB CONTENT //
             

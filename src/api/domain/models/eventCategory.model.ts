@@ -1,6 +1,7 @@
 import { loggerMsg } from "../../lib/logger";
 import eventCategorySchema from "../schema/eventCategory.schema";
 import jwt from "jsonwebtoken";
+import eventHostSchema from "../schema/eventHost.schema";
 
 export const createEventCategoryModule = async (
   data: any,
@@ -246,6 +247,20 @@ export const deleteEventCategoryById = async (
     callback(null, { eventCategory: deletedCategory });
   } catch (error: any) {
     loggerMsg("error", `Error deleting event category: ${error}`);
+    callback(error, null);
+  }
+};
+
+export const getEventByCategory =async(id:string,callback: (error: Error | null, result?: any) => void)=>{
+  try {
+    const event  = await eventHostSchema.find({event_category:id}).populate('event_category');
+    if (!event) {
+      return callback(new Error("Event category not found"));
+    }
+    callback(null, {  event });
+  }
+  catch (error: any) {
+    loggerMsg("error", `Error fetching events by category: ${error}`);
     callback(error, null);
   }
 };

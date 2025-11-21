@@ -64,7 +64,7 @@ import { createEventImageController, deleteEventImageByIdController, getAllEvent
 import { createEventImageSchema, updateEventImageSchema } from "../../utils/validation-schems/eventImagesSchema.validation";
 import { createEventCompanyTeamController, deleteEventCompanyTeamByIdController, getAllEventCompanyTeamController, getEventCompanyTeamByIdController, getTeamMembersCountController, updateEventCompanyTeamController } from "../controllers/eventCompanyTeam.controller";
 import { createEventCompanyTeamSchema, getEventCompanyTeamQuerySchema, updateEventCompanyTeamSchema } from "../../utils/validation-schems/eventCompanyTeam.validation";
-import { createEventCategoryController, deleteEventCategoryByIdController, getAllEventCategoriesController, getEventCategoryByIdController, updateEventCategoryByIdController } from "../controllers/eventcategory.controller";
+import { createEventCategoryController, deleteEventCategoryByIdController, eventByCategoryController, getAllEventCategoriesController, getEventCategoryByIdController, updateEventCategoryByIdController } from "../controllers/eventcategory.controller";
 import { createExhibitorFormController, deleteExhibitorFormByIdController, getAllExhibitorFormsController, getExhibitorFormByIdController, getExhibitorFormsCountController, updateExhibitorFormController, updateExhibitorFormtatusController } from "../controllers/exhibitorForm.controller";
 import { createExhibitorFormSchema, getExhibitorFormsQuerySchema, updateExhibitorFormBodySchema, updateExhibitorFormSchema, updateExhibitorFormStatusSchema } from "../../utils/validation-schems/exhibitorForm.validation";
 import { createEventPackageController, deleteEventPackagesController, eventandCategoryAttendes, getAllEventPackagesController, getEventPackageByIdController, updateEventPackageController } from "../controllers/eventPackage.controller";
@@ -158,7 +158,7 @@ export const upload = multer({ storage: storage });
             route.post("/update-event-host",protectedRoute,uploadImagesFile,validateRequest(eventHostUpdateSchema),updateAdminEventHost);
             route.post("/copy-event-host/:id",protectedRoute,copyAdminEventHost);
             route.get("/get-event-host-list",protectedRoute,getAdminEventHostList);
-            route.get("/get-event-host-details/:id",protectedRoute,getAdminEventHostDetails);
+            route.get("/get-event-host-details/:id",getAdminEventHostDetails);
 
             // admin route to get event host list by company
             route.get("/get-event-host-list-by-company", checkAdmin, getAdminEventHostListByCompany);
@@ -479,6 +479,7 @@ export const upload = multer({ storage: storage });
             route.get('/get-event-category/:id',protectedRoute,getEventCategoryByIdController);
             route.put('/update-event-category/:id',protectedRoute,updateEventCategoryByIdController);
             route.delete('/delete-event-category/:id',protectedRoute,deleteEventCategoryByIdController)
+            route.get('/event-get-by-category/:id',eventByCategoryController)
 
             // Event Package 
             route.post ('/store-package',protectedRoute,createEventPackageController)

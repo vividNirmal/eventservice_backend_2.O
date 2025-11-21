@@ -5,6 +5,7 @@ import {
   getEventCategoryById,
   updateEventCategoryById,
   deleteEventCategoryById,
+  getEventByCategory,
 } from "../../domain/models/eventCategory.model";
 import { ErrorResponse, successResponse } from "../../helper/apiResponse";
 import { loggerMsg } from "../../lib/logger";
@@ -171,6 +172,37 @@ export const deleteEventCategoryByIdController: RequestHandler = async (
     loggerMsg(
       "error",
       `Error in deleteEventCategoryByIdController: ${error.message}`
+    );
+    return ErrorResponse(res, error.message);
+  }
+};
+
+export const eventByCategoryController: RequestHandler = async (
+  req,
+  res,
+  next
+) => {
+  try {
+    const { id } = req.params;
+    getEventByCategory(id, (error, result) => {
+      if (error) {
+        loggerMsg(
+          "error",    
+          `Error in eventByCategoryController: ${error.message}`
+        );
+        return ErrorResponse(res, error.message);
+      }
+      loggerMsg("info", "Events fetched successfully by category");
+      return successResponse(
+        res,
+        "Events fetched successfully by category",
+        result
+      );
+    });
+  } catch (error: any) {
+    loggerMsg(
+      "error",
+      `Error in eventByCategoryController: ${error.message}`
     );
     return ErrorResponse(res, error.message);
   }

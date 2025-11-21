@@ -7,6 +7,7 @@ export const createAboutSectionSchema = Joi.object({
   description: Joi.string().required().messages({
     "string.empty": "Description is required",
   }),
+  image: Joi.string().optional().allow(""),
   companyId: Joi.string().required().messages({
     "string.empty": "Company ID is required",
   }),

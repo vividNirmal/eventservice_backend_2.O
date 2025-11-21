@@ -47,11 +47,23 @@ export const saveAboutSectionController = async (req: Request, res: Response) =>
       });
     }
 
-    const result = await saveAboutSectionModel({
+    const aboutSectionData: any = {
       title,
       description,
       companyId
-    });
+    };
+
+    // Handle uploaded file
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+    if (files && Array.isArray(files)) {
+      files.forEach((file) => {
+        if (file.fieldname === "image") {
+          aboutSectionData.image = `${file.uploadFolder}/${file.filename}`;
+        }
+      });
+    }
+
+    const result = await saveAboutSectionModel(aboutSectionData);
 
     if (result.success) {
       return res.status(200).json({

@@ -32,7 +32,7 @@ import { getAdminEventHostList, storeAdminEventHost, updateAdminEventHost, getAd
 import { eventHostUpdateSchema, eventHostSchema } from "../../utils/validation-schems/eventHostSchema.validation";
 import { getFormListController, getFormDetailsController, createFormController, updateFormController, deleteFormController, addPageController, exportFormController, importFormController } from "../../interface/controllers/form.controller";
 import { createFormSchema, updateFormBodySchema, deleteFormSchema, getFormByIdSchema } from "../../utils/validation-schems/form.validation";
-import { getTicketListController, getTicketDetailsController, createTicketController, updateTicketController, deleteTicketController, getTicketsByUserTypeController, bulkDeleteTicketsController, exportTicketsController, importTicketsController, generateTicketRegistrationUrl } from "../../interface/controllers/ticket.controller";
+import { getTicketListController, getTicketDetailsController, createTicketController, updateTicketController, deleteTicketController, getTicketsByUserTypeController, bulkDeleteTicketsController, exportTicketsController, importTicketsController, generateTicketRegistrationUrl, getRegistrationUrlByUserType } from "../../interface/controllers/ticket.controller";
 import { createTicketSchema, updateTicketBodySchema, deleteTicketSchema, getTicketByIdSchema, getTicketsQuerySchema } from "../../utils/validation-schems/ticket.validation";
 import { createDeviceConfiguration, updateDeviceConfiguration, deleteDeviceConfiguration, getDeviceConfigurationsByCompany, getDeviceConfigurationById } from "../../interface/controllers/deviceConfiguration.controller";
 import { createDeviceConfigurationSchema, updateDeviceConfigurationSchema, deleteDeviceConfigurationSchema, getDeviceConfigurationByCompanySchema } from "../../utils/validation-schems/deviceConfiguration.validation";
@@ -230,7 +230,10 @@ export const upload = multer({ storage: storage });
             route.post('/tickets/bulk-delete',protectedRoute,bulkDeleteTicketsController);
             route.get('/tickets/by-usertype/:userType',protectedRoute,getTicketsByUserTypeController);
             route.get('/tickets/get-ticket-url/:id', protectedRoute, generateTicketRegistrationUrl);
-            
+
+            // get register URL public route
+            route.get('/ticket/get-registration-url/:id', getRegistrationUrlByUserType);
+
             route.post('/get-praticipent-details',validateRequest(getParticipantDetailsSchema),getParticipantDetails)
             
             //company Module urls

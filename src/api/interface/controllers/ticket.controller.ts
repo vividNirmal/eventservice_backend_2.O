@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import { 
     getAllTickets, getTicketById, createTicket, updateTicket, 
     deleteTicket, getTicketsByUserType, exportTicketsForEvent, importTicketsToEvent,
-    generateTicketRegistrationUrlModel
+    generateTicketRegistrationUrlModel,
+    getRegistrationUrlByUserTypeModel
 } from '../../domain/models/ticket.model';
 import mongoose from 'mongoose';
 import { logger } from '../../lib/logger';
@@ -541,5 +542,51 @@ export const generateTicketRegistrationUrl = async (req: Request, res: Response)
             status: 0,
             message: 'Internal server error'
         });
+  }
+};
+
+// Get registration URL by user type
+export const getRegistrationUrlByUserType = async (req: Request, res: Response) => {
+  try {
+    const { id: eventId } = req.params;
+    const { userType } = req.query;
+
+    if (!mongoose.Types.ObjectId.isValid(eventId)) {
+      return res.status(400).json({
+        status: 0,
+        message: 'Invalid event ID'
+      });
+    }
+
+    if (!userType || typeof userType !== 'string') {
+      return res.status(400).json({
+        status: 0,
+        message: 'User type is required'
+      });
+    }
+
+    const result = await getRegistrationUrlByUserTypeModel(
+      new mongoose.Types.ObjectId(eventId),
+      userType
+    );
+
+    if (result.success) {
+      return res.status(200).json({
+        status: 1,
+        message: 'Registration URL generated successfully',
+        data: result.data
+      });
+    } else {
+      return res.status(404).json({
+        status: 0,
+        message: result.message || 'Registration URL not found'
+      });
+    }
+  } catch (error: any) {
+    logger.error('Error in getRegistrationUrlByUserType:', error);
+    return res.status(500).json({
+      status: 0,
+      message: 'Internal server error'
+    });
   }
 };

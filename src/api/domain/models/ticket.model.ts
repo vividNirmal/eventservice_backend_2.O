@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import { env } from "../../../infrastructure/env";
 import userTypeMapSchema from "../schema/userTypeMap.schema";
 import { createSlug } from "../../lib/slugify";
+import userTypeSchema from "../schema/userType.schema";
 
 
 const parseJsonFields = (data: any) => {
@@ -557,4 +558,82 @@ export const generateTicketRegistrationUrlModel = async (id: mongoose.Types.Obje
             error: error.message
         };
     }
+};
+
+// Get registration URL by user type name
+export const getRegistrationUrlByUserTypeModel = async (
+  eventId: mongoose.Types.ObjectId,
+  userTypeName: string
+) => {
+  try {
+    // First, find the user type by name
+    const userType = await userTypeSchema.findOne({ 
+      typeName: userTypeName 
+    });
+
+    if (!userType) {
+      return {
+        success: false,
+        message: `User type "${userTypeName}" not found`
+      };
+    }
+
+    // Find an active ticket for this event and user type
+    const ticket = await TicketSchema.findOne({
+      eventId: eventId,
+      userType: userType._id,
+      status: 'active'
+    })
+      .populate("eventId")
+      .populate("userType");
+
+    if (!ticket) {
+      return {
+        success: false,
+        message: `No active ticket found for ${userTypeName}`
+      };
+    }
+
+    const event: any = ticket.eventId;
+    const populatedUserType: any = ticket.userType;
+
+    if (!event?.event_slug) {
+      return {
+        success: false,
+        message: 'Event slug not found'
+      };
+    }
+
+    // Check mapping for this user type (same logic as generateTicketRegistrationUrlModel)
+    const userTypeMap = await userTypeMapSchema.findOne({
+      userType: populatedUserType._id,
+      companyId: ticket.companyId,
+      eventId: ticket.eventId,
+    });
+
+    // Use mapped short name if available, otherwise original user type name
+    const mappedUserTypeName = userTypeMap ? userTypeMap.shortName : populatedUserType.typeName;
+
+    // Create slug
+    const userTypeSlug = createSlug(mappedUserTypeName);
+
+    // Final URL
+    const registrationUrl = `/${event.event_slug}/registration-${userTypeSlug}`;
+
+    return {
+      success: true,
+      data: {
+        registrationUrl,
+        ticketId: ticket._id,
+        ticketName: ticket.ticketName
+      }
+    };
+  } catch (err: any) {
+    logger.error('Error in getRegistrationUrlByUserTypeModel:', err);
+    return {
+      success: false,
+      message: 'Failed to generate registration URL',
+      error: err.message
+    };
+  }
 };

@@ -232,3 +232,138 @@ export const getAllExhibitorApplicationsModel = async (
     );
   }
 };
+
+export const getAllExhibitorApplicationsAdminModel = async (
+  companyId: mongoose.Types.ObjectId,
+  filters: any = {},
+  pagination: any = { page: 1, limit: 10 },
+  callback: (error: any, result: any) => void
+) => {
+  try {
+    const { search, eventId } = filters;
+    const { page, limit } = pagination;
+    const skip = (page - 1) * limit;
+
+    // Build base query - get exhibitor forms for this company
+    const exhibitorForms = await ExhibitorForm.find({ 
+      companyId: companyId,
+      ...(eventId && { eventId: new mongoose.Types.ObjectId(eventId) })
+    }).select('_id');
+
+    const exhibitorFormIds = exhibitorForms.map(form => form._id);
+
+    if (exhibitorFormIds.length === 0) {
+      return callback(null, {
+        applications: [],
+        pagination: {
+          currentPage: page,
+          limit,
+          totalCount: 0,
+          totalPages: 0,
+        },
+      });
+    }
+
+    // Build search query for applications
+    const searchQuery: any = {
+      exhibitorFormId: { $in: exhibitorFormIds }
+    };
+
+    if (search) {
+      searchQuery.$or = [
+        { "formData.company_name": { $regex: search, $options: "i" } },
+        { "formData.companyName": { $regex: search, $options: "i" } },
+        { "formData.contact_person": { $regex: search, $options: "i" } },
+        { "formData.contact_name": { $regex: search, $options: "i" } },
+        { "formData.email": { $regex: search, $options: "i" } },
+        { "formData.contact_email": { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Count total applications
+    const totalCount = await ExhibitorApplication.countDocuments(searchQuery);
+
+    // Fetch applications with populated data
+    const applications = await ExhibitorApplication.find(searchQuery)
+      .populate({
+        path: "exhibitorFormId",
+        select: "formName eventId",
+        populate: {
+          path: "eventId",
+          select: "eventName"
+        }
+      })
+      .populate({
+        path: "eventUser",
+        select: "email firstName lastName"
+      })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    return callback(null, {
+      applications,
+      pagination: {
+        currentPage: page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Error in getAllExhibitorApplicationsModel:", error);
+    return callback(
+      {
+        message: "Failed to fetch exhibitor applications",
+        errorType: "INTERNAL_ERROR",
+      },
+      null
+    );
+  }
+};
+
+export const updateExhibitorApplicationStatusAdminModel = async (
+  applicationId: mongoose.Types.ObjectId,
+  approved: boolean,
+  callback: (error: any, result: any) => void
+) => {
+  try {
+    const application = await ExhibitorApplication.findByIdAndUpdate(
+      applicationId,
+      { approved },
+      { new: true }
+    ).populate({
+      path: "exhibitorFormId",
+      select: "formName",
+      populate: {
+        path: "eventId",
+        select: "eventName"
+      }
+    });
+
+    if (!application) {
+      return callback(
+        { message: "Exhibitor application not found", errorType: "NOT_FOUND" },
+        null
+      );
+    }
+
+    return callback(null, {
+      application: {
+        _id: application._id,
+        approved: application.approved,
+        exhibitorFormId: application.exhibitorFormId,
+        updatedAt: application.updatedAt,
+      },
+    });
+  } catch (error) {
+    console.error("Error in updateExhibitorApplicationStatusModel:", error);
+    return callback(
+      {
+        message: "Failed to update application status",
+        errorType: "INTERNAL_ERROR",
+      },
+      null
+    );
+  }
+};

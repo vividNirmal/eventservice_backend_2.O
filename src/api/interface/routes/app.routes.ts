@@ -81,8 +81,8 @@ import { createPaymentHistory, getAllPaymentHistory } from "../controllers/exihi
 import { createUserCampaignController, deleteUserCampaignByIdController, getAllUserCampaignsController, getUserCampaignByIdController, sendCampaignNowController, updateUserCampaignController } from "../controllers/userCampaign.controller";
 import { createUserCampaignSchema, updateUserCampaignSchema } from "../../utils/validation-schems/userCampaign.validation";
 import { instantRegisteredFormRegistration } from "../controllers/instantRegisterFormRegister.controller";
-import { getAllExhibitorApplicationsController, resolveExhibitorApplicationController, storeExhibitorApplicationController } from "../controllers/exhibitorApplication.controller";
-import { submitExhibitorApplicationValidation } from "../../utils/validation-schems/exhibitorApplication.validation";
+import { getAllExhibitorApplicationsController, resolveExhibitorApplicationController, storeExhibitorApplicationController, getAllExhibitorApplicationsAdminController, updateExhibitorApplicationStatusAdminController } from "../controllers/exhibitorApplication.controller";
+import { submitExhibitorApplicationValidation, updateExhibitorApplicationStatusValidation } from "../../utils/validation-schems/exhibitorApplication.validation";
 import {  getHeroSectionController, saveHeroSectionController } from "../controllers/heroSection.controller";
 import {  saveHeroSectionSchema } from "../../utils/validation-schems/heroSection.validation";
 import { createAboutSectionSchema } from "../../utils/validation-schems/aboutSection.validation";
@@ -439,6 +439,9 @@ export const upload = multer({ storage: storage });
             route.post("/store-exhibitor-application", protectedRoute, uploadImagesFile, validateRequest(submitExhibitorApplicationValidation), storeExhibitorApplicationController);
             route.get("/resolve-exhibitor-application/:id", protectedRoute, resolveExhibitorApplicationController);
             route.get("/get-exhibitor-applications", protectedRoute, getAllExhibitorApplicationsController);
+            // (for admin)
+            route.get("/exhibitor-applications", protectedRoute, getAllExhibitorApplicationsAdminController);
+            route.put("/exhibitor-applications-change-satus/:id", protectedRoute, validateRequest(updateExhibitorApplicationStatusValidation), updateExhibitorApplicationStatusAdminController);
 
             
             ////////// WEB CONTENT //////////

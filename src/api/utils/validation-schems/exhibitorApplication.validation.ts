@@ -7,3 +7,9 @@ export const submitExhibitorApplicationValidation = Joi.object({
   }),
   // Since form fields are dynamic, we allow extra keys
 }).unknown(true);
+
+
+export const updateExhibitorApplicationStatusValidation = Joi.object({
+  approved: Joi.boolean().required(),
+  id: Joi.string().optional(),
+});

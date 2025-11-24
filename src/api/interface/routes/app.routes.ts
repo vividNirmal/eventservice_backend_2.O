@@ -14,7 +14,7 @@ import { getAdminUser,storeAdminUser,getSingleAdminUser,updateAdminUser,checkEma
 import { registerUserSchema,loginUserSchema,updateUserSchema,forgetPasswordSchema,setPasswordSchema,updateStatusUserSchema,deleteUsersSchema,changePasswordSchema,scannerPageLoginUserSchema, changePasswordValidation} from "../../utils/validation-schems/user.validation";
 import { EventParticipantUsers, DynamicEventParticipantUsers, sendOtpValidation, UpdateParticipantUsers, verifyOtpValidation } from "../../utils/validation-schems/event_participant_users.validation";
 import { adminEventSchema , adminUpdateEventSchema,deleteEventSchema,extraEventDetails,getDeviceUrlSchema,updateExtraEventDetails, verifyDeviceAndLoginSchema, verifyDeviceDirectAccessSchema, generateFormUrlSchema} from "../../utils/validation-schems/adminevent.validation";
-import { processAndSaveImages, uploadEventImagesFile, uploadImagesFile, uploadTemplateAttachments } from "../../helper/helper";
+import { convertImagesToWebP, processAndSaveImages, uploadEventImagesFile, uploadImagesFile, uploadTemplateAttachments } from "../../helper/helper";
 import { settingSchema } from "../../utils/validation-schems/setting.validation";
 import { updateCompanySchema , registerCompanySchema,deleteCompanySchema ,updateStatusCompanySchema, updateCompanyLogoSchema} from "../../utils/validation-schems/company.validation";
 import { getParticipantDetailsSchema, toggleParticipantBlockStatusSchema } from "../../utils/validation-schems/participantDetails.validation";
@@ -452,18 +452,19 @@ export const upload = multer({ storage: storage });
             route.get("/get-partner-section/:id", getPartnerSectionController);
             
             // Hero Section
-            route.post("/save-hero-section", protectedRoute, uploadImagesFile, validateRequest(saveHeroSectionSchema), saveHeroSectionController);
+            route.post("/save-hero-section", protectedRoute, uploadImagesFile, convertImagesToWebP, validateRequest(saveHeroSectionSchema), saveHeroSectionController);
 
             // About Section
-            route.post("/save-about-section", protectedRoute, uploadImagesFile, validateRequest(createAboutSectionSchema), saveAboutSectionController);
+            route.post("/save-about-section", protectedRoute, uploadImagesFile, convertImagesToWebP, validateRequest(createAboutSectionSchema), saveAboutSectionController);
 
             // Data Section
-            route.post("/save-data-section", protectedRoute, uploadImagesFile, validateRequest(saveDataSectionSchema), saveDataSectionController);
+            route.post("/save-data-section", protectedRoute, uploadImagesFile, convertImagesToWebP, validateRequest(saveDataSectionSchema), saveDataSectionController);
 
             // Reason Section
-            route.post("/save-reason-section", protectedRoute, uploadImagesFile, validateRequest(saveReasonSectionSchema), saveReasonSectionController);
+            route.post("/save-reason-section", protectedRoute, uploadImagesFile, convertImagesToWebP, validateRequest(saveReasonSectionSchema), saveReasonSectionController);
 
-            route.post("/save-partner-section", protectedRoute, uploadImagesFile, validateRequest(savePartnerSectionSchema), savePartnerSectionController);
+            // Partner Section
+            route.post("/save-partner-section", protectedRoute, uploadImagesFile, convertImagesToWebP, validateRequest(savePartnerSectionSchema), savePartnerSectionController);
 
 
             ////////// WEB CONTENT //////////

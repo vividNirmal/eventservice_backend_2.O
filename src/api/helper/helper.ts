@@ -7,6 +7,9 @@ import jwt from "jsonwebtoken";
 import {RtcTokenBuilder, RtcRole} from "agora-token";
 import sharp from "sharp";
 
+const uploadPath= "../../../../uploads"; //#ForLive
+// const uploadPath= "../../../uploads"; //#ForLocal
+
 export const uploadImagesFile = multer({
     storage: multer.diskStorage({
         destination: (req, file, cb) => {
@@ -42,8 +45,7 @@ export const uploadImagesFile = multer({
 
             (file as any).uploadFolder = folder;
             
-            const uploadDir = path.resolve(__dirname, "../../../../uploads", folder); // #ForLive
-            // const uploadDir = path.resolve(__dirname, "../../../uploads", folder); // #ForLocal
+            const uploadDir = path.resolve(__dirname, uploadPath, folder);
             if (!fs.existsSync(uploadDir)) {
                 fs.mkdirSync(uploadDir, { recursive: true });
             }
@@ -97,23 +99,74 @@ export const uploadImagesFile = multer({
 //     { name: "attachments", maxCount: 10 } // unified for attachment usage
 // ]);
 
-export async function convertToWebP(
-  imageBuffer: Buffer,
-  quality: number = 90
-): Promise<Buffer> {
-
+// Middleware to convert images to WebP
+export const convertImagesToWebP = async (req: any, res: any, next: any) => {
   try {
-    const webpBuffer = await sharp(imageBuffer)
-      .webp({ quality })
-      .toBuffer();
+    if (!req.files || req.files.length === 0) {
+      return next();
+    }
 
-    return webpBuffer;
-  } catch (error) {
-    console.error("Error converting image to WebP:", error);
-    throw new Error("Failed to convert image to WebP format");
+    const uploadDir = path.resolve(__dirname, uploadPath, "images");
+
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    const processPromises = req.files.map(async (file: any) => {
+      try {
+        // skip non-images
+        if (!file.mimetype || !file.mimetype.startsWith("image/")) return;
+
+        let fileBuffer: Buffer;
+
+        try {
+          fileBuffer = fs.readFileSync(file.path);
+        } catch (err) {
+          console.warn("⚠️ Original file not found for conversion, skipping:", file.path);
+          return; // continue processing other files
+        }
+
+        const cleanFileName = file.originalname.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+        const timestamp = Date.now();
+        const fileNameWithoutExt = cleanFileName.replace(/\.[^/.]+$/, "");
+
+        const webpFileName = `${timestamp}-${fileNameWithoutExt}.webp`;
+        const webpPath = path.join(uploadDir, webpFileName);
+
+        const webpBuffer = await sharp(fileBuffer)
+          .webp({ quality: 80 })
+          .toBuffer();
+
+        fs.writeFileSync(webpPath, webpBuffer);
+
+        // SAFE delete (never throws)
+        try {
+          await fs.promises.rm(file.path, { force: true });
+        } catch {}
+
+        // Update multer file object
+        file.filename = webpFileName;
+        file.path = webpPath;
+        file.mimetype = "image/webp";
+        file.size = webpBuffer.length;
+        (file as any).uploadFolder = "images";
+
+      } catch (err: any) {
+        console.error("⚠️ WebP conversion failed but continuing:", err.message);
+      }
+    });
+
+    await Promise.all(processPromises);
+
+    next();
+
+  } catch (err: any) {
+    console.error("⚠️ Unexpected WebP middleware error:", err.message);
+    next(); // NEVER block API
   }
-}
+};
 
+// Middleware to handle event image uploads (images only)
 export const uploadEventImagesFile = multer({
     storage: multer.memoryStorage(), // Use memory storage to process with Sharp
     fileFilter: (req, file, cb) => {
@@ -140,8 +193,7 @@ export const processAndSaveImages = async (req: any, res: any, next: any) => {
         return next();
     }
 
-    const uploadDir = path.resolve(__dirname, "../../../../uploads", "images"); // #ForLive
-    // const uploadDir = path.resolve(__dirname, "../../../uploads", "images"); // #ForLocal
+    const uploadDir = path.resolve(__dirname, uploadPath, "images");
 
     if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
@@ -188,7 +240,7 @@ export const processAndSaveImages = async (req: any, res: any, next: any) => {
         });
 };
 
-
+// Handle Files for Email Template Attachments
 export const uploadTemplateAttachments = multer({
     storage: multer.diskStorage({
         destination: (req, file, cb) => {

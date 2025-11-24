@@ -2,7 +2,8 @@ import mongoose, { Document, Schema } from "mongoose";
 
 export interface IBadge {
     image: string;
-    value: string;
+    value: number;
+    suffix?: string; // optional suffix
     label: string;
 }
 
@@ -16,7 +17,8 @@ export interface IDataSection extends Document {
 
 const badgeSchema = new Schema<IBadge>({
     image: { type: String, required: true, trim: true },
-    value: { type: String, required: true, trim: true },
+    value: { type: Number, required: true },
+    suffix: { type: String, default: "", trim: true },
     label: { type: String, required: true, trim: true }
 });
 

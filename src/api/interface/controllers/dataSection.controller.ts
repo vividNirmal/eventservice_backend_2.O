@@ -54,6 +54,13 @@ export const saveDataSectionController = async (req: Request, res: Response) => 
     if (existingBadges) {
       try {
         badges = JSON.parse(existingBadges);
+        
+        // Ensure suffix field exists for all badges
+        badges = badges.map((badge: any) => ({
+          ...badge,
+          suffix: badge.suffix || "", // Default to empty string if not provided
+          value: Number(badge.value) || 0, // Ensure value is a number
+        }));
       } catch (error) {
         loggerMsg("error", "Failed to parse existing badges");
       }
@@ -68,9 +75,9 @@ export const saveDataSectionController = async (req: Request, res: Response) => 
 
       files.forEach((file, fileIndex) => {
         if (file.fieldname === "badgeImages") {
-          const badgeIndex = parseInt(indexes[fileIndex]);
-          if (!isNaN(badgeIndex) && badges[badgeIndex]) {
-            badges[badgeIndex].image = `${file.uploadFolder}/${file.filename}`;
+        const badgeIndex = parseInt(indexes[fileIndex]);
+        if (!isNaN(badgeIndex) && badges[badgeIndex]) {
+          badges[badgeIndex].image = `${file.uploadFolder}/${file.filename}`;
           }
         }
       });

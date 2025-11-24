@@ -4,10 +4,11 @@ const badgeSchema = Joi.object({
   image: Joi.string().required().messages({
     "string.empty": "Badge image is required",
   }),
-  value: Joi.string().required().trim().min(1).max(150).messages({
-    "string.empty": "Badge value is required",
-    "string.min": "Badge value must be at least 1 character",
-    "string.max": "Badge value must not exceed 150 characters",
+  value: Joi.number().required().messages({
+    "number.base": "Badge value must be a number",
+  }),
+  suffix: Joi.string().optional().allow('').trim().max(50).messages({
+    "string.max": "Suffix must not exceed 50 characters",
   }),
   label: Joi.string().required().trim().min(1).max(150).messages({
     "string.empty": "Badge label is required",

@@ -383,7 +383,7 @@ export const getTicketsByUserTypeController = async (req: Request, res: Response
         const companyId = req.body.companyId;
 
         const validUserTypes = [
-            'Event Attendee', 
+            'Event Attendees', 
             'Exhibiting Company', 
             'Sponsor', 
             'Speaker', 

@@ -14,11 +14,7 @@ export enum EventEntryExitDevice {
   FACE_SCANNER_QR = "Face Scanner + QR",  
 }
 
-// Enum for instant register options
-export enum InstantRegisterOption {
-  NAME_NUMBER_ONLY = "Name and Number Entry Only",
-  NAME_NUMBER_FACE = "Name, Number and Face"
-}
+
 
 export interface IEventHost extends Document {
   eventName: string;
@@ -55,7 +51,7 @@ export interface IEventHost extends Document {
   ticketId?: string;
   participant_capacity?: number;
   event_entry_exit_device?: EventEntryExitDevice[]; // Array of entry/exit devices
-  instant_register?: InstantRegisterOption[]; // New field for instant register option
+  instant_register?: any[]; // New field for instant register option
   createdAt: Date;
   updatedAt: Date;
 }
@@ -106,8 +102,7 @@ const eventHostSchema: Schema = new Schema<IEventHost>(
       enum: Object.values(EventEntryExitDevice)
     }],
     instant_register:[{
-      type: String,
-      enum: Object.values(InstantRegisterOption)
+      type: String,      
     }]
   },
   {

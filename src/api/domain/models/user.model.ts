@@ -28,6 +28,7 @@ interface UpdateUserData {
   role: string;
   status: boolean;
   user_id: string;
+  company_id?: string;
 }
 
 interface userLoginData {
@@ -156,7 +157,7 @@ export const userLogin = async (
 
       return callback(null, result);
     }
-
+    
     if (user) {
       if (user.role == "superadmin" && userData.subdomain == 'admin') {
         const isPasswordCorrect = await bcrypt.compare(
@@ -470,9 +471,10 @@ export const updateUser = async (
     }
     existingUser.name = userData.name || existingUser.name;
     existingUser.email = userData.email || existingUser.email;
-    existingUser.password = existingUser.profilePicture =
+    existingUser.profilePicture = existingUser.profilePicture =
       userData.profilePicture || existingUser.profilePicture;
     existingUser.role = userData.role || existingUser.role;
+    existingUser.company_id = userData.company_id || existingUser.company_id;
 
     if (userData.password && userData.password !== "") {
       const hashedPassword = await bcrypt.hash(userData.password, 10);

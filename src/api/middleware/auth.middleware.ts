@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from "express";
 // import { AuthService } from "../services/auth.service";
 import { env } from "../../infrastructure/env";
 import jwt from 'jsonwebtoken'
+import companySchema from "../domain/schema/company.schema";
+import userSchema from "../domain/schema/user.schema";
 
 declare global {
     namespace Express {
@@ -78,7 +80,54 @@ export const protectedRoute = async(req:Request, res:Response, next: NextFunctio
     try {
         const decoded = jwt.verify(token,  process.env.JWT_SECRET_KEY || "defaultsecretkey"  as string);
         req.user = decoded;
-        next()
+
+        /////////////////////
+        // Check if it's an event user (has userType in token)
+        if (req.user.userType) {
+            // This is an event user - check company status
+            const company = await companySchema.findById(req.user.company_id);
+            if (!company || company.status === 0) {
+                return res.status(403).json({ 
+                    message: "Company is inactive. Contact admin." 
+                });
+            }
+        } else {
+            // This is a regular user or admin
+            if (req.user.role !== 'superadmin') {
+                // For regular users, check user status and company status
+                const user = await userSchema.findById(req.user.userId);
+                if (!user || user.status === 0) {
+                    return res.status(403).json({ 
+                        message: "User is inactive. Contact admin." 
+                    });
+                }
+
+                // Check company status for non-superadmin users
+                const company = await companySchema.findById(req.user.company_id);
+                if (!company || company.status === 0) {
+                    return res.status(403).json({ 
+                        message: "Company is inactive. Contact admin." 
+                    });
+                }
+
+                // Additional check: verify user still belongs to the same company
+                if (user.company_id !== req.user.company_id) {
+                    return res.status(403).json({ 
+                        message: "User company has been changed. Please login again." 
+                    });
+                }
+            } else {
+                // For superadmin, just check if user exists and is active
+                const user = await userSchema.findById(req.user.userId);
+                if (!user || user.status === 0) {
+                    return res.status(403).json({ 
+                        message: "User is inactive." 
+                    });
+                }
+            }
+        }
+        /////////////////////
+        next();
     } catch (error) {
         res.status(403).json({ message: "Invalid or expired token" })
     }

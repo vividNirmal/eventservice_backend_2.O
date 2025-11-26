@@ -455,18 +455,23 @@ export const upload = multer({ storage: storage });
             route.get("/get-partner-section/:id", getPartnerSectionController);
             
             // Hero Section
+            route.get("/get-hero-section-admin/:id", protectedRoute, getHeroSectionController);
             route.post("/save-hero-section", protectedRoute, uploadImagesFile, convertImagesToWebP, validateRequest(saveHeroSectionSchema), saveHeroSectionController);
 
             // About Section
+            route.get("/get-about-section-admin/:id", protectedRoute, getAboutSectionController);
             route.post("/save-about-section", protectedRoute, uploadImagesFile, convertImagesToWebP, validateRequest(createAboutSectionSchema), saveAboutSectionController);
 
             // Data Section
+            route.get("/get-data-section-admin/:id", protectedRoute, getDataSectionController);
             route.post("/save-data-section", protectedRoute, uploadImagesFile, convertImagesToWebP, validateRequest(saveDataSectionSchema), saveDataSectionController);
 
             // Reason Section
+            route.get("/get-reason-section-admin/:id", protectedRoute, getReasonSectionController);
             route.post("/save-reason-section", protectedRoute, uploadImagesFile, convertImagesToWebP, validateRequest(saveReasonSectionSchema), saveReasonSectionController);
 
             // Partner Section
+            route.get("/get-partner-section-admin/:id", protectedRoute, getPartnerSectionController);
             route.post("/save-partner-section", protectedRoute, uploadImagesFile, convertImagesToWebP, validateRequest(savePartnerSectionSchema), savePartnerSectionController);
 
 

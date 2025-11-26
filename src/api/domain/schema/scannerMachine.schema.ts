@@ -13,13 +13,13 @@ export interface IscannermachineSchema extends Document {
 }
 
 const scannermachineSchema: Schema = new Schema<IscannermachineSchema>({
-    scanner_name:{ type: String, required: true },
-    scanner_unique_id:{ type: String, required: true },
+    scanner_name:{ type: String, required: true, trim: true },
+    scanner_unique_id:{ type: String, required: true, trim: true },
     status:{ type: String, required: false,default:"1" },
     company_id:{ type: String, required: false },
     expired_date:{ type: Date, required: false },
     password:{ type: String, required: false },
-    device_key:{ type: String, required: false },
+    device_key:{ type: String, required: false, trim: true },
     device_type:{ type: String, required: false },
 },
 {

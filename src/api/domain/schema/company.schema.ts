@@ -16,13 +16,13 @@ export interface IcompanySchema extends Document {
 }
 
 const companySchema: Schema = new Schema<IcompanySchema>({
-    company_name:{ type: String, required: true },
-    address:{ type: String, required: true },
-    gst_number:{ type: String, required: true },
-    owner_name:{ type: String, required: true },
-    email_one:{ type: String, required: true },
-    email_two:{ type: String, required: false },
-    subdomain:{ type: String, required: true },
+    company_name:{ type: String, required: true, trim: true },
+    address:{ type: String, required: true, trim: true },
+    gst_number:{ type: String, required: true, trim: true },
+    owner_name:{ type: String, required: true, trim: true },
+    email_one:{ type: String, required: true, trim: true },
+    email_two:{ type: String, required: false, trim: true },
+    subdomain:{ type: String, required: true, trim: true },
     status:{ type: Number, required: false,default: 1 },
     logo: { type: String, required: false }, // Optional field for logo
     exhibitor_dashboard_banner : {type:String,required :false},

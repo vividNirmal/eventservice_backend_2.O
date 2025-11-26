@@ -40,8 +40,8 @@ export interface IForm extends Document {
 
 const pageSchema = new Schema<IPage>(
   {
-    name: { type: String, required: true },
-    description: { type: String },
+    name: { type: String, required: true, trim: true },
+    description: { type: String, trim: true },
     elements: [{ type: Schema.Types.Mixed }],
   },
   { _id: false }
@@ -49,7 +49,7 @@ const pageSchema = new Schema<IPage>(
 
 const formSchema = new Schema<IForm>(
   {
-    formName: { type: String, required: true },
+    formName: { type: String, required: true, trim: true },
     userType: { 
       type: mongoose.Schema.Types.ObjectId, 
       ref: "UserType", 

@@ -26,10 +26,11 @@ const userSchema:Schema = new Schema<IUser>({
         type: String
     },
     name: {
-        type: String
+        type: String,
+        trim: true
     },
     email: {
-        type: String, unique: true, sparse: true
+        type: String, unique: true, sparse: true, trim: true
     },
     password: { type: String },
     profilePicture: { type: String },

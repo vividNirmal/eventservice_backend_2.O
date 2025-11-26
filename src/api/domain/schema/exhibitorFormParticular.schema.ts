@@ -43,7 +43,7 @@ const documentSchema = new Schema<IDocument>(
 const exhibitorFormParticularSchema = new Schema<IExhibitorFormParticular>(
   {
     item_name: { type: String, required: true, trim: true },
-    disclaimer: { type: String },
+    disclaimer: { type: String, trim: true },
     purachase_limit_per_order: { type: Number },
     national_price: { type: Number },
     international_price: { type: Number },

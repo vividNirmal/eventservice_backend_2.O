@@ -22,12 +22,12 @@ export interface IEventCompanyTeam extends Document {
 
 const EventCompanyTeamSchema: Schema = new Schema<IEventCompanyTeam>(
   {
-    first_name: { type: String, required: true },
-    last_name: { type: String, required: true },
+    first_name: { type: String, required: true, trim: true },
+    last_name: { type: String, required: true, trim: true },
     profile_picture: { type: String, required: false },
-    email: { type: String, required: true },
-    contact_no: { type: String, required: true },
-    pan_no: { type: String },
+    email: { type: String, required: true, trim: true },
+    contact_no: { type: String, required: true, trim: true },
+    pan_no: { type: String, trim: true },
     pan_card: { type: String },
     ownership: { 
       type: String, 
@@ -40,8 +40,8 @@ const EventCompanyTeamSchema: Schema = new Schema<IEventCompanyTeam>(
       required: true,
       enum: ['male', 'female', 'other']
     },
-    address_line1: { type: String, required: true },
-    address_line2: { type: String },
+    address_line1: { type: String, required: true, trim: true },
+    address_line2: { type: String, required: false, trim: true },
     pincode: { type: String, required: true },
     country: { 
       type: mongoose.Schema.Types.ObjectId, 

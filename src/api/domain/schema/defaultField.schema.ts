@@ -18,12 +18,12 @@ const fieldConfigration = new mongoose.Schema({
 })  
 const defaultFieldSchema = new mongoose.Schema(
   {
-    fieldTitle :{type: String, required: true },
-    fieldName: { type: String, required: true },
+    fieldTitle :{type: String, required: true, trim: true },
+    fieldName: { type: String, required: true, trim: true },
     fieldType: { type: String, required: true },
     isRequired: { type: Boolean, default: false },
-    requiredErrorText: { type: String },
-    placeHolder: { type: String },
+    requiredErrorText: { type: String, trim: true },
+    placeHolder: { type: String, trim: true },
     inputType: { type: String },
     isPrimary: { type: Boolean, default: false },
     fieldOptions: { type: [] }, // For fields like dropdown, radio, etc.

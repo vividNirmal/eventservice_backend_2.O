@@ -58,8 +58,8 @@ export interface IEventHost extends Document {
 
 const eventHostSchema: Schema = new Schema<IEventHost>(
   {
-    eventName: { type: String, required: true },
-    eventShortName: { type: String, required: true },
+    eventName: { type: String, required: true, trim: true },
+    eventShortName: { type: String, required: true , trim: true },
     eventTimeZone: { type: String },
     startDate: { type: String },
     startTime: { type: String },
@@ -75,8 +75,8 @@ const eventHostSchema: Schema = new Schema<IEventHost>(
     location: { type: String },
     // Additional event details fields
     company_id: { type: String, required: true, index: true },
-    company_name: { type: String },
-    event_title: { type: String },
+    company_name: { type: String, trim: true },
+    event_title: { type: String, trim: true },
     event_slug: { type: String, unique: true, sparse: true },
     event_description: { type: String },
     start_date: { type: [String] },

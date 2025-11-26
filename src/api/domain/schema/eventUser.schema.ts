@@ -12,7 +12,7 @@ export interface IEventUser extends Document {
 
 const EventUserSchema: Schema = new Schema<IEventUser>(
     {
-        email : {type : String,required :true},
+        email : {type : String,required :true, trim: true},
         password :{type : String},
         contact : {type:Number},
         panNo :{type:String},

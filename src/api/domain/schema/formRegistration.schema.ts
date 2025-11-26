@@ -31,7 +31,7 @@ const businessData = new mongoose.Schema(
 
 const formRegistrationSchema: Schema = new Schema<IFormRegistration>(
   {
-    email: { type: String },
+    email: { type: String, trim: true },
     ticketId: { type: mongoose.Types.ObjectId, ref: "Ticket" },
     eventId: { type: mongoose.Types.ObjectId, ref: "EventHost" },
     badgeNo: { type: String },

@@ -144,11 +144,10 @@ export const getAllExhibitorApplicationsController = async (
 // Get all exhibitor applications for admin
 export const getAllExhibitorApplicationsAdminController = async (req: Request, res: Response) => {
   try {
-    const companyId = req.query.companyId as string;
-    const eventId = req.query.eventId as string;
+    const exhibitorFormId = req.query.exhibitorFormId as string;
 
-    if (!companyId) {
-      return ErrorResponse(res, "Company ID is required");
+    if (!exhibitorFormId) {
+      return ErrorResponse(res, "Exhibitor Form ID is required");
     }
 
     const {
@@ -159,7 +158,6 @@ export const getAllExhibitorApplicationsAdminController = async (req: Request, r
 
     const filters = {
       ...(search && { search: search as string }),
-      ...(eventId && { eventId: eventId as string }),
     };
 
     const pagination = {
@@ -168,7 +166,7 @@ export const getAllExhibitorApplicationsAdminController = async (req: Request, r
     };
 
     getAllExhibitorApplicationsAdminModel(
-      new mongoose.Types.ObjectId(companyId),
+      new mongoose.Types.ObjectId(exhibitorFormId),
       filters,
       pagination,
       (error: any, result: any) => {

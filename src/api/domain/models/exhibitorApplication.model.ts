@@ -234,41 +234,22 @@ export const getAllExhibitorApplicationsModel = async (
 };
 
 export const getAllExhibitorApplicationsAdminModel = async (
-  companyId: mongoose.Types.ObjectId,
+  exhibitorFormId: mongoose.Types.ObjectId,
   filters: any = {},
   pagination: any = { page: 1, limit: 10 },
   callback: (error: any, result: any) => void
 ) => {
   try {
-    const { search, eventId } = filters;
+    const { search } = filters;
     const { page, limit } = pagination;
     const skip = (page - 1) * limit;
 
-    // Build base query - get exhibitor forms for this company
-    const exhibitorForms = await ExhibitorForm.find({ 
-      companyId: companyId,
-      ...(eventId && { eventId: new mongoose.Types.ObjectId(eventId) })
-    }).select('_id');
-
-    const exhibitorFormIds = exhibitorForms.map(form => form._id);
-
-    if (exhibitorFormIds.length === 0) {
-      return callback(null, {
-        applications: [],
-        pagination: {
-          currentPage: page,
-          limit,
-          totalCount: 0,
-          totalPages: 0,
-        },
-      });
-    }
-
-    // Build search query for applications
+    // Base query directly by exhibitorFormId
     const searchQuery: any = {
-      exhibitorFormId: { $in: exhibitorFormIds }
+      exhibitorFormId: exhibitorFormId
     };
 
+    // Optional search filter
     if (search) {
       searchQuery.$or = [
         { "formData.company_name": { $regex: search, $options: "i" } },
@@ -280,10 +261,10 @@ export const getAllExhibitorApplicationsAdminModel = async (
       ];
     }
 
-    // Count total applications
+    // Count total
     const totalCount = await ExhibitorApplication.countDocuments(searchQuery);
 
-    // Fetch applications with populated data
+    // Fetch paginated applications
     const applications = await ExhibitorApplication.find(searchQuery)
       .populate({
         path: "exhibitorFormId",
@@ -310,6 +291,7 @@ export const getAllExhibitorApplicationsAdminModel = async (
         totalPages: Math.ceil(totalCount / limit),
       },
     });
+
   } catch (error) {
     console.error("Error in getAllExhibitorApplicationsModel:", error);
     return callback(

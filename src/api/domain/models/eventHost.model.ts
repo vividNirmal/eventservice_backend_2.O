@@ -123,7 +123,7 @@ export const storeEventHost = async (
       eventCategory: eventData.eventCategory,
       location: eventData.location,
       // Additional event details fields (with defaults for optional fields)
-      company_id: loginUserData.company_id, // Store company_id from login user
+      company_id: eventData?.company_id, // Store company_id from login user
       company_name: eventData.company_name || "",
       event_title: eventData.event_title || eventData.eventName,
       event_slug:

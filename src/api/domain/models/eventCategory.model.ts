@@ -40,9 +40,9 @@ export const createEventCategoryModule = async (
       return callback(error, null);
     }
     // Extract company_id from token data
-    const companyId = loginUserData.company_id;
+    const companyId = data.company_id;
     if (!companyId) {
-      return callback(new Error("Company ID not found in token"));
+      return callback(new Error("Company ID not found in payload"));
     }
 
     // Add company_id to the event category data
@@ -149,11 +149,11 @@ export const getEventCategoryById = async (
       actualToken,
       process.env.JWT_SECRET_KEY
     );
-    const companyId = loginUserData.company_id;
+    // const companyId = loginUserData.company_id;
 
     const eventCategory = await eventCategorySchema.findOne({
       _id: id,
-      compayId: companyId,
+      // compayId: companyId,
     });
 
     if (!eventCategory) {
@@ -184,7 +184,7 @@ export const updateEventCategoryById = async (
       actualToken,
       process.env.JWT_SECRET_KEY
     );
-    const companyId = loginUserData.company_id;
+    const companyId = data?.company_id;
 
     if (data.title) {
       const existingCategory = await eventCategorySchema.findOne({
@@ -233,11 +233,11 @@ export const deleteEventCategoryById = async (
       actualToken,
       process.env.JWT_SECRET_KEY
     );
-    const companyId = loginUserData.company_id;
+    // const companyId = loginUserData.company_id;
 
     const deletedCategory = await eventCategorySchema.findOneAndDelete({
       _id: id,
-      compayId: companyId,
+      // compayId: companyId,
     });
 
     if (!deletedCategory) {

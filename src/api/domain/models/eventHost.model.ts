@@ -309,7 +309,7 @@ export const adminEventHostList = async (
 ) => {
   try {
     const currentPage = page || 1;
-    const size = pageSize || 10;
+    const size = pageSize || 0;
     const skip = (currentPage - 1) * size;
 
     const searchFilter = searchQuery
@@ -354,7 +354,7 @@ export const getAdminEventHostListByCompany = async (
 ) => {
   try {
     const currentPage = page || 1;
-    const size = pageSize || 10;
+    const size = pageSize || 0;
     const skip = (currentPage - 1) * size;
     const searchFilter = searchQuery
       ? {

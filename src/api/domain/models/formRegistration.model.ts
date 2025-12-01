@@ -358,9 +358,10 @@ export const storeFormRegistrationModel = async (
         console.error("❌ Face processing failed:", faceError);
         return callback(
           {
-            message: `Face processing failed: ${
-              faceError instanceof Error ? faceError.message : "Unknown error"
-            }`,
+            // message: `Face processing failed: ${
+            //   faceError instanceof Error ? faceError.message : "Unknown error"
+            // }`,
+            message: "Face processing failed",
             errorType: "FACE_PROCESSING_ERROR",
           },
           null
@@ -385,9 +386,10 @@ export const storeFormRegistrationModel = async (
         console.error("❌ Face processing failed:", faceError);
         return callback(
           {
-            message: `Face processing failed: ${
-              faceError instanceof Error ? faceError.message : "Unknown error"
-            }`,
+            // message: `Face processing failed: ${
+            //   faceError instanceof Error ? faceError.message : "Unknown error"
+            // }`,
+            message: "Face processing failed",
             errorType: "FACE_PROCESSING_ERROR",
           },
           null

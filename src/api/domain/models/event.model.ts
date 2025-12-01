@@ -295,14 +295,19 @@ export const getAllEventParticipantUserListModal = async (
       return callback({ message: "Event not found" }, null);
     }
 
-    // ✅ Base filter (only event)
-    const filter: any = { eventId: event_id };
-if (startDate && endDate) {
+    // ✅ Base filter - only users who have checked in at least once
+    const filter: any = { 
+      eventId: event_id,
+      checkin_time: { $exists: true, $ne: null }  // Only users with check-in time
+    };
+
+    if (startDate && endDate) {
       filter.createdAt = {
         $gte: new Date(startDate),
         $lte: new Date(endDate),
       };
     }
+
     // 🔍 Optional search filter
     if (filters && filters.trim() !== "") {
       const searchRegex = { $regex: filters, $options: "i" };
@@ -326,7 +331,7 @@ if (startDate && endDate) {
         path: "ticketId",
         select: "ticketName registrationFormId userType",
         populate: [
-          { path: "registrationFormId", select: ["formName",'pages'] },
+          { path: "registrationFormId", select: ["formName", 'pages'] },
           { path: "userType", select: "typeName" },
         ],
         strictPopulate: false,
@@ -337,41 +342,38 @@ if (startDate && endDate) {
       .limit(limit)
       .lean();
 
-    // ✅ Just add userType name directly (don’t remap)
-   registrations.forEach((r: any) => {
-  // Extract userType name directly
-  r.userType = r.ticketId?.userType?.typeName || "N/A";
-  
-  // Get registration form from ticketId
-  const registrationForm = r.ticketId?.registrationFormId;
-  
-  if (registrationForm) {
-    // Build map_array from form pages and elements
-    const map_array: Record<string, string> = {};
-    
-    if (Array.isArray(registrationForm.pages)) {
-      registrationForm.pages.forEach((page: any) => {
-        if (Array.isArray(page.elements)) {
-          page.elements.forEach((element: any) => {
-            if (element.mapField && element.fieldName) {
-              map_array[element.mapField] = element.fieldName;
+    // ✅ Add userType name directly
+    registrations.forEach((r: any) => {
+      // Extract userType name directly
+      r.userType = r.ticketId?.userType?.typeName || "N/A";
+      
+      // Get registration form from ticketId
+      const registrationForm = r.ticketId?.registrationFormId;
+      
+      if (registrationForm) {
+        // Build map_array from form pages and elements
+        const map_array: Record<string, string> = {};
+        
+        if (Array.isArray(registrationForm.pages)) {
+          registrationForm.pages.forEach((page: any) => {
+            if (Array.isArray(page.elements)) {
+              page.elements.forEach((element: any) => {
+                if (element.mapField && element.fieldName) {
+                  map_array[element.mapField] = element.fieldName;
+                }
+              });
             }
           });
-        }
-      });
-    }    
-    
-    r.registrationFormId = {
-      ...registrationForm,
-      map_array,
-    };
-  } else {
-    r.registrationFormId = null;
-  }
-});
-
-
-    
+        }    
+        
+        r.registrationFormId = {
+          ...registrationForm,
+          map_array,
+        };
+      } else {
+        r.registrationFormId = null;
+      }
+    });
 
     // ✅ Return same as getFormRegistrationListModel
     return callback(null, {

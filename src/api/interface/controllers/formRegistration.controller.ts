@@ -915,9 +915,9 @@ const paperSizeConfig: Record<
 > = {
   a4: { width: "210mm", height: "297mm", format: "A4" },
   a5: { width: "148mm", height: "210mm", format: "A5" },
+  a6: { width: "105mm", height: "148mm", format: "A6" },
   letter: { width: "215.9mm", height: "279.4mm", format: "Letter" },
   legal: { width: "215.9mm", height: "355.6mm", format: "Legal" },
-  normal: { width: "93.5mm", height: "122mm" }, // Custom size
 };
 
 /**

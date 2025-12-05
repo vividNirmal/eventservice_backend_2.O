@@ -9,7 +9,7 @@ export interface IPaperBadgeSetting extends Document {
   // Additional settings
   companyId?: mongoose.Types.ObjectId;
   eventId: mongoose.Types.ObjectId;
-  paperSize?: "a4" | "a5" | "letter" | "legal" | "normal"; // paper size
+  paperSize?: "a4" | "a5" | "a6" | "letter" | "legal"; // paper size
   // Updated fields structure to support both single and combined fields
   fields?: Array<{
     combined_id?: string; // For combined fields like "firstName_lastName"
@@ -64,7 +64,7 @@ const paperBadgeSettingSchema = new Schema<IPaperBadgeSetting>(
     // paper size
     paperSize: { 
       type: String, 
-      enum: ["a4", "a5", "letter", "legal", "normal"], 
+      enum: ["a4", "a5", "a6", "letter", "legal"], 
       default: "a4" 
     },
     fields: { type: Array, default: [] }, // ✅ add this

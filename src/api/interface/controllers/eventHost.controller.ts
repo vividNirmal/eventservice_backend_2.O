@@ -391,3 +391,19 @@ export const copyAdminEventHost = async (req: Request, res: Response) => {
     return ErrorResponse(res, "An error occurred while copying the event host.");
   }
 };
+
+// Delete Event Hote By id
+
+export const deleteAdminEventHost = async(req:Request,res :Response) =>{
+  try{
+    const { id } = req.params;
+    const detele_event_host = await eventHostSchema.deleteOne({_id :id })
+     return successResponse(
+          res,
+          `Successfully deleted  event. `,
+          detele_event_host.deletedCount
+        );
+  }catch(err){     
+    return ErrorResponse(res, "An error occurred while Delete the event host.");
+  }
+}

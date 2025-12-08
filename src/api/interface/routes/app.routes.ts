@@ -28,7 +28,7 @@ import { adminCompanySchema,updateAdminCompanySchema,deleteAdminCompanySchema } 
 import { companyTeamSchema,updateCompanyTeamSchema,deleteCompanyTeamSchema } from "../../utils/validation-schems/companyTeamSchema.validation";
 import { getEventDetailValidation,scanParticipantFaceSchema, scanParticipantQRSchema } from "../../utils/validation-schems/scannerPage.validation";
 import { verifyScannerToken } from "../../middleware/scanner.middleware";
-import { getAdminEventHostList, storeAdminEventHost, updateAdminEventHost, getAdminEventHostDetails, getAdminEventHostListByCompany, linkTicketToEventHost, checkTicketLinkStatus, copyAdminEventHost } from "../controllers/eventHost.controller";
+import { getAdminEventHostList, storeAdminEventHost, updateAdminEventHost, getAdminEventHostDetails, getAdminEventHostListByCompany, linkTicketToEventHost, checkTicketLinkStatus, copyAdminEventHost, deleteAdminEventHost } from "../controllers/eventHost.controller";
 import { eventHostUpdateSchema, eventHostSchema } from "../../utils/validation-schems/eventHostSchema.validation";
 import { getFormListController, getFormDetailsController, createFormController, updateFormController, deleteFormController, addPageController, exportFormController, importFormController } from "../../interface/controllers/form.controller";
 import { createFormSchema, updateFormBodySchema, deleteFormSchema, getFormByIdSchema } from "../../utils/validation-schems/form.validation";
@@ -159,6 +159,7 @@ export const upload = multer({ storage: storage });
             route.post("/copy-event-host/:id",protectedRoute,copyAdminEventHost);
             route.get("/get-event-host-list",protectedRoute,getAdminEventHostList);
             route.get("/get-event-host-details/:id",getAdminEventHostDetails);
+            route.get('/get-event-host-delete/:id',deleteAdminEventHost)
 
             // admin route to get event host list by company
             route.get("/get-event-host-list-by-company", checkAdmin, getAdminEventHostListByCompany);

@@ -88,7 +88,8 @@ export const updateCompanySchema = Joi.object({
         "any.required": "Subdomain is required."
     }),
     attandess_dashboard_banner :Joi.optional(),
-    exhibitor_dashboard_banner : Joi.optional()
+    exhibitor_dashboard_banner : Joi.optional(),
+    company_login_banner : Joi.optional()
      
 });
 
@@ -98,7 +99,8 @@ export const updateCompanyLogoSchema = Joi.object({
     }),
     logo:Joi.optional(),
     attandess_dashboard_banner :Joi.optional(),
-    exhibitor_dashboard_banner : Joi.optional()
+    exhibitor_dashboard_banner : Joi.optional(),
+    company_login_banner : Joi.optional()
 });
 
 

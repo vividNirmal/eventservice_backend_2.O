@@ -6,7 +6,7 @@ import { registerUser , loginUser} from "../../interface/controllers/auth.contro
 import { getCountry,getState,getCity,importXlsxData,getHomePageCity } from "../../interface/controllers/location.controller";
 import { getSetting , updateSetting } from "../../interface/controllers/setting.controller";
 import { storeScannerMachine,updateScannerMachine,deleteScannerMachine,getScannerMachine,assignScannerMachine,removeAssignScannerMachine,getScannerMachineDetails,checkUniqueMachineId,getScannerMachinesByCompany } from "../../interface/controllers/scannerMachine.controller";
-import { storeCompanyController,getCompany,getCompanyDetails,updateCompanyController,deleteCompany,updateCompanyStatus, updateCompanyLogo, getCompanyImages, getCompanyBySubdomainController } from "../../interface/controllers/company.controller";
+import { storeCompanyController,getCompany,getCompanyDetails,updateCompanyController,deleteCompany,updateCompanyStatus, updateCompanyLogo, getCompanyImages, getCompanyBySubdomainController, getCompanyLoginBanner } from "../../interface/controllers/company.controller";
 
 import { getEventDetailsSlug,logoutAllScanners,scannerPageLogin } from "../../interface/controllers/ScannerPage.controller";
 import { storeEventParticipantUser ,getUserDetailsUsingEmail,generateEventPdf,generateScannerEventPdf,getParticipantDetails,getParticipantDetailsScanner,scanFaceId,scanParticipantFace, OtpGenerate, OtpVerify, updateParticipantUser, toggleParticipantBlockStatus, scanParticipantQR } from "../../interface/controllers/participantUser.controller";
@@ -246,6 +246,7 @@ export const upload = multer({ storage: storage });
             route.post("/get-scanner-data-details",validateRequest(scannerData), getParticipantDetailsScanner)
             route.post("/update-company-logo",protectedRoute,uploadImagesFile,validateRequest(updateCompanyLogoSchema),updateCompanyLogo);
             route.get("/get-company-logo/:id", getCompanyImages);
+            route.get("/get-company-login-banner/:subdomain", getCompanyLoginBanner);
 
             //forget password
             route.post("/forget-password",validateRequest(forgetPasswordSchema),forgetPassword);

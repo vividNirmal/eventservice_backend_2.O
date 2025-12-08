@@ -120,6 +120,12 @@ export const userLogin = async (
     ) {
       registeruser.compayId.exhibitor_dashboard_banner = `${baseUrl}/${registeruser.compayId.exhibitor_dashboard_banner}`;
     }
+    if (
+      registeruser?.compayId &&
+      registeruser?.compayId?.company_login_banner
+    ) {
+      registeruser.compayId.company_login_banner = `${baseUrl}/${registeruser.compayId.company_login_banner}`;
+    }
     if (registeruser) {
       const subdomain = userData.subdomain;
       const company_details: any = await companySchema.findOne({ subdomain });

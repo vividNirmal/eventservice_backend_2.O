@@ -787,6 +787,11 @@ export const getFormRegistrationListModel = async (
       filter.$or = [
         { email: { $regex: search, $options: "i" } },
         { badgeNo: { $regex: search, $options: "i" } },
+        { "formData.name": { $regex: search, $options: "i" } },
+        { "formData.first_name": { $regex: search, $options: "i" } },
+        { "formData.last_name": { $regex: search, $options: "i" } },
+        { "formData.phone_number": { $regex: search, $options: "i" } },
+        { "formData.contact_no":{ $regex: search, $options: "i" } },
       ];
     }
 

@@ -318,6 +318,7 @@ export const getAllEventParticipantUserListModal = async (
         { "formData.first_name": searchRegex },
         { "formData.last_name": searchRegex },
         { "formData.phone_number": searchRegex },
+        { "formData.contact_no": searchRegex },
       ];
     }
 

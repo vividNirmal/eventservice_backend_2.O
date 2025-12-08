@@ -15,6 +15,7 @@ interface companyData{
     logo?:string;
     exhibitor_dashboard_banner?:String;
     attandess_dashboard_banner?:string;
+    company_login_banner?:string;
 }
 interface companyLogo{
     company_id:string;
@@ -37,6 +38,9 @@ const addImageUrls = (company: any) => {
     }
     if (company.exhibitor_dashboard_banner) {
       company.exhibitor_dashboard_banner = `${baseUrl}/uploads/${company.exhibitor_dashboard_banner}`;
+    } 
+    if (company?.company_login_banner) {
+      company.company_login_banner = `${baseUrl}/uploads/${company.company_login_banner}`;
     }
   }
   return company;
@@ -108,7 +112,8 @@ export const storeCompany = async (companyData: companyData, callback: (error: a
             status:1,
             logo: companyData.logo ? companyData.logo : "",
             exhibitor_dashboard_banner : companyData.exhibitor_dashboard_banner ? companyData.exhibitor_dashboard_banner :"",
-            attandess_dashboard_banner : companyData.attandess_dashboard_banner ? companyData.attandess_dashboard_banner : ""
+            attandess_dashboard_banner : companyData.attandess_dashboard_banner ? companyData.attandess_dashboard_banner : "",
+            company_login_banner : companyData?.company_login_banner ? companyData.company_login_banner : ""
         });
 
         const savedCompany= await newCompany.save();
@@ -143,7 +148,8 @@ export const updateCompany = async (
                     subdomain: companyData.subdomain,
                     logo: companyData.logo,
                     exhibitor_dashboard_banner : companyData.exhibitor_dashboard_banner ,
-                    attandess_dashboard_banner : companyData.attandess_dashboard_banner 
+                    attandess_dashboard_banner : companyData.attandess_dashboard_banner ,
+                    company_login_banner : companyData?.company_login_banner
                 },
             },
             { new: true } 
@@ -157,6 +163,9 @@ export const updateCompany = async (
         }
          if(updatedCompany.attandess_dashboard_banner){
             updatedCompany.attandess_dashboard_banner = `${baseUrl}/uploads/${updatedCompany.attandess_dashboard_banner}`
+        } 
+        if(updatedCompany?.company_login_banner){
+            updatedCompany.company_login_banner = `${baseUrl}/uploads/${updatedCompany.company_login_banner}`
         }
         return callback(null, { updatedCompany });
     } catch (error) {
@@ -177,6 +186,7 @@ export const updateCompanyLogoModel = async (
     if (companyData.logo) updateData.logo = companyData.logo;
     if (companyData.exhibitor_dashboard_banner) updateData.exhibitor_dashboard_banner = companyData.exhibitor_dashboard_banner;
     if (companyData.attandess_dashboard_banner) updateData.attandess_dashboard_banner = companyData.attandess_dashboard_banner;
+    if (companyData?.company_login_banner) updateData.company_login_banner = companyData.company_login_banner;
 
     const updatedCompany = await companySchema.findByIdAndUpdate(
       companyId,
@@ -204,7 +214,7 @@ export const getCompanyImagesModel = async (
 ) => {
   try {
     const company = await companySchema.findById(companyId)
-      .select('logo exhibitor_dashboard_banner attandess_dashboard_banner company_name');
+      .select('logo exhibitor_dashboard_banner attandess_dashboard_banner company_login_banner company_name');
 
     if (!company) {
       return callback(new Error("Company not found"), null);
@@ -217,6 +227,35 @@ export const getCompanyImagesModel = async (
       logo: companyWithUrls.logo || null,
       exhibitor_dashboard_banner: companyWithUrls.exhibitor_dashboard_banner || null,
       attandess_dashboard_banner: companyWithUrls.attandess_dashboard_banner || null,
+      company_login_banner: companyWithUrls?.company_login_banner || null,
+      company_name: companyWithUrls.company_name
+    };
+
+    return callback(null, { images });
+  } catch (error) {
+    console.error("Error fetching company images:", error);
+    return callback(error, null);
+  }
+};
+
+export const getCompanyLoginBannerModel = async (
+  subdomain: string,
+  callback: (error: any, result: any) => void
+) => {
+  try {
+    const company = await companySchema.findOne({ subdomain })
+      .select('logo company_login_banner company_name');
+
+    if (!company) {
+      return callback(new Error("Company not found"), null);
+    }
+
+    // Add full URLs to the images
+    const companyWithUrls = addImageUrls(company.toObject());
+
+    const images = {
+      logo: companyWithUrls.logo || null,
+      company_login_banner: companyWithUrls?.company_login_banner || null,
       company_name: companyWithUrls.company_name
     };
 

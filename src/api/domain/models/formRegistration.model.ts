@@ -782,23 +782,10 @@ export const getFormRegistrationListModel = async (
 
     const filter: any = {};
 
-    // 🔍 Search filters
-    if (search) {
-      filter.$or = [
-        { email: { $regex: search, $options: "i" } },
-        { badgeNo: { $regex: search, $options: "i" } },
-        { "formData.name": { $regex: search, $options: "i" } },
-        { "formData.first_name": { $regex: search, $options: "i" } },
-        { "formData.last_name": { $regex: search, $options: "i" } },
-        { "formData.phone_number": { $regex: search, $options: "i" } },
-        { "formData.contact_no":{ $regex: search, $options: "i" } },
-      ];
-    }
-
     if (eventId) filter.eventId = eventId;
     if (approved !== "") filter.approved = approved === "true";
 
-    // Direct ticket filter
+    // Get tickets and build field mappings FIRST (before search filter)
     const map_array: any = {};
     const tickets = await Ticket.find({
       ...(userTypeId ? { userType: userTypeId } : {}),
@@ -836,6 +823,64 @@ export const getFormRegistrationListModel = async (
       });
     }
 
+    // 🔍 Search filters with field mapping
+    if (search) {
+      const searchConditions: any[] = [
+        { email: { $regex: search, $options: "i" } },
+        { badgeNo: { $regex: search, $options: "i" } },
+      ];
+
+      // Get mapped field names for searchable constants
+      const firstNameField = map_array['first_name'];
+      const lastNameField = map_array['last_name'];
+      const contactNoField = map_array['contact_no'];
+
+      // Add mapped field searches to formData
+      if (firstNameField) {
+        searchConditions.push({ 
+          [`formData.${firstNameField}`]: { $regex: search, $options: "i" } 
+        });
+      }
+      
+      if (lastNameField) {
+        searchConditions.push({ 
+          [`formData.${lastNameField}`]: { $regex: search, $options: "i" } 
+        });
+      }
+      
+      if (contactNoField) {
+        searchConditions.push({ 
+          [`formData.${contactNoField}`]: { $regex: search, $options: "i" } 
+        });
+      }
+
+      // Combined first_name + last_name search (when search contains space)
+      if (firstNameField && lastNameField && search.includes(' ')) {
+        const searchParts = search.trim().split(/\s+/);
+        if (searchParts.length >= 2) {
+          const firstName = searchParts[0];
+          const lastName = searchParts.slice(1).join(' ');
+          
+          searchConditions.push({
+            $and: [
+              { [`formData.${firstNameField}`]: { $regex: firstName, $options: "i" } },
+              { [`formData.${lastNameField}`]: { $regex: lastName, $options: "i" } }
+            ]
+          });
+          
+          // Also try reverse order (last_name first_name)
+          searchConditions.push({
+            $and: [
+              { [`formData.${firstNameField}`]: { $regex: lastName, $options: "i" } },
+              { [`formData.${lastNameField}`]: { $regex: firstName, $options: "i" } }
+            ]
+          });
+        }
+      }
+
+      filter.$or = searchConditions;
+    }
+
     // Date range filter
     if (startDate && endDate) {
       filter.createdAt = {
@@ -844,8 +889,7 @@ export const getFormRegistrationListModel = async (
       };
     }
 
-    // Rest of your existing code...
-    // 🧩 Step 2: Fetch form registrations with populated data
+    // Fetch form registrations with populated data
     const registrations = await FormRegistration.find(filter)
       .populate({
         path: "ticketId",        

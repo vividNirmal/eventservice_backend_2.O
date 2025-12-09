@@ -6,6 +6,7 @@ import { env } from "../../../infrastructure/env";
 import multer from "multer"
 import path from "path"
 import eventHostSchema from "../schema/eventHost.schema";
+import Ticket from "../schema/ticket.schema";
 
 import formRegistrationSchema from "../schema/formRegistration.schema";
 
@@ -295,6 +296,25 @@ export const getAllEventParticipantUserListModal = async (
       return callback({ message: "Event not found" }, null);
     }
 
+    // ✅ Get tickets for this event to build field mappings FIRST
+    const eventTickets = await Ticket.find({ eventId: event_id })
+      .populate("registrationFormId")
+      .lean();
+
+    const reg_map_array: Record<string, string> = {};
+    eventTickets.forEach((ticket: any) => {
+      const form = ticket.registrationFormId;
+      if (form?.pages) {
+        form.pages.forEach((page: any) => {
+          page.elements?.forEach((element: any) => {
+            if (element.mapField && element.fieldName) {
+              reg_map_array[element.mapField] = element.fieldName;
+            }
+          });
+        });
+      }
+    });
+
     // ✅ Base filter - only users who have checked in at least once
     const filter: any = { 
       eventId: event_id,
@@ -308,18 +328,63 @@ export const getAllEventParticipantUserListModal = async (
       };
     }
 
-    // 🔍 Optional search filter
+    // 🔍 Optional search filter with field mapping
     if (filters && filters.trim() !== "") {
-      const searchRegex = { $regex: filters, $options: "i" };
-      filter.$or = [
-        { email: searchRegex },
-        { badgeNo: searchRegex },
-        { "formData.name": searchRegex },
-        { "formData.first_name": searchRegex },
-        { "formData.last_name": searchRegex },
-        { "formData.phone_number": searchRegex },
-        { "formData.contact_no": searchRegex },
+      const search = filters.trim();
+      const searchConditions: any[] = [
+        { email: { $regex: search, $options: "i" } },
+        { badgeNo: { $regex: search, $options: "i" } },
       ];
+
+      // Get mapped field names for searchable constants
+      const firstNameField = reg_map_array['first_name'];
+      const lastNameField = reg_map_array['last_name'];
+      const contactNoField = reg_map_array['contact_no'];
+
+      // Add mapped field searches to formData
+      if (firstNameField) {
+        searchConditions.push({ 
+          [`formData.${firstNameField}`]: { $regex: search, $options: "i" } 
+        });
+      }
+      
+      if (lastNameField) {
+        searchConditions.push({ 
+          [`formData.${lastNameField}`]: { $regex: search, $options: "i" } 
+        });
+      }
+      
+      if (contactNoField) {
+        searchConditions.push({ 
+          [`formData.${contactNoField}`]: { $regex: search, $options: "i" } 
+        });
+      }
+
+      // Combined first_name + last_name search (when search contains space)
+      if (firstNameField && lastNameField && search.includes(' ')) {
+        const searchParts = search.split(/\s+/);
+        if (searchParts.length >= 2) {
+          const firstName = searchParts[0];
+          const lastName = searchParts.slice(1).join(' ');
+          
+          searchConditions.push({
+            $and: [
+              { [`formData.${firstNameField}`]: { $regex: firstName, $options: "i" } },
+              { [`formData.${lastNameField}`]: { $regex: lastName, $options: "i" } }
+            ]
+          });
+          
+          // Also try reverse order (last_name first_name)
+          searchConditions.push({
+            $and: [
+              { [`formData.${firstNameField}`]: { $regex: lastName, $options: "i" } },
+              { [`formData.${lastNameField}`]: { $regex: firstName, $options: "i" } }
+            ]
+          });
+        }
+      }
+
+      filter.$or = searchConditions;
     }
 
     // 🧮 Count total

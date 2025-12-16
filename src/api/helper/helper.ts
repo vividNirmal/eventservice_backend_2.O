@@ -7,7 +7,7 @@ import jwt from "jsonwebtoken";
 import {RtcTokenBuilder, RtcRole} from "agora-token";
 import sharp from "sharp";
 
-const uploadPath= "../../../uploads"; //#ForLive
+const uploadPath= "../../../../uploads"; //#ForLive
 // const uploadPath= "../../../uploads"; //#ForLocal
 
 export const uploadImagesFile = multer({

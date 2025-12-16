@@ -76,7 +76,7 @@ export const importXlsxData = async (req: Request, res: Response) => {
     try {
         // Define file name & folder path
         const filename = "cities-list.xlsx";
-        const folderPath = path.join(__dirname, "../../../../uploads"); // Ensure this folder exists
+        const folderPath = path.join(__dirname, "../../../uploads"); // Ensure this folder exists
         const filePath = path.join(folderPath, filename);
 
         console.log("Reading file from:", filePath);

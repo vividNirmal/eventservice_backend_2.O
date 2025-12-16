@@ -2,7 +2,7 @@ import { env } from "process";
 import { RekognitionClient, IndexFacesCommand, SearchFacesByImageCommand ,CreateCollectionCommand  } from "@aws-sdk/client-rekognition";
 
 
-const COLLECTION_ID = "levenex_collection";
+const COLLECTION_ID =process.env.AWS_REKOGNITION_COLLECTION ||  "levenex_collection";
 // const rekognition = new AWS.Rekognition();
 const AWS_REGION = process.env.AWS_REGION || "";
 const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID || "";

@@ -247,8 +247,7 @@ const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME;
 
 // QR code directory setup (reuse from old code)
 const qrDirectory = path.join(
-  __dirname,
-  
+  __dirname,  
   "..",
   "..",
   "..",

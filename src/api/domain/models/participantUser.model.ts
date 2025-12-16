@@ -29,8 +29,7 @@ interface ParticipantUsersDataUpdate {
   [key: string]: any; // Allow any dynamic fields for updates
 }
 const qrDirectory = path.join(
-  __dirname,
-  "..",
+  __dirname,  
   "..",
   "..",
   "..",
@@ -674,11 +673,10 @@ export const storeParticipantUser = async (
 };
 
 function saveQrImage(base64String: string, fileName: string): string {
-  console.log("__dirname__dirname__dirname", __dirname);
+  
   const base64Data = base64String.replace(/^data:image\/png;base64,/, ""); // Remove prefix
-  console.log("qrDirectory");
-  const filePath = path.join(qrDirectory, `${fileName}.png`); // File path
-  console.log("qrDirectory_qrDirectory_qrDirectory", qrDirectory);
+  
+  const filePath = path.join(qrDirectory, `${fileName}.png`); // File pat  
   fs.writeFileSync(filePath, base64Data, "base64"); // Save file
   return `${fileName}.png`; // Return saved file path
 }

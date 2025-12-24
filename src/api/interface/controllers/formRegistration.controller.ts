@@ -834,7 +834,7 @@ export const generateBadgePdf = async (
 
     // Launch puppeteer and generate PDF
     const browser = await puppeteer.launch({
-      args: ["--no-sandbox"],
+      executablePath: '/usr/bin/chromium-browser'
     });
     const page = await browser.newPage();
     await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 2 });
@@ -1466,7 +1466,7 @@ export const generatePaperBadgePdf = async (
 
     // Launch puppeteer and generate PDF
     const browser = await puppeteer.launch({
-      args: ["--no-sandbox"],
+      executablePath: '/usr/bin/chromium-browser'
     });
 
     const page = await browser.newPage();

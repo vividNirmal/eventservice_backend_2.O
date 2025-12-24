@@ -992,7 +992,7 @@ export const generateScannerEventPdf = async (req: Request, res: Response) => {
 </html>`;
 
     const browser = await puppeteer.launch({      
-       args: ["--no-sandbox",]
+       executablePath: '/usr/bin/chromium-browser'
     });
 
     const page = await browser.newPage();
@@ -1286,7 +1286,7 @@ export const generateEventPdf = async (req: Request, res: Response) => {
         `;
 
     const browser = await puppeteer.launch({
-      args: ["--no-sandbox",]      
+      executablePath: '/usr/bin/chromium-browser'    
     });
 
     const page = await browser.newPage();
@@ -1575,7 +1575,7 @@ export const getParticipantDetails = async (req: Request, res: Response) => {
             `;
 
       const browser = await puppeteer.launch({
-        args: ["--no-sandbox",]
+        executablePath: '/usr/bin/chromium-browser'
       });
 
       const page = await browser.newPage();
